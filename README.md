@@ -178,7 +178,30 @@ npm run typecheck
 
 # Lint
 npm run lint
+
+# Debug API calls (shows request/response)
+QUICKFILE_DEBUG=1 node dist/index.js
 ```
+
+## Contributing
+
+### QuickFile API Documentation
+
+The QuickFile API has strict requirements for element ordering and required fields. When contributing:
+
+1. **Always check the official API schema** at https://api.quickfile.co.uk/
+2. **Use Context7 for AI-assisted development**: https://context7.com/websites/api_quickfile_co_uk
+   - Context7 has indexed the full QuickFile API documentation
+   - Use it to query exact field names, required parameters, and element ordering
+   - Example: "What are the required fields for Purchase_Search?"
+
+### Key API Quirks
+
+- **Element ordering matters** - XML schema validation requires specific field order
+- **Required fields vary by endpoint** - `OrderResultsBy` and `OrderDirection` are required for most search endpoints
+- **Field naming is inconsistent** - e.g., `FromDate`/`ToDate` vs `DateFrom`/`DateTo`
+- **SearchParameters wrapper** - Most endpoints need this wrapper around query params
+- **NominalCode types** - Sometimes string, sometimes int (check schema)
 
 ## Architecture
 
