@@ -7,10 +7,8 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { getApiClient, QuickFileApiError } from '../api/client.js';
 import type {
   Purchase,
-  PurchaseSearchParams,
   PurchaseCreateParams,
   PurchaseLine,
-  PurchaseStatus,
 } from '../types/quickfile.js';
 
 // =============================================================================
@@ -57,7 +55,7 @@ export const purchaseTools: Tool[] = [
         },
         orderBy: {
           type: 'string',
-          enum: ['PurchaseDate', 'DueDate', 'SupplierName', 'GrossAmount'],
+          enum: ['ReceiptNumber', 'ReceiptDate', 'SupplierName', 'Total'],
           description: 'Field to order by',
         },
         orderDirection: {
@@ -194,26 +192,28 @@ export async function handlePurchaseTool(
   try {
     switch (toolName) {
       case 'quickfile_purchase_search': {
-        const params: PurchaseSearchParams = {
-          SupplierID: args.supplierId as number | undefined,
-          DateFrom: args.dateFrom as string | undefined,
-          DateTo: args.dateTo as string | undefined,
-          Status: args.status as PurchaseStatus | undefined,
-          SearchKeyword: args.searchKeyword as string | undefined,
+        // Build search parameters - element order matters for QuickFile XML API
+        // Order: ReturnCount, Offset, then optional filters, then OrderResultsBy (required)
+        const searchParams: Record<string, unknown> = {
           ReturnCount: (args.returnCount as number) ?? 25,
           Offset: (args.offset as number) ?? 0,
-          OrderResultsBy: args.orderBy as PurchaseSearchParams['OrderResultsBy'],
-          OrderDirection: args.orderDirection as PurchaseSearchParams['OrderDirection'],
         };
-
-        const cleanParams = Object.fromEntries(
-          Object.entries(params).filter(([, v]) => v !== undefined)
-        );
+        
+        if (args.supplierId) searchParams.SupplierID = args.supplierId;
+        if (args.dateFrom) searchParams.DateFrom = args.dateFrom;
+        if (args.dateTo) searchParams.DateTo = args.dateTo;
+        if (args.status) searchParams.Status = args.status;
+        if (args.searchKeyword) searchParams.SearchKeyword = args.searchKeyword;
+        
+        // OrderResultsBy and OrderDirection are both required
+        // Valid OrderResultsBy values: ReceiptNumber, ReceiptDate, SupplierName, Total
+        searchParams.OrderResultsBy = (args.orderBy as string) ?? 'ReceiptDate';
+        searchParams.OrderDirection = (args.orderDirection as string) ?? 'DESC';
 
         const response = await client.request<
-          { SearchParameters: typeof cleanParams },
+          { SearchParameters: typeof searchParams },
           PurchaseSearchResponse
-        >('Purchase_Search', { SearchParameters: cleanParams });
+        >('Purchase_Search', { SearchParameters: searchParams });
 
         const purchases = response.Purchases?.Purchase || [];
         return {

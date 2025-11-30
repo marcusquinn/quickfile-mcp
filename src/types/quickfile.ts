@@ -313,6 +313,8 @@ export interface BankSearchParams {
   Tagged?: boolean;
   ReturnCount?: number;
   Offset?: number;
+  OrderResultsBy?: string;
+  OrderDirection?: string;
 }
 
 export interface BankTransactionCreateParams {

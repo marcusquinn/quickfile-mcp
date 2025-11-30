@@ -7,7 +7,6 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { getApiClient, QuickFileApiError } from '../api/client.js';
 import type {
   Client,
-  ClientSearchParams,
   ClientContact,
   ClientAddress,
 } from '../types/quickfile.js';
@@ -272,10 +271,21 @@ export const clientTools: Tool[] = [
 // =============================================================================
 
 interface ClientSearchResponse {
-  Clients: {
-    Client: Client[];
-  };
-  TotalRecords: number;
+  RecordsetCount: number;
+  ReturnCount: number;
+  Record: Array<{
+    ClientID: number;
+    ClientCreatedDate: string;
+    CompanyName: string;
+    Status: string;
+    PrimaryContact?: {
+      FirstName?: string;
+      Surname?: string;
+      Telephone?: string;
+      Email?: string;
+    };
+    AccountBalance?: string;
+  }>;
 }
 
 interface ClientGetResponse {
@@ -303,35 +313,35 @@ export async function handleClientTool(
   try {
     switch (toolName) {
       case 'quickfile_client_search': {
-        const params: ClientSearchParams = {
-          CompanyName: args.companyName as string | undefined,
-          ContactName: args.contactName as string | undefined,
-          Email: args.email as string | undefined,
-          Postcode: args.postcode as string | undefined,
+        // Build search parameters matching QuickFile API spec
+        // OrderDirection and OrderResultsBy are REQUIRED fields
+        const searchParams: Record<string, unknown> = {
           ReturnCount: (args.returnCount as number) ?? 25,
           Offset: (args.offset as number) ?? 0,
-          OrderResultsBy: args.orderBy as ClientSearchParams['OrderResultsBy'],
-          OrderDirection: args.orderDirection as ClientSearchParams['OrderDirection'],
+          OrderResultsBy: (args.orderBy as string) ?? 'CompanyName',
+          OrderDirection: (args.orderDirection as string) ?? 'ASC',
         };
+        
+        if (args.companyName) searchParams.CompanyName = args.companyName;
+        if (args.firstName) searchParams.FirstName = args.firstName;
+        if (args.lastName) searchParams.Surname = args.lastName;
+        if (args.email) searchParams.Email = args.email;
+        if (args.telephone) searchParams.Telephone = args.telephone;
 
-        const cleanParams = Object.fromEntries(
-          Object.entries(params).filter(([, v]) => v !== undefined)
-        );
-
-        const response = await client.request<{ SearchParameters: typeof cleanParams }, ClientSearchResponse>(
+        const response = await client.request<{ SearchParameters: typeof searchParams }, ClientSearchResponse>(
           'Client_Search',
-          { SearchParameters: cleanParams }
+          { SearchParameters: searchParams }
         );
 
-        const clients = response.Clients?.Client || [];
+        const clients = response.Record || [];
         return {
           content: [
             {
               type: 'text',
               text: JSON.stringify(
                 {
-                  totalRecords: response.TotalRecords,
-                  count: clients.length,
+                  totalRecords: response.RecordsetCount,
+                  returnedCount: response.ReturnCount,
                   clients: clients,
                 },
                 null,

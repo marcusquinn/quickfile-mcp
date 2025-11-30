@@ -161,12 +161,16 @@ export async function handleReportTool(
   try {
     switch (toolName) {
       case 'quickfile_report_profit_loss': {
+        // SearchParameters wrapper with FromDate/ToDate (not StartDate/EndDate)
+        const searchParams: Record<string, unknown> = {};
+        if (args.startDate) searchParams.FromDate = args.startDate;
+        if (args.endDate) searchParams.ToDate = args.endDate;
+
         const response = await client.request<
-          { StartDate: string; EndDate: string },
+          { SearchParameters: typeof searchParams },
           ProfitLossResponse
         >('Report_ProfitAndLoss', {
-          StartDate: args.startDate as string,
-          EndDate: args.endDate as string,
+          SearchParameters: searchParams,
         });
 
         return {
@@ -180,10 +184,16 @@ export async function handleReportTool(
       }
 
       case 'quickfile_report_balance_sheet': {
-        const response = await client.request<{ ReportDate: string }, BalanceSheetResponse>(
-          'Report_BalanceSheet',
-          { ReportDate: args.reportDate as string }
-        );
+        // SearchParameters wrapper with ToDate
+        const searchParams: Record<string, unknown> = {};
+        if (args.reportDate) searchParams.ToDate = args.reportDate;
+
+        const response = await client.request<
+          { SearchParameters: typeof searchParams },
+          BalanceSheetResponse
+        >('Report_BalanceSheet', {
+          SearchParameters: searchParams,
+        });
 
         return {
           content: [

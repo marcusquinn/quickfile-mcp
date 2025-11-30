@@ -208,15 +208,16 @@ export async function handleSupplierTool(
   try {
     switch (toolName) {
       case 'quickfile_supplier_search': {
+        // OrderDirection and OrderResultsBy are REQUIRED fields
         const params: SupplierSearchParams = {
+          OrderResultsBy: (args.orderBy as SupplierSearchParams['OrderResultsBy']) ?? 'CompanyName',
+          OrderDirection: (args.orderDirection as SupplierSearchParams['OrderDirection']) ?? 'ASC',
+          ReturnCount: (args.returnCount as number) ?? 25,
+          Offset: (args.offset as number) ?? 0,
           CompanyName: args.companyName as string | undefined,
           ContactName: args.contactName as string | undefined,
           Email: args.email as string | undefined,
           Postcode: args.postcode as string | undefined,
-          ReturnCount: (args.returnCount as number) ?? 25,
-          Offset: (args.offset as number) ?? 0,
-          OrderResultsBy: args.orderBy as SupplierSearchParams['OrderResultsBy'],
-          OrderDirection: args.orderDirection as SupplierSearchParams['OrderDirection'],
         };
 
         const cleanParams = Object.fromEntries(

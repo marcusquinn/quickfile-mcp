@@ -8,7 +8,6 @@ import { getApiClient, QuickFileApiError } from '../api/client.js';
 import type {
   BankAccount,
   BankTransaction,
-  BankSearchParams,
   BankTransactionCreateParams,
   BankAccountType,
 } from '../types/quickfile.js';
@@ -85,6 +84,16 @@ export const bankTools: Tool[] = [
           type: 'number',
           description: 'Offset for pagination',
           default: 0,
+        },
+        orderBy: {
+          type: 'string',
+          enum: ['TransactionDate', 'Amount', 'Reference'],
+          description: 'Field to order by',
+        },
+        orderDirection: {
+          type: 'string',
+          enum: ['ASC', 'DESC'],
+          description: 'Order direction',
         },
       },
       required: ['nominalCode'],
@@ -214,10 +223,23 @@ export async function handleBankTool(
   try {
     switch (toolName) {
       case 'quickfile_bank_get_accounts': {
-        const response = await client.request<Record<string, never>, BankAccountsResponse>(
-          'Bank_GetAccounts',
-          {}
-        );
+        // OrderResultsBy and AccountTypes are required for Bank_GetAccounts
+        // Valid OrderResultsBy values: NominalCode, Position
+        // Valid AccountTypes: CURRENT, PETTY, BUILDINGSOC, LOAN, MERCHANT, EQUITY, CREDITCARD, RESERVE
+        const response = await client.request<
+          { SearchParameters: { 
+            OrderResultsBy: string;
+            AccountTypes: { AccountType: string[] };
+          } },
+          BankAccountsResponse
+        >('Bank_GetAccounts', {
+          SearchParameters: {
+            OrderResultsBy: 'NominalCode',
+            AccountTypes: {
+              AccountType: ['CURRENT', 'PETTY', 'BUILDINGSOC', 'LOAN', 'MERCHANT', 'EQUITY', 'CREDITCARD', 'RESERVE'],
+            },
+          },
+        });
 
         const accounts = response.BankAccounts?.BankAccount || [];
         return {
@@ -264,26 +286,26 @@ export async function handleBankTool(
       }
 
       case 'quickfile_bank_search': {
-        const params: BankSearchParams = {
-          NominalCode: args.nominalCode as string,
-          DateFrom: args.dateFrom as string | undefined,
-          DateTo: args.dateTo as string | undefined,
-          Reference: args.reference as string | undefined,
-          MinAmount: args.minAmount as number | undefined,
-          MaxAmount: args.maxAmount as number | undefined,
-          Tagged: args.tagged as boolean | undefined,
+        // Build search parameters - element order matters for QuickFile XML API
+        // NominalCode is an int (1200-1299), OrderResultsBy and OrderDirection are REQUIRED
+        const searchParams: Record<string, unknown> = {
           ReturnCount: (args.returnCount as number) ?? 50,
           Offset: (args.offset as number) ?? 0,
+          OrderResultsBy: (args.orderBy as string) ?? 'TransactionDate',
+          OrderDirection: (args.orderDirection as string) ?? 'DESC',
+          NominalCode: parseInt(args.nominalCode as string, 10),
         };
-
-        const cleanParams = Object.fromEntries(
-          Object.entries(params).filter(([, v]) => v !== undefined)
-        );
+        
+        if (args.reference) searchParams.Reference = args.reference;
+        if (args.dateFrom) searchParams.FromDate = args.dateFrom;
+        if (args.dateTo) searchParams.ToDate = args.dateTo;
+        if (args.minAmount !== undefined) searchParams.AmountFrom = args.minAmount;
+        if (args.maxAmount !== undefined) searchParams.AmountTo = args.maxAmount;
 
         const response = await client.request<
-          { SearchParameters: typeof cleanParams },
+          { SearchParameters: typeof searchParams },
           BankSearchResponse
-        >('Bank_Search', { SearchParameters: cleanParams });
+        >('Bank_Search', { SearchParameters: searchParams });
 
         const transactions = response.Transactions?.Transaction || [];
         return {

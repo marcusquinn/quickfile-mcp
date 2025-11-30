@@ -117,15 +117,36 @@ export async function handleSystemTool(
   try {
     switch (toolName) {
       case 'quickfile_system_get_account': {
-        const response = await client.request<Record<string, never>, GetAccountResponse>(
+        // QuickFile requires specific body structure with AccountNumber and ReturnVariables
+        const requestBody = {
+          AccountDetails: {
+            AccountNumber: client.getAccountNumber(),
+            ReturnVariables: {
+              Variable: [
+                'CompanyName',
+                'CompanyNumber', 
+                'BusinessType',
+                'Address',
+                'CountryIso',
+                'BaseCurrency',
+                'Tel',
+                'Web',
+                'VatRegNumber',
+                'YearEndDate',
+              ],
+            },
+          },
+        };
+        
+        const response = await client.request<typeof requestBody, GetAccountResponse>(
           'System_GetAccountDetails',
-          {}
+          requestBody
         );
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(response.AccountDetails, null, 2),
+              text: JSON.stringify(response.AccountDetails || response, null, 2),
             },
           ],
         };

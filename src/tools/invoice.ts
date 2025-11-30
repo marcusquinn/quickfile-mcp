@@ -293,17 +293,18 @@ export async function handleInvoiceTool(
   try {
     switch (toolName) {
       case 'quickfile_invoice_search': {
+        // Build search parameters - OrderDirection, InvoiceType, OrderResultsBy are REQUIRED
         const params: InvoiceSearchParams = {
-          InvoiceType: args.invoiceType as InvoiceType | undefined,
+          InvoiceType: (args.invoiceType as InvoiceType) ?? 'INVOICE',
+          OrderResultsBy: (args.orderBy as InvoiceSearchParams['OrderResultsBy']) ?? 'InvoiceNumber',
+          OrderDirection: (args.orderDirection as InvoiceSearchParams['OrderDirection']) ?? 'DESC',
+          ReturnCount: (args.returnCount as number) ?? 25,
+          Offset: (args.offset as number) ?? 0,
           ClientID: args.clientId as number | undefined,
           DateFrom: args.dateFrom as string | undefined,
           DateTo: args.dateTo as string | undefined,
           Status: args.status as InvoiceStatus | undefined,
           SearchKeyword: args.searchKeyword as string | undefined,
-          ReturnCount: (args.returnCount as number) ?? 25,
-          Offset: (args.offset as number) ?? 0,
-          OrderResultsBy: args.orderBy as InvoiceSearchParams['OrderResultsBy'],
-          OrderDirection: args.orderDirection as InvoiceSearchParams['OrderDirection'],
         };
 
         const cleanParams = Object.fromEntries(

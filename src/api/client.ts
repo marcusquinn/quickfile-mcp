@@ -56,6 +56,12 @@ export class QuickFileApiClient {
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
+      // Debug: log outgoing request
+      if (process.env.QUICKFILE_DEBUG) {
+        console.error(`[DEBUG] URL: ${url}`);
+        console.error(`[DEBUG] Request: ${JSON.stringify(request, null, 2)}`);
+      }
+
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -67,6 +73,13 @@ export class QuickFileApiClient {
       });
 
       clearTimeout(timeoutId);
+
+      // Debug: log raw response
+      if (process.env.QUICKFILE_DEBUG) {
+        const responseText = await response.clone().text();
+        console.error(`[DEBUG] Response Status: ${response.status}`);
+        console.error(`[DEBUG] Response: ${responseText}`);
+      }
 
       if (!response.ok) {
         throw new QuickFileApiError(
@@ -127,9 +140,10 @@ export class QuickFileApiClient {
    */
   private buildUrl(methodName: string): string {
     // Convert method name to URL path
-    // e.g., 'Client_Search' -> 'client/search'
-    const [category, method] = methodName.split('_');
-    const path = `${category.toLowerCase()}/${method.toLowerCase()}`;
+    // e.g., 'System_GetAccountDetails' -> 'system/getaccountdetails'
+    const [category, ...methodParts] = methodName.split('_');
+    const method = methodParts.join('').toLowerCase();
+    const path = `${category.toLowerCase()}/${method}`;
     return `${API_BASE_URL}/${API_VERSION}/${path}`;
   }
 
