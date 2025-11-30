@@ -1,0 +1,352 @@
+/**
+ * QuickFile Purchase Tools
+ * Purchase invoice operations
+ */
+
+import type { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { getApiClient, QuickFileApiError } from '../api/client.js';
+import type {
+  Purchase,
+  PurchaseSearchParams,
+  PurchaseCreateParams,
+  PurchaseLine,
+  PurchaseStatus,
+} from '../types/quickfile.js';
+
+// =============================================================================
+// Tool Definitions
+// =============================================================================
+
+export const purchaseTools: Tool[] = [
+  {
+    name: 'quickfile_purchase_search',
+    description: 'Search for purchase invoices by supplier, date range, status, or keyword',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        supplierId: {
+          type: 'number',
+          description: 'Filter by supplier ID',
+        },
+        dateFrom: {
+          type: 'string',
+          description: 'Start date (YYYY-MM-DD)',
+        },
+        dateTo: {
+          type: 'string',
+          description: 'End date (YYYY-MM-DD)',
+        },
+        status: {
+          type: 'string',
+          enum: ['UNPAID', 'PAID', 'PART_PAID', 'CANCELLED'],
+          description: 'Purchase status',
+        },
+        searchKeyword: {
+          type: 'string',
+          description: 'Search keyword',
+        },
+        returnCount: {
+          type: 'number',
+          description: 'Number of results (default: 25)',
+          default: 25,
+        },
+        offset: {
+          type: 'number',
+          description: 'Offset for pagination',
+          default: 0,
+        },
+        orderBy: {
+          type: 'string',
+          enum: ['PurchaseDate', 'DueDate', 'SupplierName', 'GrossAmount'],
+          description: 'Field to order by',
+        },
+        orderDirection: {
+          type: 'string',
+          enum: ['ASC', 'DESC'],
+          description: 'Order direction',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'quickfile_purchase_get',
+    description: 'Get detailed information about a specific purchase invoice',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        purchaseId: {
+          type: 'number',
+          description: 'The purchase ID',
+        },
+      },
+      required: ['purchaseId'],
+    },
+  },
+  {
+    name: 'quickfile_purchase_create',
+    description: 'Create a new purchase invoice',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        supplierId: {
+          type: 'number',
+          description: 'Supplier ID',
+        },
+        currency: {
+          type: 'string',
+          description: 'Currency code (default: GBP)',
+          default: 'GBP',
+        },
+        issueDate: {
+          type: 'string',
+          description: 'Invoice date (YYYY-MM-DD)',
+        },
+        dueDate: {
+          type: 'string',
+          description: 'Due date (YYYY-MM-DD)',
+        },
+        supplierRef: {
+          type: 'string',
+          description: 'Supplier invoice reference number',
+        },
+        notes: {
+          type: 'string',
+          description: 'Notes',
+        },
+        lines: {
+          type: 'array',
+          description: 'Purchase line items',
+          items: {
+            type: 'object',
+            properties: {
+              description: {
+                type: 'string',
+                description: 'Item description',
+              },
+              unitCost: {
+                type: 'number',
+                description: 'Unit cost',
+              },
+              quantity: {
+                type: 'number',
+                description: 'Quantity',
+              },
+              nominalCode: {
+                type: 'string',
+                description: 'Nominal code for accounting (e.g., 5000 for cost of sales)',
+              },
+              vatPercentage: {
+                type: 'number',
+                description: 'VAT percentage (default: 20)',
+                default: 20,
+              },
+            },
+            required: ['description', 'unitCost', 'quantity', 'nominalCode'],
+          },
+        },
+      },
+      required: ['supplierId', 'lines'],
+    },
+  },
+  {
+    name: 'quickfile_purchase_delete',
+    description: 'Delete a purchase invoice',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        purchaseId: {
+          type: 'number',
+          description: 'The purchase ID to delete',
+        },
+      },
+      required: ['purchaseId'],
+    },
+  },
+];
+
+// =============================================================================
+// Tool Handlers
+// =============================================================================
+
+interface PurchaseSearchResponse {
+  Purchases: {
+    Purchase: Purchase[];
+  };
+  TotalRecords: number;
+}
+
+interface PurchaseGetResponse {
+  PurchaseDetails: Purchase;
+}
+
+interface PurchaseCreateResponse {
+  PurchaseID: number;
+  PurchaseNumber: string;
+}
+
+export async function handlePurchaseTool(
+  toolName: string,
+  args: Record<string, unknown>
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+  const client = getApiClient();
+
+  try {
+    switch (toolName) {
+      case 'quickfile_purchase_search': {
+        const params: PurchaseSearchParams = {
+          SupplierID: args.supplierId as number | undefined,
+          DateFrom: args.dateFrom as string | undefined,
+          DateTo: args.dateTo as string | undefined,
+          Status: args.status as PurchaseStatus | undefined,
+          SearchKeyword: args.searchKeyword as string | undefined,
+          ReturnCount: (args.returnCount as number) ?? 25,
+          Offset: (args.offset as number) ?? 0,
+          OrderResultsBy: args.orderBy as PurchaseSearchParams['OrderResultsBy'],
+          OrderDirection: args.orderDirection as PurchaseSearchParams['OrderDirection'],
+        };
+
+        const cleanParams = Object.fromEntries(
+          Object.entries(params).filter(([, v]) => v !== undefined)
+        );
+
+        const response = await client.request<
+          { SearchParameters: typeof cleanParams },
+          PurchaseSearchResponse
+        >('Purchase_Search', { SearchParameters: cleanParams });
+
+        const purchases = response.Purchases?.Purchase || [];
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  totalRecords: response.TotalRecords,
+                  count: purchases.length,
+                  purchases: purchases,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      case 'quickfile_purchase_get': {
+        const response = await client.request<{ PurchaseID: number }, PurchaseGetResponse>(
+          'Purchase_Get',
+          { PurchaseID: args.purchaseId as number }
+        );
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(response.PurchaseDetails, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'quickfile_purchase_create': {
+        const lineItems = args.lines as Array<{
+          description: string;
+          unitCost: number;
+          quantity: number;
+          nominalCode: string;
+          vatPercentage?: number;
+        }>;
+
+        const purchaseLines: PurchaseLine[] = lineItems.map((line) => ({
+          ItemDescription: line.description,
+          UnitCost: line.unitCost,
+          Qty: line.quantity,
+          NominalCode: line.nominalCode,
+          Tax1: {
+            TaxName: 'VAT',
+            TaxPercentage: line.vatPercentage ?? 20,
+          },
+        }));
+
+        const createParams: PurchaseCreateParams = {
+          SupplierID: args.supplierId as number,
+          Currency: (args.currency as string) ?? 'GBP',
+          IssueDate: args.issueDate as string | undefined,
+          DueDate: args.dueDate as string | undefined,
+          SupplierRef: args.supplierRef as string | undefined,
+          Notes: args.notes as string | undefined,
+          PurchaseLines: purchaseLines,
+        };
+
+        const cleanParams = Object.fromEntries(
+          Object.entries(createParams).filter(([, v]) => v !== undefined)
+        );
+
+        const response = await client.request<
+          { PurchaseData: typeof cleanParams },
+          PurchaseCreateResponse
+        >('Purchase_Create', { PurchaseData: cleanParams });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: true,
+                  purchaseId: response.PurchaseID,
+                  purchaseNumber: response.PurchaseNumber,
+                  message: `Purchase #${response.PurchaseNumber} created successfully`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      case 'quickfile_purchase_delete': {
+        await client.request<{ PurchaseID: number }, Record<string, never>>(
+          'Purchase_Delete',
+          { PurchaseID: args.purchaseId as number }
+        );
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                {
+                  success: true,
+                  purchaseId: args.purchaseId,
+                  message: `Purchase #${args.purchaseId} deleted successfully`,
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+
+      default:
+        return {
+          content: [{ type: 'text', text: `Unknown purchase tool: ${toolName}` }],
+          isError: true,
+        };
+    }
+  } catch (error) {
+    const message =
+      error instanceof QuickFileApiError
+        ? `QuickFile API Error [${error.code}]: ${error.message}`
+        : `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+
+    return {
+      content: [{ type: 'text', text: message }],
+      isError: true,
+    };
+  }
+}

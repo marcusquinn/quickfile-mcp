@@ -1,0 +1,182 @@
+/**
+ * QuickFile API Client
+ * Handles all HTTP communication with QuickFile API
+ * https://api.quickfile.co.uk/
+ */
+
+import type {
+  QuickFileCredentials,
+  QuickFileRequest,
+  QuickFileResponse,
+  QuickFileError,
+} from '../types/quickfile.js';
+import { loadCredentials, createAuthHeader } from './auth.js';
+
+// API Configuration
+const API_BASE_URL = 'https://api.quickfile.co.uk';
+const API_VERSION = '1_2';
+
+export interface ApiClientOptions {
+  testMode?: boolean;
+  timeout?: number;
+}
+
+export class QuickFileApiClient {
+  private credentials: QuickFileCredentials;
+  private testMode: boolean;
+  private timeout: number;
+
+  constructor(options: ApiClientOptions = {}) {
+    this.credentials = loadCredentials();
+    this.testMode = options.testMode ?? false;
+    this.timeout = options.timeout ?? 30000; // 30 second default
+  }
+
+  /**
+   * Make an API request to QuickFile
+   * @param methodName - API method name (e.g., 'Client_Search', 'Invoice_Get')
+   * @param body - Request body parameters
+   * @returns Parsed response body
+   */
+  async request<TRequest, TResponse>(
+    methodName: string,
+    body: TRequest
+  ): Promise<TResponse> {
+    const url = this.buildUrl(methodName);
+    const header = createAuthHeader(this.credentials, this.testMode);
+
+    const request: QuickFileRequest<TRequest> = {
+      payload: {
+        Header: header,
+        Body: body,
+      },
+    };
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(request),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new QuickFileApiError(
+          `HTTP ${response.status}: ${response.statusText}`,
+          response.status.toString()
+        );
+      }
+
+      const data = (await response.json()) as QuickFileResponse<TResponse>;
+
+      // Check for API errors
+      if (data.Errors && data.Errors.length > 0) {
+        const errors = data.Errors;
+        throw new QuickFileApiError(
+          errors.map((e: QuickFileError) => e.ErrorMessage).join('; '),
+          errors[0].ErrorCode
+        );
+      }
+
+      // Extract the response body from the method-named key
+      const methodResponse = data[methodName];
+      if (!methodResponse || Array.isArray(methodResponse)) {
+        // Try to find any response key
+        const responseKey = Object.keys(data).find(
+          (key) => key !== 'Errors' && typeof data[key] === 'object' && !Array.isArray(data[key])
+        );
+        if (responseKey) {
+          const response = data[responseKey] as { Body: TResponse };
+          return response.Body;
+        }
+        throw new QuickFileApiError('Invalid API response structure', 'PARSE_ERROR');
+      }
+
+      return (methodResponse as { Body: TResponse }).Body;
+    } catch (error) {
+      clearTimeout(timeoutId);
+
+      if (error instanceof QuickFileApiError) {
+        throw error;
+      }
+
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new QuickFileApiError(
+            `Request timeout after ${this.timeout}ms`,
+            'TIMEOUT'
+          );
+        }
+        throw new QuickFileApiError(error.message, 'NETWORK_ERROR');
+      }
+
+      throw new QuickFileApiError('Unknown error occurred', 'UNKNOWN');
+    }
+  }
+
+  /**
+   * Build the API URL for a method
+   */
+  private buildUrl(methodName: string): string {
+    // Convert method name to URL path
+    // e.g., 'Client_Search' -> 'client/search'
+    const [category, method] = methodName.split('_');
+    const path = `${category.toLowerCase()}/${method.toLowerCase()}`;
+    return `${API_BASE_URL}/${API_VERSION}/${path}`;
+  }
+
+  /**
+   * Enable/disable test mode
+   */
+  setTestMode(enabled: boolean): void {
+    this.testMode = enabled;
+  }
+
+  /**
+   * Get current test mode status
+   */
+  isTestMode(): boolean {
+    return this.testMode;
+  }
+
+  /**
+   * Get account number (for display/logging)
+   */
+  getAccountNumber(): string {
+    return this.credentials.accountNumber;
+  }
+}
+
+/**
+ * Custom error class for QuickFile API errors
+ */
+export class QuickFileApiError extends Error {
+  public readonly code: string;
+
+  constructor(message: string, code: string) {
+    super(message);
+    this.name = 'QuickFileApiError';
+    this.code = code;
+  }
+}
+
+// Singleton instance for convenience
+let defaultClient: QuickFileApiClient | null = null;
+
+/**
+ * Get or create the default API client
+ */
+export function getApiClient(options?: ApiClientOptions): QuickFileApiClient {
+  if (!defaultClient || options) {
+    defaultClient = new QuickFileApiClient(options);
+  }
+  return defaultClient;
+}

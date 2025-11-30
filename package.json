@@ -1,0 +1,58 @@
+{
+  "name": "quickfile-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for QuickFile UK accounting software - invoices, clients, purchases, banking, and reports",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test": "jest",
+    "test:unit": "jest tests/unit",
+    "test:docker": "cd tests/docker && docker-compose run --rm test",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "setup": "npm install && npm run build",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "mcp",
+    "quickfile",
+    "accounting",
+    "invoicing",
+    "uk-accounting",
+    "ai-assistant",
+    "model-context-protocol"
+  ],
+  "author": "Marcus Quinn",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marcusquinn/quickfile-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/marcusquinn/quickfile-mcp/issues"
+  },
+  "homepage": "https://github.com/marcusquinn/quickfile-mcp#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "jest": "^29.0.0",
+    "prettier": "^3.0.0",
+    "ts-jest": "^29.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
