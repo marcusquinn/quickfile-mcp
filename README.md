@@ -234,6 +234,8 @@ quickfile-mcp/
 - File permissions should be 600 (owner read/write only)
 - **Never commit credentials to version control**
 - API key provides full access - treat it like a password
+- **Secretlint** runs automatically on pre-commit to prevent accidental secret exposure
+- Run `npm run secretlint` manually to scan for secrets
 
 ## Related Projects
 
