@@ -61,7 +61,21 @@ chmod 600 ~/.config/.quickfile-mcp/credentials.json
 2. **API Key**: Account Settings → 3rd Party Integrations → API Key
 3. **Application ID**: Account Settings → Create a QuickFile App → copy the Application ID
 
-### 3. Configure OpenCode
+### 3. Install OpenCode (if not already installed)
+
+[OpenCode](https://opencode.ai/) is an open-source AI coding assistant that runs in your terminal. It supports MCP (Model Context Protocol) servers like this one.
+
+```bash
+# Install OpenCode globally
+npm install -g opencode
+
+# Or run directly with npx
+npx opencode
+```
+
+See the [OpenCode documentation](https://opencode.ai/docs) for more installation options and configuration.
+
+### 4. Configure OpenCode
 
 Add to your `~/.config/opencode/opencode.json`:
 
@@ -80,10 +94,10 @@ Add to your `~/.config/opencode/opencode.json`:
 Or use the setup script:
 
 ```bash
-./setup.sh install
+./setup.sh opencode
 ```
 
-### 4. Start Using
+### 5. Start Using
 
 Restart OpenCode and try:
 
@@ -263,8 +277,10 @@ quickfile-mcp/
 
 ## Related Projects
 
+- [OpenCode](https://opencode.ai/) - Open-source AI coding assistant with MCP support
 - [QuickFile](https://www.quickfile.co.uk/) - UK accounting software
 - [QuickFile API Documentation](https://api.quickfile.co.uk/)
+- [Model Context Protocol](https://modelcontextprotocol.io/) - Protocol specification for AI tool integration
 - [AI DevOps Framework](https://github.com/marcusquinn/aidevops) - Comprehensive AI infrastructure management
 
 ## License
