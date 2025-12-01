@@ -81,7 +81,7 @@ describe("Authentication Module", () => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const crypto = require("node:crypto");
       expect(result).toBe(
-        crypto.createHash("md5").update("123api456").digest("hex"),
+        crypto.createHash("md5").update("123api456").digest("hex"), // NOSONAR - testing QuickFile API requirement
       );
     });
 

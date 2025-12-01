@@ -5,15 +5,13 @@
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { getApiClient } from "../api/client.js";
-import type {
-  Supplier,
-  SupplierSearchParams,
-  ClientAddress,
-} from "../types/quickfile.js";
+import type { Supplier, SupplierSearchParams } from "../types/quickfile.js";
 import {
   handleToolError,
   successResult,
   cleanParams,
+  buildAddressFromArgs,
+  buildEntityData,
   type ToolResult,
 } from "./utils.js";
 
@@ -207,55 +205,6 @@ interface SupplierCreateResponse {
 }
 
 // =============================================================================
-// Helper Functions (extracted to reduce cognitive complexity)
-// =============================================================================
-
-function buildAddressFromArgs(args: Record<string, unknown>): ClientAddress {
-  const address: ClientAddress = {};
-  if (args.address1) {
-    address.Address1 = args.address1 as string;
-  }
-  if (args.address2) {
-    address.Address2 = args.address2 as string;
-  }
-  if (args.town) {
-    address.Town = args.town as string;
-  }
-  if (args.county) {
-    address.County = args.county as string;
-  }
-  if (args.postcode) {
-    address.Postcode = args.postcode as string;
-  }
-  if (args.country) {
-    address.Country = args.country as string;
-  }
-  return address;
-}
-
-function buildSupplierData(
-  args: Record<string, unknown>,
-  address: ClientAddress,
-): Partial<Supplier> {
-  return {
-    CompanyName: args.companyName as string | undefined,
-    Title: args.title as string | undefined,
-    FirstName: args.firstName as string | undefined,
-    LastName: args.lastName as string | undefined,
-    Email: args.email as string | undefined,
-    Telephone: args.telephone as string | undefined,
-    Mobile: args.mobile as string | undefined,
-    Website: args.website as string | undefined,
-    VatNumber: args.vatNumber as string | undefined,
-    CompanyRegNo: args.companyRegNo as string | undefined,
-    Currency: (args.currency as string) ?? "GBP",
-    TermDays: (args.termDays as number) ?? 30,
-    Notes: args.notes as string | undefined,
-    Address: Object.keys(address).length > 0 ? address : undefined,
-  };
-}
-
-// =============================================================================
 // Tool Handler
 // =============================================================================
 
@@ -305,7 +254,7 @@ export async function handleSupplierTool(
 
       case "quickfile_supplier_create": {
         const address = buildAddressFromArgs(args);
-        const supplierData = buildSupplierData(args, address);
+        const supplierData = buildEntityData(args, address);
         const cleanData = cleanParams(supplierData);
         const response = await apiClient.request<
           { SupplierData: typeof cleanData },

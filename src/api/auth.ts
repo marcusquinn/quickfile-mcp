@@ -95,7 +95,7 @@ export function generateMD5Hash(
   submissionNumber: string,
 ): string {
   const input = `${accountNumber}${apiKey}${submissionNumber}`;
-  return createHash("md5").update(input).digest("hex");
+  return createHash("md5").update(input).digest("hex"); // NOSONAR - MD5 required by QuickFile API specification
 }
 
 /**

@@ -5,15 +5,14 @@
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { getApiClient } from "../api/client.js";
-import type {
-  Client,
-  ClientContact,
-  ClientAddress,
-} from "../types/quickfile.js";
+import type { Client, ClientContact } from "../types/quickfile.js";
 import {
   handleToolError,
   successResult,
   cleanParams,
+  buildAddressFromArgs,
+  buildEntityData,
+  buildEntityUpdateData,
   type ToolResult,
 } from "./utils.js";
 
@@ -313,31 +312,8 @@ interface ContactInsertResponse {
 }
 
 // =============================================================================
-// Helper Functions (extracted to reduce cognitive complexity)
+// Helper Functions
 // =============================================================================
-
-function buildAddressFromArgs(args: Record<string, unknown>): ClientAddress {
-  const address: ClientAddress = {};
-  if (args.address1) {
-    address.Address1 = args.address1 as string;
-  }
-  if (args.address2) {
-    address.Address2 = args.address2 as string;
-  }
-  if (args.town) {
-    address.Town = args.town as string;
-  }
-  if (args.county) {
-    address.County = args.county as string;
-  }
-  if (args.postcode) {
-    address.Postcode = args.postcode as string;
-  }
-  if (args.country) {
-    address.Country = args.country as string;
-  }
-  return address;
-}
 
 function buildSearchParams(
   args: Record<string, unknown>,
@@ -366,52 +342,6 @@ function buildSearchParams(
   }
 
   return searchParams;
-}
-
-function buildClientData(
-  args: Record<string, unknown>,
-  address: ClientAddress,
-): Partial<Client> {
-  return {
-    CompanyName: args.companyName as string | undefined,
-    Title: args.title as string | undefined,
-    FirstName: args.firstName as string | undefined,
-    LastName: args.lastName as string | undefined,
-    Email: args.email as string | undefined,
-    Telephone: args.telephone as string | undefined,
-    Mobile: args.mobile as string | undefined,
-    Website: args.website as string | undefined,
-    VatNumber: args.vatNumber as string | undefined,
-    CompanyRegNo: args.companyRegNo as string | undefined,
-    Currency: (args.currency as string) ?? "GBP",
-    TermDays: (args.termDays as number) ?? 30,
-    Notes: args.notes as string | undefined,
-    Address: Object.keys(address).length > 0 ? address : undefined,
-  };
-}
-
-function buildUpdateData(
-  args: Record<string, unknown>,
-  clientId: number,
-  address: ClientAddress,
-): Partial<Client> & { ClientID: number } {
-  return {
-    ClientID: clientId,
-    CompanyName: args.companyName as string | undefined,
-    Title: args.title as string | undefined,
-    FirstName: args.firstName as string | undefined,
-    LastName: args.lastName as string | undefined,
-    Email: args.email as string | undefined,
-    Telephone: args.telephone as string | undefined,
-    Mobile: args.mobile as string | undefined,
-    Website: args.website as string | undefined,
-    VatNumber: args.vatNumber as string | undefined,
-    CompanyRegNo: args.companyRegNo as string | undefined,
-    Currency: args.currency as string | undefined,
-    TermDays: args.termDays as number | undefined,
-    Notes: args.notes as string | undefined,
-    Address: Object.keys(address).length > 0 ? address : undefined,
-  };
 }
 
 // =============================================================================
@@ -450,7 +380,7 @@ export async function handleClientTool(
 
       case "quickfile_client_create": {
         const address = buildAddressFromArgs(args);
-        const clientData = buildClientData(args, address);
+        const clientData = buildEntityData(args, address);
         const cleanData = cleanParams(clientData);
         const response = await apiClient.request<
           { ClientData: typeof cleanData },
@@ -466,7 +396,8 @@ export async function handleClientTool(
       case "quickfile_client_update": {
         const clientId = args.clientId as number;
         const address = buildAddressFromArgs(args);
-        const updateData = buildUpdateData(args, clientId, address);
+        const entityData = buildEntityUpdateData(args, address);
+        const updateData = { ClientID: clientId, ...entityData };
         const cleanData = cleanParams(updateData);
         await apiClient.request<
           { ClientData: typeof cleanData },
