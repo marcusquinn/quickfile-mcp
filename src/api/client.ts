@@ -9,22 +9,92 @@ import type {
   QuickFileRequest,
   QuickFileResponse,
   QuickFileError,
-} from '../types/quickfile.js';
-import { loadCredentials, createAuthHeader } from './auth.js';
+} from "../types/quickfile.js";
+import { loadCredentials, createAuthHeader } from "./auth.js";
 
 // API Configuration
-const API_BASE_URL = 'https://api.quickfile.co.uk';
-const API_VERSION = '1_2';
+const API_BASE_URL = "https://api.quickfile.co.uk";
+const API_VERSION = "1_2";
 
 export interface ApiClientOptions {
   testMode?: boolean;
   timeout?: number;
 }
 
+// =============================================================================
+// Helper Functions (extracted to reduce cognitive complexity)
+// =============================================================================
+
+function logDebugRequest<TRequest>(
+  url: string,
+  request: QuickFileRequest<TRequest>,
+): void {
+  console.error(`[DEBUG] URL: ${url}`);
+  const safeRequest = {
+    payload: {
+      Header: {
+        ...request.payload.Header,
+        Authentication: {
+          AccNumber: "***REDACTED***",
+          MD5Value: "***REDACTED***",
+          ApplicationID: request.payload.Header.Authentication.ApplicationID,
+        },
+      },
+      Body: request.payload.Body,
+    },
+  };
+  console.error(`[DEBUG] Request: ${JSON.stringify(safeRequest, null, 2)}`);
+}
+
+async function logDebugResponse(response: Response): Promise<void> {
+  const responseText = await response.clone().text();
+  console.error(`[DEBUG] Response Status: ${response.status}`);
+  console.error(`[DEBUG] Response: ${responseText}`);
+}
+
+function extractResponseBody<TResponse>(
+  data: QuickFileResponse<TResponse>,
+  methodName: string,
+): TResponse {
+  const methodResponse = data[methodName];
+  if (methodResponse && !Array.isArray(methodResponse)) {
+    return (methodResponse as { Body: TResponse }).Body;
+  }
+
+  // Try to find any response key
+  const responseKey = Object.keys(data).find(
+    (key) =>
+      key !== "Errors" &&
+      typeof data[key] === "object" &&
+      !Array.isArray(data[key]),
+  );
+  if (responseKey) {
+    const response = data[responseKey] as { Body: TResponse };
+    return response.Body;
+  }
+  throw new QuickFileApiError("Invalid API response structure", "PARSE_ERROR");
+}
+
+function handleRequestError(error: unknown, timeout: number): never {
+  if (error instanceof QuickFileApiError) {
+    throw error;
+  }
+  if (error instanceof Error) {
+    if (error.name === "AbortError") {
+      throw new QuickFileApiError(
+        `Request timeout after ${timeout}ms`,
+        "TIMEOUT",
+      );
+    }
+    throw new QuickFileApiError(error.message, "NETWORK_ERROR");
+  }
+  throw new QuickFileApiError("Unknown error occurred", "UNKNOWN");
+}
+
 export class QuickFileApiClient {
-  private credentials: QuickFileCredentials;
+  private readonly credentials: QuickFileCredentials;
   private testMode: boolean;
-  private timeout: number;
+  private readonly timeout: number;
 
   constructor(options: ApiClientOptions = {}) {
     this.credentials = loadCredentials();
@@ -40,7 +110,7 @@ export class QuickFileApiClient {
    */
   async request<TRequest, TResponse>(
     methodName: string,
-    body: TRequest
+    body: TRequest,
   ): Promise<TResponse> {
     const url = this.buildUrl(methodName);
     const header = createAuthHeader(this.credentials, this.testMode);
@@ -56,31 +126,15 @@ export class QuickFileApiClient {
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
-      // Debug: log outgoing request (with sensitive data redacted)
       if (process.env.QUICKFILE_DEBUG) {
-        console.error(`[DEBUG] URL: ${url}`);
-        // Redact authentication data to prevent credential exposure in logs
-        const safeRequest = {
-          payload: {
-            Header: {
-              ...request.payload.Header,
-              Authentication: {
-                AccNumber: '***REDACTED***',
-                MD5Value: '***REDACTED***',
-                ApplicationID: request.payload.Header.Authentication.ApplicationID,
-              },
-            },
-            Body: request.payload.Body,
-          },
-        };
-        console.error(`[DEBUG] Request: ${JSON.stringify(safeRequest, null, 2)}`);
+        logDebugRequest(url, request);
       }
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify(request),
         signal: controller.signal,
@@ -88,64 +142,31 @@ export class QuickFileApiClient {
 
       clearTimeout(timeoutId);
 
-      // Debug: log raw response
       if (process.env.QUICKFILE_DEBUG) {
-        const responseText = await response.clone().text();
-        console.error(`[DEBUG] Response Status: ${response.status}`);
-        console.error(`[DEBUG] Response: ${responseText}`);
+        await logDebugResponse(response);
       }
 
       if (!response.ok) {
         throw new QuickFileApiError(
           `HTTP ${response.status}: ${response.statusText}`,
-          response.status.toString()
+          response.status.toString(),
         );
       }
 
       const data = (await response.json()) as QuickFileResponse<TResponse>;
 
-      // Check for API errors
       if (data.Errors && data.Errors.length > 0) {
         const errors = data.Errors;
         throw new QuickFileApiError(
-          errors.map((e: QuickFileError) => e.ErrorMessage).join('; '),
-          errors[0].ErrorCode
+          errors.map((e: QuickFileError) => e.ErrorMessage).join("; "),
+          errors[0].ErrorCode,
         );
       }
 
-      // Extract the response body from the method-named key
-      const methodResponse = data[methodName];
-      if (!methodResponse || Array.isArray(methodResponse)) {
-        // Try to find any response key
-        const responseKey = Object.keys(data).find(
-          (key) => key !== 'Errors' && typeof data[key] === 'object' && !Array.isArray(data[key])
-        );
-        if (responseKey) {
-          const response = data[responseKey] as { Body: TResponse };
-          return response.Body;
-        }
-        throw new QuickFileApiError('Invalid API response structure', 'PARSE_ERROR');
-      }
-
-      return (methodResponse as { Body: TResponse }).Body;
+      return extractResponseBody(data, methodName);
     } catch (error) {
       clearTimeout(timeoutId);
-
-      if (error instanceof QuickFileApiError) {
-        throw error;
-      }
-
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          throw new QuickFileApiError(
-            `Request timeout after ${this.timeout}ms`,
-            'TIMEOUT'
-          );
-        }
-        throw new QuickFileApiError(error.message, 'NETWORK_ERROR');
-      }
-
-      throw new QuickFileApiError('Unknown error occurred', 'UNKNOWN');
+      return handleRequestError(error, this.timeout);
     }
   }
 
@@ -155,8 +176,8 @@ export class QuickFileApiClient {
   private buildUrl(methodName: string): string {
     // Convert method name to URL path
     // e.g., 'System_GetAccountDetails' -> 'system/getaccountdetails'
-    const [category, ...methodParts] = methodName.split('_');
-    const method = methodParts.join('').toLowerCase();
+    const [category, ...methodParts] = methodName.split("_");
+    const method = methodParts.join("").toLowerCase();
     const path = `${category.toLowerCase()}/${method}`;
     return `${API_BASE_URL}/${API_VERSION}/${path}`;
   }
@@ -191,7 +212,7 @@ export class QuickFileApiError extends Error {
 
   constructor(message: string, code: string) {
     super(message);
-    this.name = 'QuickFileApiError';
+    this.name = "QuickFileApiError";
     this.code = code;
   }
 }

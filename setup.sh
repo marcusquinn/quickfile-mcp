@@ -35,22 +35,31 @@ print_header() {
     echo -e "${BLUE}  QuickFile MCP Server Setup${NC}"
     echo -e "${BLUE}========================================${NC}"
     echo ""
+    return 0
 }
 
 print_success() {
-    echo -e "${GREEN}✓${NC} $1"
+    local message="$1"
+    echo -e "${GREEN}✓${NC} ${message}"
+    return 0
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
+    local message="$1"
+    echo -e "${YELLOW}⚠${NC} ${message}"
+    return 0
 }
 
 print_error() {
-    echo -e "${RED}✗${NC} $1"
+    local message="$1"
+    echo -e "${RED}✗${NC} ${message}"
+    return 0
 }
 
 print_info() {
-    echo -e "${BLUE}ℹ${NC} $1"
+    local message="$1"
+    echo -e "${BLUE}ℹ${NC} ${message}"
+    return 0
 }
 
 check_requirements() {
@@ -87,6 +96,7 @@ install_dependencies() {
     cd "$SCRIPT_DIR"
     npm install
     print_success "Dependencies installed"
+    return 0
 }
 
 build_project() {
@@ -94,6 +104,7 @@ build_project() {
     cd "$SCRIPT_DIR"
     npm run build
     print_success "Build complete"
+    return 0
 }
 
 configure_credentials() {

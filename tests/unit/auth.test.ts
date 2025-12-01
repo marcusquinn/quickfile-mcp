@@ -3,8 +3,8 @@
  */
 
 // Mock the fs and os modules BEFORE any imports
-jest.mock("fs");
-jest.mock("os", () => ({
+jest.mock("node:fs");
+jest.mock("node:os", () => ({
   homedir: jest.fn().mockReturnValue("/home/testuser"),
 }));
 
@@ -16,8 +16,8 @@ import {
   loadCredentials,
 } from "../../src/api/auth";
 import type { QuickFileCredentials } from "../../src/types/quickfile";
-import { existsSync, readFileSync } from "fs";
-import { homedir } from "os";
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 
 const mockExistsSync = existsSync as jest.MockedFunction<typeof existsSync>;
 const mockReadFileSync = readFileSync as jest.MockedFunction<
@@ -78,8 +78,10 @@ describe("Authentication Module", () => {
       // MD5('123api456') should equal a known value
       const result = generateMD5Hash("123", "api", "456");
       // We can verify the hash is computed on concatenated string
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const crypto = require("node:crypto");
       expect(result).toBe(
-        require("crypto").createHash("md5").update("123api456").digest("hex"),
+        crypto.createHash("md5").update("123api456").digest("hex"),
       );
     });
 

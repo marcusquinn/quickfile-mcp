@@ -108,17 +108,17 @@ describe("QuickFileApiError", () => {
 });
 
 describe("QuickFileApiClient", () => {
-  let originalFetch: typeof global.fetch;
+  let originalFetch: typeof globalThis.fetch;
   let mockFetch: jest.Mock;
 
   beforeEach(() => {
-    originalFetch = global.fetch;
+    originalFetch = globalThis.fetch;
     mockFetch = jest.fn();
-    global.fetch = mockFetch;
+    globalThis.fetch = mockFetch;
   });
 
   afterEach(() => {
-    global.fetch = originalFetch;
+    globalThis.fetch = originalFetch;
     jest.clearAllMocks();
   });
 

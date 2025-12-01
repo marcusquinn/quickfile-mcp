@@ -210,7 +210,7 @@ describe("Invoice Schemas", () => {
     it("should accept valid line item", () => {
       const result = InvoiceLineSchema.safeParse({
         description: "Consulting services",
-        unitCost: 100.0,
+        unitCost: 100,
         quantity: 5,
       });
       expect(result.success).toBe(true);
@@ -358,7 +358,7 @@ describe("Bank Schemas", () => {
       const result = BankTransactionCreateSchema.safeParse({
         nominalCode: "1200",
         transactionDate: "2024-01-15",
-        amount: 150.0,
+        amount: 150,
         transactionType: "MONEY_IN",
       });
       expect(result.success).toBe(true);

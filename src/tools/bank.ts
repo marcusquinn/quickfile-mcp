@@ -3,15 +3,20 @@
  * Bank account and transaction operations
  */
 
-import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getApiClient } from '../api/client.js';
+import type { Tool } from "@modelcontextprotocol/sdk/types.js";
+import { getApiClient } from "../api/client.js";
 import type {
   BankAccount,
   BankTransaction,
   BankTransactionCreateParams,
   BankAccountType,
-} from '../types/quickfile.js';
-import { handleToolError, successResult, cleanParams, type ToolResult } from './utils.js';
+} from "../types/quickfile.js";
+import {
+  handleToolError,
+  successResult,
+  cleanParams,
+  type ToolResult,
+} from "./utils.js";
 
 // =============================================================================
 // Tool Definitions
@@ -19,165 +24,175 @@ import { handleToolError, successResult, cleanParams, type ToolResult } from './
 
 export const bankTools: Tool[] = [
   {
-    name: 'quickfile_bank_get_accounts',
-    description: 'Get list of all bank accounts grouped by type',
+    name: "quickfile_bank_get_accounts",
+    description: "Get list of all bank accounts grouped by type",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {},
       required: [],
     },
   },
   {
-    name: 'quickfile_bank_get_balances',
-    description: 'Get current balances for specific bank accounts',
+    name: "quickfile_bank_get_balances",
+    description: "Get current balances for specific bank accounts",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         nominalCodes: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Array of nominal codes to get balances for',
+          type: "array",
+          items: { type: "string" },
+          description: "Array of nominal codes to get balances for",
         },
       },
-      required: ['nominalCodes'],
+      required: ["nominalCodes"],
     },
   },
   {
-    name: 'quickfile_bank_search',
-    description: 'Search bank transactions by date range, reference, or amount',
+    name: "quickfile_bank_search",
+    description: "Search bank transactions by date range, reference, or amount",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         nominalCode: {
-          type: 'string',
-          description: 'Bank account nominal code (e.g., 1200 for current account)',
+          type: "string",
+          description:
+            "Bank account nominal code (e.g., 1200 for current account)",
         },
         dateFrom: {
-          type: 'string',
-          description: 'Start date (YYYY-MM-DD)',
+          type: "string",
+          description: "Start date (YYYY-MM-DD)",
         },
         dateTo: {
-          type: 'string',
-          description: 'End date (YYYY-MM-DD)',
+          type: "string",
+          description: "End date (YYYY-MM-DD)",
         },
         reference: {
-          type: 'string',
-          description: 'Search by reference',
+          type: "string",
+          description: "Search by reference",
         },
         minAmount: {
-          type: 'number',
-          description: 'Minimum amount',
+          type: "number",
+          description: "Minimum amount",
         },
         maxAmount: {
-          type: 'number',
-          description: 'Maximum amount',
+          type: "number",
+          description: "Maximum amount",
         },
         tagged: {
-          type: 'boolean',
-          description: 'Filter by tagged status',
+          type: "boolean",
+          description: "Filter by tagged status",
         },
         returnCount: {
-          type: 'number',
-          description: 'Number of results (default: 50)',
+          type: "number",
+          description: "Number of results (default: 50)",
           default: 50,
         },
         offset: {
-          type: 'number',
-          description: 'Offset for pagination',
+          type: "number",
+          description: "Offset for pagination",
           default: 0,
         },
         orderBy: {
-          type: 'string',
-          enum: ['TransactionDate', 'Amount', 'Reference'],
-          description: 'Field to order by',
+          type: "string",
+          enum: ["TransactionDate", "Amount", "Reference"],
+          description: "Field to order by",
         },
         orderDirection: {
-          type: 'string',
-          enum: ['ASC', 'DESC'],
-          description: 'Order direction',
+          type: "string",
+          enum: ["ASC", "DESC"],
+          description: "Order direction",
         },
       },
-      required: ['nominalCode'],
+      required: ["nominalCode"],
     },
   },
   {
-    name: 'quickfile_bank_create_account',
-    description: 'Create a new bank account',
+    name: "quickfile_bank_create_account",
+    description: "Create a new bank account",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         accountName: {
-          type: 'string',
-          description: 'Account name',
+          type: "string",
+          description: "Account name",
         },
         accountType: {
-          type: 'string',
-          enum: ['CURRENT', 'SAVINGS', 'CREDIT_CARD', 'LOAN', 'CASH', 'PAYPAL', 'MERCHANT', 'OTHER'],
-          description: 'Type of bank account',
+          type: "string",
+          enum: [
+            "CURRENT",
+            "SAVINGS",
+            "CREDIT_CARD",
+            "LOAN",
+            "CASH",
+            "PAYPAL",
+            "MERCHANT",
+            "OTHER",
+          ],
+          description: "Type of bank account",
         },
         currency: {
-          type: 'string',
-          description: 'Currency (default: GBP)',
-          default: 'GBP',
+          type: "string",
+          description: "Currency (default: GBP)",
+          default: "GBP",
         },
         bankName: {
-          type: 'string',
-          description: 'Bank name',
+          type: "string",
+          description: "Bank name",
         },
         sortCode: {
-          type: 'string',
-          description: 'Sort code (UK)',
+          type: "string",
+          description: "Sort code (UK)",
         },
         accountNumber: {
-          type: 'string',
-          description: 'Account number',
+          type: "string",
+          description: "Account number",
         },
         openingBalance: {
-          type: 'number',
-          description: 'Opening balance',
+          type: "number",
+          description: "Opening balance",
           default: 0,
         },
       },
-      required: ['accountName', 'accountType'],
+      required: ["accountName", "accountType"],
     },
   },
   {
-    name: 'quickfile_bank_create_transaction',
-    description: 'Create an untagged bank transaction (money in or money out)',
+    name: "quickfile_bank_create_transaction",
+    description: "Create an untagged bank transaction (money in or money out)",
     inputSchema: {
-      type: 'object',
+      type: "object",
       properties: {
         nominalCode: {
-          type: 'string',
-          description: 'Bank account nominal code',
+          type: "string",
+          description: "Bank account nominal code",
         },
         transactionDate: {
-          type: 'string',
-          description: 'Transaction date (YYYY-MM-DD)',
+          type: "string",
+          description: "Transaction date (YYYY-MM-DD)",
         },
         amount: {
-          type: 'number',
-          description: 'Transaction amount (positive value)',
+          type: "number",
+          description: "Transaction amount (positive value)",
         },
         transactionType: {
-          type: 'string',
-          enum: ['MONEY_IN', 'MONEY_OUT'],
-          description: 'Whether money came in or went out',
+          type: "string",
+          enum: ["MONEY_IN", "MONEY_OUT"],
+          description: "Whether money came in or went out",
         },
         reference: {
-          type: 'string',
-          description: 'Transaction reference',
+          type: "string",
+          description: "Transaction reference",
         },
         payeePayer: {
-          type: 'string',
-          description: 'Name of payee or payer',
+          type: "string",
+          description: "Name of payee or payer",
         },
         notes: {
-          type: 'string',
-          description: 'Additional notes',
+          type: "string",
+          description: "Additional notes",
         },
       },
-      required: ['nominalCode', 'transactionDate', 'amount', 'transactionType'],
+      required: ["nominalCode", "transactionDate", "amount", "transactionType"],
     },
   },
 ];
@@ -215,104 +230,138 @@ interface BankTransactionCreateResponse {
   TransactionID: number;
 }
 
+// =============================================================================
+// Helper Functions (extracted to reduce cognitive complexity)
+// =============================================================================
+
+function buildBankSearchParams(
+  args: Record<string, unknown>,
+): Record<string, unknown> {
+  const searchParams: Record<string, unknown> = {
+    ReturnCount: (args.returnCount as number) ?? 50,
+    Offset: (args.offset as number) ?? 0,
+    OrderResultsBy: (args.orderBy as string) ?? "TransactionDate",
+    OrderDirection: (args.orderDirection as string) ?? "DESC",
+    NominalCode: Number.parseInt(args.nominalCode as string, 10),
+  };
+
+  if (args.reference) {
+    searchParams.Reference = args.reference;
+  }
+  if (args.dateFrom) {
+    searchParams.FromDate = args.dateFrom;
+  }
+  if (args.dateTo) {
+    searchParams.ToDate = args.dateTo;
+  }
+  if (args.minAmount !== undefined) {
+    searchParams.AmountFrom = args.minAmount;
+  }
+  if (args.maxAmount !== undefined) {
+    searchParams.AmountTo = args.maxAmount;
+  }
+
+  return searchParams;
+}
+
+function buildBankAccountData(
+  args: Record<string, unknown>,
+): Record<string, unknown> {
+  const accountData: Record<string, unknown> = {
+    AccountName: args.accountName as string,
+    AccountType: args.accountType as BankAccountType,
+    Currency: (args.currency as string) ?? "GBP",
+  };
+
+  if (args.bankName) {
+    accountData.BankName = args.bankName;
+  }
+  if (args.sortCode) {
+    accountData.SortCode = args.sortCode;
+  }
+  if (args.accountNumber) {
+    accountData.AccountNumber = args.accountNumber;
+  }
+  if (args.openingBalance !== undefined) {
+    accountData.OpeningBalance = args.openingBalance;
+  }
+
+  return accountData;
+}
+
+// =============================================================================
+// Tool Handler
+// =============================================================================
+
 export async function handleBankTool(
   toolName: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<ToolResult> {
   const apiClient = getApiClient();
 
   try {
     switch (toolName) {
-      case 'quickfile_bank_get_accounts': {
-        // OrderResultsBy and AccountTypes are required for Bank_GetAccounts
-        // Valid OrderResultsBy values: NominalCode, Position
-        // Valid AccountTypes: CURRENT, PETTY, BUILDINGSOC, LOAN, MERCHANT, EQUITY, CREDITCARD, RESERVE
+      case "quickfile_bank_get_accounts": {
         const response = await apiClient.request<
-          { SearchParameters: { 
-            OrderResultsBy: string;
-            AccountTypes: { AccountType: string[] };
-          } },
+          {
+            SearchParameters: {
+              OrderResultsBy: string;
+              AccountTypes: { AccountType: string[] };
+            };
+          },
           BankAccountsResponse
-        >('Bank_GetAccounts', {
+        >("Bank_GetAccounts", {
           SearchParameters: {
-            OrderResultsBy: 'NominalCode',
+            OrderResultsBy: "NominalCode",
             AccountTypes: {
-              AccountType: ['CURRENT', 'PETTY', 'BUILDINGSOC', 'LOAN', 'MERCHANT', 'EQUITY', 'CREDITCARD', 'RESERVE'],
+              AccountType: [
+                "CURRENT",
+                "PETTY",
+                "BUILDINGSOC",
+                "LOAN",
+                "MERCHANT",
+                "EQUITY",
+                "CREDITCARD",
+                "RESERVE",
+              ],
             },
           },
         });
-
         const accounts = response.BankAccounts?.BankAccount || [];
-        return successResult({
-          count: accounts.length,
-          accounts: accounts,
-        });
+        return successResult({ count: accounts.length, accounts });
       }
 
-      case 'quickfile_bank_get_balances': {
+      case "quickfile_bank_get_balances": {
         const nominalCodes = args.nominalCodes as string[];
-
         const response = await apiClient.request<
           { NominalCodes: { NominalCode: string[] } },
           BankBalancesResponse
-        >('Bank_GetAccountBalances', {
+        >("Bank_GetAccountBalances", {
           NominalCodes: { NominalCode: nominalCodes },
         });
-
-        return successResult({
-          balances: response.Balances,
-        });
+        return successResult({ balances: response.Balances });
       }
 
-      case 'quickfile_bank_search': {
-        // Build search parameters - element order matters for QuickFile XML API
-        // NominalCode is an int (1200-1299), OrderResultsBy and OrderDirection are REQUIRED
-        const searchParams: Record<string, unknown> = {
-          ReturnCount: (args.returnCount as number) ?? 50,
-          Offset: (args.offset as number) ?? 0,
-          OrderResultsBy: (args.orderBy as string) ?? 'TransactionDate',
-          OrderDirection: (args.orderDirection as string) ?? 'DESC',
-          NominalCode: parseInt(args.nominalCode as string, 10),
-        };
-        
-        if (args.reference) { searchParams.Reference = args.reference; }
-        if (args.dateFrom) { searchParams.FromDate = args.dateFrom; }
-        if (args.dateTo) { searchParams.ToDate = args.dateTo; }
-        if (args.minAmount !== undefined) { searchParams.AmountFrom = args.minAmount; }
-        if (args.maxAmount !== undefined) { searchParams.AmountTo = args.maxAmount; }
-
+      case "quickfile_bank_search": {
+        const searchParams = buildBankSearchParams(args);
         const response = await apiClient.request<
           { SearchParameters: typeof searchParams },
           BankSearchResponse
-        >('Bank_Search', { SearchParameters: searchParams });
-
+        >("Bank_Search", { SearchParameters: searchParams });
         const transactions = response.Transactions?.Transaction || [];
         return successResult({
           totalRecords: response.TotalRecords,
           count: transactions.length,
-          transactions: transactions,
+          transactions,
         });
       }
 
-      case 'quickfile_bank_create_account': {
-        const accountData: Record<string, unknown> = {
-          AccountName: args.accountName as string,
-          AccountType: args.accountType as BankAccountType,
-          Currency: (args.currency as string) ?? 'GBP',
-        };
-
-        if (args.bankName) { accountData.BankName = args.bankName; }
-        if (args.sortCode) { accountData.SortCode = args.sortCode; }
-        if (args.accountNumber) { accountData.AccountNumber = args.accountNumber; }
-        if (args.openingBalance !== undefined) {
-          accountData.OpeningBalance = args.openingBalance;
-        }
-
+      case "quickfile_bank_create_account": {
+        const accountData = buildBankAccountData(args);
         const response = await apiClient.request<
           { BankAccountData: typeof accountData },
           BankAccountCreateResponse
-        >('Bank_CreateAccount', { BankAccountData: accountData });
-
+        >("Bank_CreateAccount", { BankAccountData: accountData });
         return successResult({
           success: true,
           nominalCode: response.NominalCode,
@@ -320,24 +369,21 @@ export async function handleBankTool(
         });
       }
 
-      case 'quickfile_bank_create_transaction': {
+      case "quickfile_bank_create_transaction": {
         const txnParams: BankTransactionCreateParams = {
           NominalCode: args.nominalCode as string,
           TransactionDate: args.transactionDate as string,
           Amount: args.amount as number,
-          TransactionType: args.transactionType as 'MONEY_IN' | 'MONEY_OUT',
+          TransactionType: args.transactionType as "MONEY_IN" | "MONEY_OUT",
           Reference: args.reference as string | undefined,
           PayeePayer: args.payeePayer as string | undefined,
           Notes: args.notes as string | undefined,
         };
-
         const cleaned = cleanParams(txnParams);
-
         const response = await apiClient.request<
           { TransactionData: typeof cleaned },
           BankTransactionCreateResponse
-        >('Bank_CreateTransaction', { TransactionData: cleaned });
-
+        >("Bank_CreateTransaction", { TransactionData: cleaned });
         return successResult({
           success: true,
           transactionId: response.TransactionID,
@@ -347,7 +393,7 @@ export async function handleBankTool(
 
       default:
         return {
-          content: [{ type: 'text', text: `Unknown bank tool: ${toolName}` }],
+          content: [{ type: "text", text: `Unknown bank tool: ${toolName}` }],
           isError: true,
         };
     }
