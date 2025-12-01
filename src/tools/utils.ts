@@ -122,10 +122,135 @@ export function cleanParams<T extends object>(params: T): Partial<T> {
 }
 
 // =============================================================================
-// Shared Entity Builders (Client/Supplier)
+// Shared MCP Tool Schema Definitions
 // =============================================================================
 
 import type { ClientAddress } from "../types/quickfile.js";
+
+/**
+ * Common search properties for entity search tools
+ */
+export const searchSchemaProperties = {
+  companyName: {
+    type: "string" as const,
+    description: "Search by company name (partial match)",
+  },
+  contactName: {
+    type: "string" as const,
+    description: "Search by contact name",
+  },
+  email: {
+    type: "string" as const,
+    description: "Search by email address",
+  },
+  postcode: {
+    type: "string" as const,
+    description: "Search by postcode",
+  },
+  returnCount: {
+    type: "number" as const,
+    description: "Number of results (default: 25)",
+    default: 25,
+  },
+  offset: {
+    type: "number" as const,
+    description: "Offset for pagination",
+    default: 0,
+  },
+  orderDirection: {
+    type: "string" as const,
+    enum: ["ASC", "DESC"] as const,
+    description: "Order direction",
+  },
+};
+
+/**
+ * Common entity properties for create/update tools
+ */
+export const entitySchemaProperties = {
+  companyName: {
+    type: "string" as const,
+    description: "Company or organisation name",
+  },
+  title: {
+    type: "string" as const,
+    description: "Contact title (Mr, Mrs, etc.)",
+  },
+  firstName: {
+    type: "string" as const,
+    description: "Contact first name",
+  },
+  lastName: {
+    type: "string" as const,
+    description: "Contact last name",
+  },
+  email: {
+    type: "string" as const,
+    description: "Email address",
+  },
+  telephone: {
+    type: "string" as const,
+    description: "Telephone number",
+  },
+  mobile: {
+    type: "string" as const,
+    description: "Mobile number",
+  },
+  website: {
+    type: "string" as const,
+    description: "Website URL",
+  },
+  address1: {
+    type: "string" as const,
+    description: "Address line 1",
+  },
+  address2: {
+    type: "string" as const,
+    description: "Address line 2",
+  },
+  town: {
+    type: "string" as const,
+    description: "Town/City",
+  },
+  county: {
+    type: "string" as const,
+    description: "County/Region",
+  },
+  postcode: {
+    type: "string" as const,
+    description: "Postcode",
+  },
+  country: {
+    type: "string" as const,
+    description: "Country",
+  },
+  vatNumber: {
+    type: "string" as const,
+    description: "VAT registration number",
+  },
+  companyRegNo: {
+    type: "string" as const,
+    description: "Company registration number",
+  },
+  currency: {
+    type: "string" as const,
+    description: "Default currency (e.g., GBP)",
+    default: "GBP",
+  },
+  termDays: {
+    type: "number" as const,
+    description: "Payment terms in days",
+    default: 30,
+  },
+  notes: {
+    type: "string" as const,
+    description: "Internal notes",
+  },
+};
+
+// =============================================================================
+// Shared Entity Builders (Client/Supplier)
+// =============================================================================
 
 /**
  * Common entity data structure for clients and suppliers

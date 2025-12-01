@@ -13,6 +13,8 @@ import {
   buildAddressFromArgs,
   buildEntityData,
   buildEntityUpdateData,
+  searchSchemaProperties,
+  entitySchemaProperties,
   type ToolResult,
 } from "./utils.js";
 
@@ -28,41 +30,11 @@ export const clientTools: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        companyName: {
-          type: "string",
-          description: "Search by company name (partial match)",
-        },
-        contactName: {
-          type: "string",
-          description: "Search by contact name",
-        },
-        email: {
-          type: "string",
-          description: "Search by email address",
-        },
-        postcode: {
-          type: "string",
-          description: "Search by postcode",
-        },
-        returnCount: {
-          type: "number",
-          description: "Number of results to return (default: 25)",
-          default: 25,
-        },
-        offset: {
-          type: "number",
-          description: "Offset for pagination",
-          default: 0,
-        },
+        ...searchSchemaProperties,
         orderBy: {
           type: "string",
           enum: ["CompanyName", "DateCreated", "ClientID"],
           description: "Field to order results by",
-        },
-        orderDirection: {
-          type: "string",
-          enum: ["ASC", "DESC"],
-          description: "Order direction",
         },
       },
       required: [],
@@ -74,10 +46,7 @@ export const clientTools: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        clientId: {
-          type: "number",
-          description: "The client ID",
-        },
+        clientId: { type: "number", description: "The client ID" },
       },
       required: ["clientId"],
     },
@@ -87,86 +56,7 @@ export const clientTools: Tool[] = [
     description: "Create a new client record",
     inputSchema: {
       type: "object",
-      properties: {
-        companyName: {
-          type: "string",
-          description: "Company or organisation name",
-        },
-        title: {
-          type: "string",
-          description: "Contact title (Mr, Mrs, etc.)",
-        },
-        firstName: {
-          type: "string",
-          description: "Contact first name",
-        },
-        lastName: {
-          type: "string",
-          description: "Contact last name",
-        },
-        email: {
-          type: "string",
-          description: "Email address",
-        },
-        telephone: {
-          type: "string",
-          description: "Telephone number",
-        },
-        mobile: {
-          type: "string",
-          description: "Mobile number",
-        },
-        website: {
-          type: "string",
-          description: "Website URL",
-        },
-        address1: {
-          type: "string",
-          description: "Address line 1",
-        },
-        address2: {
-          type: "string",
-          description: "Address line 2",
-        },
-        town: {
-          type: "string",
-          description: "Town/City",
-        },
-        county: {
-          type: "string",
-          description: "County/Region",
-        },
-        postcode: {
-          type: "string",
-          description: "Postcode",
-        },
-        country: {
-          type: "string",
-          description: "Country",
-        },
-        vatNumber: {
-          type: "string",
-          description: "VAT registration number",
-        },
-        companyRegNo: {
-          type: "string",
-          description: "Company registration number",
-        },
-        currency: {
-          type: "string",
-          description: "Default currency (e.g., GBP, EUR, USD)",
-          default: "GBP",
-        },
-        termDays: {
-          type: "number",
-          description: "Payment terms in days",
-          default: 30,
-        },
-        notes: {
-          type: "string",
-          description: "Internal notes about the client",
-        },
-      },
+      properties: entitySchemaProperties,
       required: [],
     },
   },
@@ -176,29 +66,8 @@ export const clientTools: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        clientId: {
-          type: "number",
-          description: "The client ID to update",
-        },
-        companyName: { type: "string" },
-        title: { type: "string" },
-        firstName: { type: "string" },
-        lastName: { type: "string" },
-        email: { type: "string" },
-        telephone: { type: "string" },
-        mobile: { type: "string" },
-        website: { type: "string" },
-        address1: { type: "string" },
-        address2: { type: "string" },
-        town: { type: "string" },
-        county: { type: "string" },
-        postcode: { type: "string" },
-        country: { type: "string" },
-        vatNumber: { type: "string" },
-        companyRegNo: { type: "string" },
-        currency: { type: "string" },
-        termDays: { type: "number" },
-        notes: { type: "string" },
+        clientId: { type: "number", description: "The client ID to update" },
+        ...entitySchemaProperties,
       },
       required: ["clientId"],
     },
@@ -209,10 +78,7 @@ export const clientTools: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        clientId: {
-          type: "number",
-          description: "The client ID to delete",
-        },
+        clientId: { type: "number", description: "The client ID to delete" },
       },
       required: ["clientId"],
     },
@@ -223,30 +89,12 @@ export const clientTools: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        clientId: {
-          type: "number",
-          description: "The client ID",
-        },
-        firstName: {
-          type: "string",
-          description: "Contact first name",
-        },
-        lastName: {
-          type: "string",
-          description: "Contact last name",
-        },
-        email: {
-          type: "string",
-          description: "Contact email",
-        },
-        telephone: {
-          type: "string",
-          description: "Contact telephone",
-        },
-        mobile: {
-          type: "string",
-          description: "Contact mobile",
-        },
+        clientId: { type: "number", description: "The client ID" },
+        firstName: { type: "string", description: "Contact first name" },
+        lastName: { type: "string", description: "Contact last name" },
+        email: { type: "string", description: "Contact email" },
+        telephone: { type: "string", description: "Contact telephone" },
+        mobile: { type: "string", description: "Contact mobile" },
         isPrimary: {
           type: "boolean",
           description: "Set as primary contact",
@@ -263,10 +111,7 @@ export const clientTools: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        clientId: {
-          type: "number",
-          description: "The client ID",
-        },
+        clientId: { type: "number", description: "The client ID" },
       },
       required: ["clientId"],
     },
