@@ -56,10 +56,24 @@ export class QuickFileApiClient {
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     try {
-      // Debug: log outgoing request
+      // Debug: log outgoing request (with sensitive data redacted)
       if (process.env.QUICKFILE_DEBUG) {
         console.error(`[DEBUG] URL: ${url}`);
-        console.error(`[DEBUG] Request: ${JSON.stringify(request, null, 2)}`);
+        // Redact authentication data to prevent credential exposure in logs
+        const safeRequest = {
+          payload: {
+            Header: {
+              ...request.payload.Header,
+              Authentication: {
+                AccNumber: '***REDACTED***',
+                MD5Value: '***REDACTED***',
+                ApplicationID: request.payload.Header.Authentication.ApplicationID,
+              },
+            },
+            Body: request.payload.Body,
+          },
+        };
+        console.error(`[DEBUG] Request: ${JSON.stringify(safeRequest, null, 2)}`);
       }
 
       const response = await fetch(url, {

@@ -4,13 +4,14 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getApiClient, QuickFileApiError } from '../api/client.js';
+import { getApiClient } from '../api/client.js';
 import type {
   AccountDetails,
   SystemEvent,
   SystemEventSearchParams,
   CreateNoteParams,
 } from '../types/quickfile.js';
+import { handleToolError, successResult, cleanParams, type ToolResult } from './utils.js';
 
 // =============================================================================
 // Tool Definitions
@@ -111,7 +112,7 @@ interface CreateNoteResponse {
 export async function handleSystemTool(
   toolName: string,
   args: Record<string, unknown>
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
+): Promise<ToolResult> {
   const client = getApiClient();
 
   try {
@@ -142,14 +143,7 @@ export async function handleSystemTool(
           'System_GetAccountDetails',
           requestBody
         );
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(response.AccountDetails || response, null, 2),
-            },
-          ],
-        };
+        return successResult(response.AccountDetails || response);
       }
 
       case 'quickfile_system_search_events': {
@@ -163,31 +157,17 @@ export async function handleSystemTool(
           Offset: (args.offset as number) ?? 0,
         };
 
-        // Remove undefined values
-        const cleanParams = Object.fromEntries(
-          Object.entries(params).filter(([, v]) => v !== undefined)
-        );
+        const cleaned = cleanParams(params);
 
-        const response = await client.request<typeof cleanParams, SearchEventsResponse>(
+        const response = await client.request<{ SearchParameters: typeof cleaned }, SearchEventsResponse>(
           'System_SearchEvents',
-          { SearchParameters: cleanParams }
+          { SearchParameters: cleaned }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  totalRecords: response.TotalRecords,
-                  events: response.Events,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          totalRecords: response.TotalRecords,
+          events: response.Events,
+        });
       }
 
       case 'quickfile_system_create_note': {
@@ -202,22 +182,11 @@ export async function handleSystemTool(
           params
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  noteId: response.NoteID,
-                  message: `Note created successfully for ${params.EntityType} #${params.EntityID}`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          noteId: response.NoteID,
+          message: `Note created successfully for ${params.EntityType} #${params.EntityID}`,
+        });
       }
 
       default:
@@ -227,13 +196,6 @@ export async function handleSystemTool(
         };
     }
   } catch (error) {
-    const message = error instanceof QuickFileApiError
-      ? `QuickFile API Error [${error.code}]: ${error.message}`
-      : `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
-
-    return {
-      content: [{ type: 'text', text: message }],
-      isError: true,
-    };
+    return handleToolError(error);
   }
 }

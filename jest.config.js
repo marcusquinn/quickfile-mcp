@@ -13,7 +13,17 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', {
+      tsconfig: {
+        // Relax strict settings for tests
+        noUnusedLocals: false,
+        noUnusedParameters: false,
+      },
+    }],
+  },
+  moduleNameMapper: {
+    // Handle .js extensions in imports (ESM style)
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   verbose: true,
 };

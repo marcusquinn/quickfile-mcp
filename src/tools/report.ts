@@ -4,7 +4,7 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getApiClient, QuickFileApiError } from '../api/client.js';
+import { getApiClient } from '../api/client.js';
 import type {
   ProfitAndLossReport,
   BalanceSheetReport,
@@ -12,6 +12,7 @@ import type {
   AgeingReport,
   ChartOfAccountsEntry,
 } from '../types/quickfile.js';
+import { handleToolError, successResult, type ToolResult } from './utils.js';
 
 // =============================================================================
 // Tool Definitions
@@ -155,54 +156,40 @@ interface SubscriptionsResponse {
 export async function handleReportTool(
   toolName: string,
   args: Record<string, unknown>
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
-  const client = getApiClient();
+): Promise<ToolResult> {
+  const apiClient = getApiClient();
 
   try {
     switch (toolName) {
       case 'quickfile_report_profit_loss': {
         // SearchParameters wrapper with FromDate/ToDate (not StartDate/EndDate)
         const searchParams: Record<string, unknown> = {};
-        if (args.startDate) searchParams.FromDate = args.startDate;
-        if (args.endDate) searchParams.ToDate = args.endDate;
+        if (args.startDate) { searchParams.FromDate = args.startDate; }
+        if (args.endDate) { searchParams.ToDate = args.endDate; }
 
-        const response = await client.request<
+        const response = await apiClient.request<
           { SearchParameters: typeof searchParams },
           ProfitLossResponse
         >('Report_ProfitAndLoss', {
           SearchParameters: searchParams,
         });
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(response.Report, null, 2),
-            },
-          ],
-        };
+        return successResult(response.Report);
       }
 
       case 'quickfile_report_balance_sheet': {
         // SearchParameters wrapper with ToDate
         const searchParams: Record<string, unknown> = {};
-        if (args.reportDate) searchParams.ToDate = args.reportDate;
+        if (args.reportDate) { searchParams.ToDate = args.reportDate; }
 
-        const response = await client.request<
+        const response = await apiClient.request<
           { SearchParameters: typeof searchParams },
           BalanceSheetResponse
         >('Report_BalanceSheet', {
           SearchParameters: searchParams,
         });
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(response.Report, null, 2),
-            },
-          ],
-        };
+        return successResult(response.Report);
       }
 
       case 'quickfile_report_vat_obligations': {
@@ -213,33 +200,22 @@ export async function handleReportTool(
           params.Status = status;
         }
 
-        const response = await client.request<typeof params, VatObligationsResponse>(
+        const response = await apiClient.request<typeof params, VatObligationsResponse>(
           'Report_VatObligations',
           params
         );
 
         const obligations = response.Obligations?.Obligation || [];
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  count: obligations.length,
-                  obligations: obligations,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          count: obligations.length,
+          obligations: obligations,
+        });
       }
 
       case 'quickfile_report_ageing': {
         const reportDate = (args.asAtDate as string) ?? new Date().toISOString().split('T')[0];
 
-        const response = await client.request<
+        const response = await apiClient.request<
           { ReportType: string; AsAtDate: string },
           AgeingReportResponse
         >('Report_Ageing', {
@@ -247,62 +223,33 @@ export async function handleReportTool(
           AsAtDate: reportDate,
         });
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(response.Report, null, 2),
-            },
-          ],
-        };
+        return successResult(response.Report);
       }
 
       case 'quickfile_report_chart_of_accounts': {
-        const response = await client.request<Record<string, never>, ChartOfAccountsResponse>(
+        const response = await apiClient.request<Record<string, never>, ChartOfAccountsResponse>(
           'Report_ChartOfAccounts',
           {}
         );
 
         const accounts = response.NominalCodes?.NominalCode || [];
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  count: accounts.length,
-                  nominalCodes: accounts,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          count: accounts.length,
+          nominalCodes: accounts,
+        });
       }
 
       case 'quickfile_report_subscriptions': {
-        const response = await client.request<Record<string, never>, SubscriptionsResponse>(
+        const response = await apiClient.request<Record<string, never>, SubscriptionsResponse>(
           'Report_Subscriptions',
           {}
         );
 
         const subscriptions = response.Subscriptions?.Subscription || [];
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  count: subscriptions.length,
-                  subscriptions: subscriptions,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          count: subscriptions.length,
+          subscriptions: subscriptions,
+        });
       }
 
       default:
@@ -312,14 +259,6 @@ export async function handleReportTool(
         };
     }
   } catch (error) {
-    const message =
-      error instanceof QuickFileApiError
-        ? `QuickFile API Error [${error.code}]: ${error.message}`
-        : `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
-
-    return {
-      content: [{ type: 'text', text: message }],
-      isError: true,
-    };
+    return handleToolError(error);
   }
 }

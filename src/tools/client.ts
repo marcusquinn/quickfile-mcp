@@ -4,12 +4,13 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getApiClient, QuickFileApiError } from '../api/client.js';
+import { getApiClient } from '../api/client.js';
 import type {
   Client,
   ClientContact,
   ClientAddress,
 } from '../types/quickfile.js';
+import { handleToolError, successResult, cleanParams, type ToolResult } from './utils.js';
 
 // =============================================================================
 // Tool Definitions
@@ -307,8 +308,8 @@ interface ContactInsertResponse {
 export async function handleClientTool(
   toolName: string,
   args: Record<string, unknown>
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
-  const client = getApiClient();
+): Promise<ToolResult> {
+  const apiClient = getApiClient();
 
   try {
     switch (toolName) {
@@ -322,60 +323,42 @@ export async function handleClientTool(
           OrderDirection: (args.orderDirection as string) ?? 'ASC',
         };
         
-        if (args.companyName) searchParams.CompanyName = args.companyName;
-        if (args.firstName) searchParams.FirstName = args.firstName;
-        if (args.lastName) searchParams.Surname = args.lastName;
-        if (args.email) searchParams.Email = args.email;
-        if (args.telephone) searchParams.Telephone = args.telephone;
+        if (args.companyName) { searchParams.CompanyName = args.companyName; }
+        if (args.firstName) { searchParams.FirstName = args.firstName; }
+        if (args.lastName) { searchParams.Surname = args.lastName; }
+        if (args.email) { searchParams.Email = args.email; }
+        if (args.telephone) { searchParams.Telephone = args.telephone; }
 
-        const response = await client.request<{ SearchParameters: typeof searchParams }, ClientSearchResponse>(
+        const response = await apiClient.request<{ SearchParameters: typeof searchParams }, ClientSearchResponse>(
           'Client_Search',
           { SearchParameters: searchParams }
         );
 
         const clients = response.Record || [];
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  totalRecords: response.RecordsetCount,
-                  returnedCount: response.ReturnCount,
-                  clients: clients,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          totalRecords: response.RecordsetCount,
+          returnedCount: response.ReturnCount,
+          clients: clients,
+        });
       }
 
       case 'quickfile_client_get': {
-        const response = await client.request<{ ClientID: number }, ClientGetResponse>(
+        const response = await apiClient.request<{ ClientID: number }, ClientGetResponse>(
           'Client_Get',
           { ClientID: args.clientId as number }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(response.ClientDetails, null, 2),
-            },
-          ],
-        };
+        return successResult(response.ClientDetails);
       }
 
       case 'quickfile_client_create': {
         const address: ClientAddress = {};
-        if (args.address1) address.Address1 = args.address1 as string;
-        if (args.address2) address.Address2 = args.address2 as string;
-        if (args.town) address.Town = args.town as string;
-        if (args.county) address.County = args.county as string;
-        if (args.postcode) address.Postcode = args.postcode as string;
-        if (args.country) address.Country = args.country as string;
+        if (args.address1) { address.Address1 = args.address1 as string; }
+        if (args.address2) { address.Address2 = args.address2 as string; }
+        if (args.town) { address.Town = args.town as string; }
+        if (args.county) { address.County = args.county as string; }
+        if (args.postcode) { address.Postcode = args.postcode as string; }
+        if (args.country) { address.Country = args.country as string; }
 
         const clientData: Partial<Client> = {
           CompanyName: args.companyName as string | undefined,
@@ -394,42 +377,29 @@ export async function handleClientTool(
           Address: Object.keys(address).length > 0 ? address : undefined,
         };
 
-        const cleanData = Object.fromEntries(
-          Object.entries(clientData).filter(([, v]) => v !== undefined)
-        );
+        const cleanData = cleanParams(clientData);
 
-        const response = await client.request<{ ClientData: typeof cleanData }, ClientCreateResponse>(
+        const response = await apiClient.request<{ ClientData: typeof cleanData }, ClientCreateResponse>(
           'Client_Create',
           { ClientData: cleanData }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  clientId: response.ClientID,
-                  message: `Client created successfully with ID ${response.ClientID}`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          clientId: response.ClientID,
+          message: `Client created successfully with ID ${response.ClientID}`,
+        });
       }
 
       case 'quickfile_client_update': {
         const clientId = args.clientId as number;
         const address: ClientAddress = {};
-        if (args.address1) address.Address1 = args.address1 as string;
-        if (args.address2) address.Address2 = args.address2 as string;
-        if (args.town) address.Town = args.town as string;
-        if (args.county) address.County = args.county as string;
-        if (args.postcode) address.Postcode = args.postcode as string;
-        if (args.country) address.Country = args.country as string;
+        if (args.address1) { address.Address1 = args.address1 as string; }
+        if (args.address2) { address.Address2 = args.address2 as string; }
+        if (args.town) { address.Town = args.town as string; }
+        if (args.county) { address.County = args.county as string; }
+        if (args.postcode) { address.Postcode = args.postcode as string; }
+        if (args.country) { address.Country = args.country as string; }
 
         const updateData: Partial<Client> & { ClientID: number } = {
           ClientID: clientId,
@@ -449,57 +419,33 @@ export async function handleClientTool(
           Address: Object.keys(address).length > 0 ? address : undefined,
         };
 
-        const cleanData = Object.fromEntries(
-          Object.entries(updateData).filter(([, v]) => v !== undefined)
-        );
+        const cleanData = cleanParams(updateData);
 
-        await client.request<{ ClientData: typeof cleanData }, Record<string, never>>(
+        await apiClient.request<{ ClientData: typeof cleanData }, Record<string, never>>(
           'Client_Update',
           { ClientData: cleanData }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  clientId,
-                  message: `Client #${clientId} updated successfully`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          clientId,
+          message: `Client #${clientId} updated successfully`,
+        });
       }
 
       case 'quickfile_client_delete': {
         const clientId = args.clientId as number;
 
-        await client.request<{ ClientID: number }, Record<string, never>>(
+        await apiClient.request<{ ClientID: number }, Record<string, never>>(
           'Client_Delete',
           { ClientID: clientId }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  clientId,
-                  message: `Client #${clientId} deleted successfully`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          clientId,
+          message: `Client #${clientId} deleted successfully`,
+        });
       }
 
       case 'quickfile_client_insert_contacts': {
@@ -512,7 +458,7 @@ export async function handleClientTool(
           IsPrimary: (args.isPrimary as boolean) ?? false,
         };
 
-        const response = await client.request<
+        const response = await apiClient.request<
           { ClientID: number; Contact: ClientContact },
           ContactInsertResponse
         >('Client_InsertContacts', {
@@ -520,46 +466,24 @@ export async function handleClientTool(
           Contact: contact,
         });
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  contactId: response.ContactID,
-                  message: `Contact added to client #${args.clientId}`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          contactId: response.ContactID,
+          message: `Contact added to client #${args.clientId}`,
+        });
       }
 
       case 'quickfile_client_login_url': {
-        const response = await client.request<{ ClientID: number }, ClientLoginResponse>(
+        const response = await apiClient.request<{ ClientID: number }, ClientLoginResponse>(
           'Client_LogIn',
           { ClientID: args.clientId as number }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  clientId: args.clientId,
-                  loginUrl: response.LoginURL,
-                  message: 'Passwordless login URL generated (valid for limited time)',
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          clientId: args.clientId,
+          loginUrl: response.LoginURL,
+          message: 'Passwordless login URL generated (valid for limited time)',
+        });
       }
 
       default:
@@ -569,14 +493,6 @@ export async function handleClientTool(
         };
     }
   } catch (error) {
-    const message =
-      error instanceof QuickFileApiError
-        ? `QuickFile API Error [${error.code}]: ${error.message}`
-        : `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
-
-    return {
-      content: [{ type: 'text', text: message }],
-      isError: true,
-    };
+    return handleToolError(error);
   }
 }

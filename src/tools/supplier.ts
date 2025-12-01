@@ -4,12 +4,13 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getApiClient, QuickFileApiError } from '../api/client.js';
+import { getApiClient } from '../api/client.js';
 import type {
   Supplier,
   SupplierSearchParams,
   ClientAddress,
 } from '../types/quickfile.js';
+import { handleToolError, successResult, cleanParams, type ToolResult } from './utils.js';
 
 // =============================================================================
 // Tool Definitions
@@ -202,8 +203,8 @@ interface SupplierCreateResponse {
 export async function handleSupplierTool(
   toolName: string,
   args: Record<string, unknown>
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
-  const client = getApiClient();
+): Promise<ToolResult> {
+  const apiClient = getApiClient();
 
   try {
     switch (toolName) {
@@ -220,58 +221,38 @@ export async function handleSupplierTool(
           Postcode: args.postcode as string | undefined,
         };
 
-        const cleanParams = Object.fromEntries(
-          Object.entries(params).filter(([, v]) => v !== undefined)
-        );
+        const cleaned = cleanParams(params);
 
-        const response = await client.request<
-          { SearchParameters: typeof cleanParams },
+        const response = await apiClient.request<
+          { SearchParameters: typeof cleaned },
           SupplierSearchResponse
-        >('Supplier_Search', { SearchParameters: cleanParams });
+        >('Supplier_Search', { SearchParameters: cleaned });
 
         const suppliers = response.Suppliers?.Supplier || [];
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  totalRecords: response.TotalRecords,
-                  count: suppliers.length,
-                  suppliers: suppliers,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          totalRecords: response.TotalRecords,
+          count: suppliers.length,
+          suppliers: suppliers,
+        });
       }
 
       case 'quickfile_supplier_get': {
-        const response = await client.request<{ SupplierID: number }, SupplierGetResponse>(
+        const response = await apiClient.request<{ SupplierID: number }, SupplierGetResponse>(
           'Supplier_Get',
           { SupplierID: args.supplierId as number }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(response.SupplierDetails, null, 2),
-            },
-          ],
-        };
+        return successResult(response.SupplierDetails);
       }
 
       case 'quickfile_supplier_create': {
         const address: ClientAddress = {};
-        if (args.address1) address.Address1 = args.address1 as string;
-        if (args.address2) address.Address2 = args.address2 as string;
-        if (args.town) address.Town = args.town as string;
-        if (args.county) address.County = args.county as string;
-        if (args.postcode) address.Postcode = args.postcode as string;
-        if (args.country) address.Country = args.country as string;
+        if (args.address1) { address.Address1 = args.address1 as string; }
+        if (args.address2) { address.Address2 = args.address2 as string; }
+        if (args.town) { address.Town = args.town as string; }
+        if (args.county) { address.County = args.county as string; }
+        if (args.postcode) { address.Postcode = args.postcode as string; }
+        if (args.country) { address.Country = args.country as string; }
 
         const supplierData: Partial<Supplier> = {
           CompanyName: args.companyName as string | undefined,
@@ -290,55 +271,31 @@ export async function handleSupplierTool(
           Address: Object.keys(address).length > 0 ? address : undefined,
         };
 
-        const cleanData = Object.fromEntries(
-          Object.entries(supplierData).filter(([, v]) => v !== undefined)
-        );
+        const cleanData = cleanParams(supplierData);
 
-        const response = await client.request<
+        const response = await apiClient.request<
           { SupplierData: typeof cleanData },
           SupplierCreateResponse
         >('Supplier_Create', { SupplierData: cleanData });
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  supplierId: response.SupplierID,
-                  message: `Supplier created successfully with ID ${response.SupplierID}`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          supplierId: response.SupplierID,
+          message: `Supplier created successfully with ID ${response.SupplierID}`,
+        });
       }
 
       case 'quickfile_supplier_delete': {
-        await client.request<{ SupplierID: number }, Record<string, never>>(
+        await apiClient.request<{ SupplierID: number }, Record<string, never>>(
           'Supplier_Delete',
           { SupplierID: args.supplierId as number }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  supplierId: args.supplierId,
-                  message: `Supplier #${args.supplierId} deleted successfully`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          supplierId: args.supplierId,
+          message: `Supplier #${args.supplierId} deleted successfully`,
+        });
       }
 
       default:
@@ -348,14 +305,6 @@ export async function handleSupplierTool(
         };
     }
   } catch (error) {
-    const message =
-      error instanceof QuickFileApiError
-        ? `QuickFile API Error [${error.code}]: ${error.message}`
-        : `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
-
-    return {
-      content: [{ type: 'text', text: message }],
-      isError: true,
-    };
+    return handleToolError(error);
   }
 }

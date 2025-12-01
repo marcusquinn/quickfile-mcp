@@ -3,7 +3,7 @@
 **Model Context Protocol server for QuickFile UK accounting software - giving AI assistants full access to invoicing, clients, purchases, banking, and financial reporting.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-0.1.0-blue)](https://github.com/marcusquinn/quickfile-mcp/releases)
+[![Version](https://img.shields.io/badge/Version-1.0.0-blue)](https://github.com/marcusquinn/quickfile-mcp/releases)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io)
 [![AGENTS.md](https://img.shields.io/badge/AGENTS.md-Compliant-blue.svg)](https://agents.md/)
 [![QuickFile](https://img.shields.io/badge/QuickFile-API%20v1.2-blue.svg)](https://api.quickfile.co.uk/)
@@ -170,8 +170,14 @@ npm run build
 # Run in development mode (with auto-reload)
 npm run dev
 
-# Run tests
+# Run unit tests (fast, no API calls)
 npm test
+
+# Run integration tests (requires credentials)
+npm run test:integration
+
+# Run all tests
+npm run test:all
 
 # Type check
 npm run typecheck
@@ -179,7 +185,7 @@ npm run typecheck
 # Lint
 npm run lint
 
-# Debug API calls (shows request/response)
+# Debug API calls (shows request/response with redacted credentials)
 QUICKFILE_DEBUG=1 node dist/index.js
 ```
 
@@ -213,7 +219,9 @@ quickfile-mcp/
 │   │   ├── auth.ts        # MD5 authentication
 │   │   └── client.ts      # HTTP client
 │   ├── tools/
-│   │   ├── index.ts       # Tool registry
+│   │   ├── index.ts       # Tool registry & exports
+│   │   ├── utils.ts       # Shared utilities (error handling, logging)
+│   │   ├── schemas.ts     # Zod validation schemas
 │   │   ├── system.ts      # System tools
 │   │   ├── client.ts      # Client tools
 │   │   ├── invoice.ts     # Invoice tools
@@ -223,9 +231,11 @@ quickfile-mcp/
 │   │   └── report.ts      # Report tools
 │   └── types/
 │       └── quickfile.ts   # TypeScript types
+├── tests/
+│   ├── unit/              # Unit tests (118 tests)
+│   └── integration/       # API integration tests (16 tests)
 ├── .agent/                # AI assistant documentation
-├── .opencode/agent/       # OpenCode agent files
-└── tests/                 # Test suite
+└── .opencode/agent/       # OpenCode agent files
 ```
 
 ## Credential Security

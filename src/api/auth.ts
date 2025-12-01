@@ -2,6 +2,18 @@
  * QuickFile API Authentication
  * Implements MD5 hash-based authentication as per QuickFile API docs
  * https://api.quickfile.co.uk/#4
+ * 
+ * SECURITY NOTE: This module uses MD5 hashing for API authentication.
+ * MD5 is cryptographically weak and would not be recommended for new systems.
+ * However, this is REQUIRED by the QuickFile API specification and cannot
+ * be changed without QuickFile updating their authentication mechanism.
+ * 
+ * The authentication flow:
+ * 1. Generate a unique submission number for each request
+ * 2. Create MD5 hash of: AccountNumber + APIKey + SubmissionNumber
+ * 3. Include the hash in the request header for server-side verification
+ * 
+ * The API key itself is never transmitted directly - only the hash is sent.
  */
 
 import { createHash } from 'crypto';
@@ -58,7 +70,10 @@ export function generateSubmissionNumber(): string {
 
 /**
  * Generate MD5 hash for authentication
- * MD5(AccountNumber + APIKey + SubmissionNumber)
+ * Formula: MD5(AccountNumber + APIKey + SubmissionNumber)
+ * 
+ * NOTE: MD5 is used here because it is REQUIRED by the QuickFile API.
+ * This is an API constraint, not a design choice. See module documentation.
  */
 export function generateMD5Hash(
   accountNumber: string,

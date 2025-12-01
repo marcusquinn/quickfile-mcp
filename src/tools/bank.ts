@@ -4,13 +4,14 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getApiClient, QuickFileApiError } from '../api/client.js';
+import { getApiClient } from '../api/client.js';
 import type {
   BankAccount,
   BankTransaction,
   BankTransactionCreateParams,
   BankAccountType,
 } from '../types/quickfile.js';
+import { handleToolError, successResult, cleanParams, type ToolResult } from './utils.js';
 
 // =============================================================================
 // Tool Definitions
@@ -217,8 +218,8 @@ interface BankTransactionCreateResponse {
 export async function handleBankTool(
   toolName: string,
   args: Record<string, unknown>
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
-  const client = getApiClient();
+): Promise<ToolResult> {
+  const apiClient = getApiClient();
 
   try {
     switch (toolName) {
@@ -226,7 +227,7 @@ export async function handleBankTool(
         // OrderResultsBy and AccountTypes are required for Bank_GetAccounts
         // Valid OrderResultsBy values: NominalCode, Position
         // Valid AccountTypes: CURRENT, PETTY, BUILDINGSOC, LOAN, MERCHANT, EQUITY, CREDITCARD, RESERVE
-        const response = await client.request<
+        const response = await apiClient.request<
           { SearchParameters: { 
             OrderResultsBy: string;
             AccountTypes: { AccountType: string[] };
@@ -242,47 +243,25 @@ export async function handleBankTool(
         });
 
         const accounts = response.BankAccounts?.BankAccount || [];
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  count: accounts.length,
-                  accounts: accounts,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          count: accounts.length,
+          accounts: accounts,
+        });
       }
 
       case 'quickfile_bank_get_balances': {
         const nominalCodes = args.nominalCodes as string[];
 
-        const response = await client.request<
+        const response = await apiClient.request<
           { NominalCodes: { NominalCode: string[] } },
           BankBalancesResponse
         >('Bank_GetAccountBalances', {
           NominalCodes: { NominalCode: nominalCodes },
         });
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  balances: response.Balances,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          balances: response.Balances,
+        });
       }
 
       case 'quickfile_bank_search': {
@@ -296,34 +275,23 @@ export async function handleBankTool(
           NominalCode: parseInt(args.nominalCode as string, 10),
         };
         
-        if (args.reference) searchParams.Reference = args.reference;
-        if (args.dateFrom) searchParams.FromDate = args.dateFrom;
-        if (args.dateTo) searchParams.ToDate = args.dateTo;
-        if (args.minAmount !== undefined) searchParams.AmountFrom = args.minAmount;
-        if (args.maxAmount !== undefined) searchParams.AmountTo = args.maxAmount;
+        if (args.reference) { searchParams.Reference = args.reference; }
+        if (args.dateFrom) { searchParams.FromDate = args.dateFrom; }
+        if (args.dateTo) { searchParams.ToDate = args.dateTo; }
+        if (args.minAmount !== undefined) { searchParams.AmountFrom = args.minAmount; }
+        if (args.maxAmount !== undefined) { searchParams.AmountTo = args.maxAmount; }
 
-        const response = await client.request<
+        const response = await apiClient.request<
           { SearchParameters: typeof searchParams },
           BankSearchResponse
         >('Bank_Search', { SearchParameters: searchParams });
 
         const transactions = response.Transactions?.Transaction || [];
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  totalRecords: response.TotalRecords,
-                  count: transactions.length,
-                  transactions: transactions,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          totalRecords: response.TotalRecords,
+          count: transactions.length,
+          transactions: transactions,
+        });
       }
 
       case 'quickfile_bank_create_account': {
@@ -333,34 +301,23 @@ export async function handleBankTool(
           Currency: (args.currency as string) ?? 'GBP',
         };
 
-        if (args.bankName) accountData.BankName = args.bankName;
-        if (args.sortCode) accountData.SortCode = args.sortCode;
-        if (args.accountNumber) accountData.AccountNumber = args.accountNumber;
+        if (args.bankName) { accountData.BankName = args.bankName; }
+        if (args.sortCode) { accountData.SortCode = args.sortCode; }
+        if (args.accountNumber) { accountData.AccountNumber = args.accountNumber; }
         if (args.openingBalance !== undefined) {
           accountData.OpeningBalance = args.openingBalance;
         }
 
-        const response = await client.request<
+        const response = await apiClient.request<
           { BankAccountData: typeof accountData },
           BankAccountCreateResponse
         >('Bank_CreateAccount', { BankAccountData: accountData });
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  nominalCode: response.NominalCode,
-                  message: `Bank account "${args.accountName}" created with nominal code ${response.NominalCode}`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          nominalCode: response.NominalCode,
+          message: `Bank account "${args.accountName}" created with nominal code ${response.NominalCode}`,
+        });
       }
 
       case 'quickfile_bank_create_transaction': {
@@ -374,31 +331,18 @@ export async function handleBankTool(
           Notes: args.notes as string | undefined,
         };
 
-        const cleanParams = Object.fromEntries(
-          Object.entries(txnParams).filter(([, v]) => v !== undefined)
-        );
+        const cleaned = cleanParams(txnParams);
 
-        const response = await client.request<
-          { TransactionData: typeof cleanParams },
+        const response = await apiClient.request<
+          { TransactionData: typeof cleaned },
           BankTransactionCreateResponse
-        >('Bank_CreateTransaction', { TransactionData: cleanParams });
+        >('Bank_CreateTransaction', { TransactionData: cleaned });
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  transactionId: response.TransactionID,
-                  message: `Bank transaction created with ID ${response.TransactionID}`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          transactionId: response.TransactionID,
+          message: `Bank transaction created with ID ${response.TransactionID}`,
+        });
       }
 
       default:
@@ -408,14 +352,6 @@ export async function handleBankTool(
         };
     }
   } catch (error) {
-    const message =
-      error instanceof QuickFileApiError
-        ? `QuickFile API Error [${error.code}]: ${error.message}`
-        : `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
-
-    return {
-      content: [{ type: 'text', text: message }],
-      isError: true,
-    };
+    return handleToolError(error);
   }
 }

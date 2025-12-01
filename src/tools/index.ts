@@ -14,6 +14,11 @@ import { supplierTools, handleSupplierTool } from './supplier.js';
 import { bankTools, handleBankTool } from './bank.js';
 import { reportTools, handleReportTool } from './report.js';
 
+// Import and re-export utility types and functions
+import type { ToolResult } from './utils.js';
+export type { ToolResult };
+export { handleToolError, successResult, errorResult, logger, cleanParams } from './utils.js';
+
 // Aggregate all tools
 export const allTools: Tool[] = [
   ...systemTools,
@@ -24,12 +29,6 @@ export const allTools: Tool[] = [
   ...bankTools,
   ...reportTools,
 ];
-
-// Tool handler result type
-export type ToolResult = {
-  content: Array<{ type: 'text'; text: string }>;
-  isError?: boolean;
-};
 
 /**
  * Route tool calls to appropriate handler

@@ -4,12 +4,13 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getApiClient, QuickFileApiError } from '../api/client.js';
+import { getApiClient } from '../api/client.js';
 import type {
   Purchase,
   PurchaseCreateParams,
   PurchaseLine,
 } from '../types/quickfile.js';
+import { handleToolError, successResult, cleanParams, type ToolResult } from './utils.js';
 
 // =============================================================================
 // Tool Definitions
@@ -186,8 +187,8 @@ interface PurchaseCreateResponse {
 export async function handlePurchaseTool(
   toolName: string,
   args: Record<string, unknown>
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
-  const client = getApiClient();
+): Promise<ToolResult> {
+  const apiClient = getApiClient();
 
   try {
     switch (toolName) {
@@ -199,55 +200,37 @@ export async function handlePurchaseTool(
           Offset: (args.offset as number) ?? 0,
         };
         
-        if (args.supplierId) searchParams.SupplierID = args.supplierId;
-        if (args.dateFrom) searchParams.DateFrom = args.dateFrom;
-        if (args.dateTo) searchParams.DateTo = args.dateTo;
-        if (args.status) searchParams.Status = args.status;
-        if (args.searchKeyword) searchParams.SearchKeyword = args.searchKeyword;
+        if (args.supplierId) { searchParams.SupplierID = args.supplierId; }
+        if (args.dateFrom) { searchParams.DateFrom = args.dateFrom; }
+        if (args.dateTo) { searchParams.DateTo = args.dateTo; }
+        if (args.status) { searchParams.Status = args.status; }
+        if (args.searchKeyword) { searchParams.SearchKeyword = args.searchKeyword; }
         
         // OrderResultsBy and OrderDirection are both required
         // Valid OrderResultsBy values: ReceiptNumber, ReceiptDate, SupplierName, Total
         searchParams.OrderResultsBy = (args.orderBy as string) ?? 'ReceiptDate';
         searchParams.OrderDirection = (args.orderDirection as string) ?? 'DESC';
 
-        const response = await client.request<
+        const response = await apiClient.request<
           { SearchParameters: typeof searchParams },
           PurchaseSearchResponse
         >('Purchase_Search', { SearchParameters: searchParams });
 
         const purchases = response.Purchases?.Purchase || [];
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  totalRecords: response.TotalRecords,
-                  count: purchases.length,
-                  purchases: purchases,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          totalRecords: response.TotalRecords,
+          count: purchases.length,
+          purchases: purchases,
+        });
       }
 
       case 'quickfile_purchase_get': {
-        const response = await client.request<{ PurchaseID: number }, PurchaseGetResponse>(
+        const response = await apiClient.request<{ PurchaseID: number }, PurchaseGetResponse>(
           'Purchase_Get',
           { PurchaseID: args.purchaseId as number }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(response.PurchaseDetails, null, 2),
-            },
-          ],
-        };
+        return successResult(response.PurchaseDetails);
       }
 
       case 'quickfile_purchase_create': {
@@ -280,56 +263,32 @@ export async function handlePurchaseTool(
           PurchaseLines: purchaseLines,
         };
 
-        const cleanParams = Object.fromEntries(
-          Object.entries(createParams).filter(([, v]) => v !== undefined)
-        );
+        const cleaned = cleanParams(createParams);
 
-        const response = await client.request<
-          { PurchaseData: typeof cleanParams },
+        const response = await apiClient.request<
+          { PurchaseData: typeof cleaned },
           PurchaseCreateResponse
-        >('Purchase_Create', { PurchaseData: cleanParams });
+        >('Purchase_Create', { PurchaseData: cleaned });
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  purchaseId: response.PurchaseID,
-                  purchaseNumber: response.PurchaseNumber,
-                  message: `Purchase #${response.PurchaseNumber} created successfully`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          purchaseId: response.PurchaseID,
+          purchaseNumber: response.PurchaseNumber,
+          message: `Purchase #${response.PurchaseNumber} created successfully`,
+        });
       }
 
       case 'quickfile_purchase_delete': {
-        await client.request<{ PurchaseID: number }, Record<string, never>>(
+        await apiClient.request<{ PurchaseID: number }, Record<string, never>>(
           'Purchase_Delete',
           { PurchaseID: args.purchaseId as number }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  purchaseId: args.purchaseId,
-                  message: `Purchase #${args.purchaseId} deleted successfully`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          purchaseId: args.purchaseId,
+          message: `Purchase #${args.purchaseId} deleted successfully`,
+        });
       }
 
       default:
@@ -339,14 +298,6 @@ export async function handlePurchaseTool(
         };
     }
   } catch (error) {
-    const message =
-      error instanceof QuickFileApiError
-        ? `QuickFile API Error [${error.code}]: ${error.message}`
-        : `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
-
-    return {
-      content: [{ type: 'text', text: message }],
-      isError: true,
-    };
+    return handleToolError(error);
   }
 }

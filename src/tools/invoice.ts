@@ -4,7 +4,7 @@
  */
 
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { getApiClient, QuickFileApiError } from '../api/client.js';
+import { getApiClient } from '../api/client.js';
 import type {
   Invoice,
   InvoiceSearchParams,
@@ -13,6 +13,7 @@ import type {
   InvoiceType,
   InvoiceStatus,
 } from '../types/quickfile.js';
+import { handleToolError, successResult, cleanParams, type ToolResult } from './utils.js';
 
 // =============================================================================
 // Tool Definitions
@@ -287,8 +288,8 @@ interface EstimateConvertResponse {
 export async function handleInvoiceTool(
   toolName: string,
   args: Record<string, unknown>
-): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: boolean }> {
-  const client = getApiClient();
+): Promise<ToolResult> {
+  const apiClient = getApiClient();
 
   try {
     switch (toolName) {
@@ -307,48 +308,28 @@ export async function handleInvoiceTool(
           SearchKeyword: args.searchKeyword as string | undefined,
         };
 
-        const cleanParams = Object.fromEntries(
-          Object.entries(params).filter(([, v]) => v !== undefined)
-        );
+        const cleaned = cleanParams(params);
 
-        const response = await client.request<
-          { SearchParameters: typeof cleanParams },
+        const response = await apiClient.request<
+          { SearchParameters: typeof cleaned },
           InvoiceSearchResponse
-        >('Invoice_Search', { SearchParameters: cleanParams });
+        >('Invoice_Search', { SearchParameters: cleaned });
 
         const invoices = response.Invoices?.Invoice || [];
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  totalRecords: response.TotalRecords,
-                  count: invoices.length,
-                  invoices: invoices,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          totalRecords: response.TotalRecords,
+          count: invoices.length,
+          invoices: invoices,
+        });
       }
 
       case 'quickfile_invoice_get': {
-        const response = await client.request<{ InvoiceID: number }, InvoiceGetResponse>(
+        const response = await apiClient.request<{ InvoiceID: number }, InvoiceGetResponse>(
           'Invoice_Get',
           { InvoiceID: args.invoiceId as number }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(response.InvoiceDetails, null, 2),
-            },
-          ],
-        };
+        return successResult(response.InvoiceDetails);
       }
 
       case 'quickfile_invoice_create': {
@@ -383,56 +364,32 @@ export async function handleInvoiceTool(
           InvoiceLines: invoiceLines,
         };
 
-        const cleanParams = Object.fromEntries(
-          Object.entries(createParams).filter(([, v]) => v !== undefined)
-        );
+        const cleaned = cleanParams(createParams);
 
-        const response = await client.request<{ InvoiceData: typeof cleanParams }, InvoiceCreateResponse>(
+        const response = await apiClient.request<{ InvoiceData: typeof cleaned }, InvoiceCreateResponse>(
           'Invoice_Create',
-          { InvoiceData: cleanParams }
+          { InvoiceData: cleaned }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  invoiceId: response.InvoiceID,
-                  invoiceNumber: response.InvoiceNumber,
-                  message: `${args.invoiceType} #${response.InvoiceNumber} created successfully`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          invoiceId: response.InvoiceID,
+          invoiceNumber: response.InvoiceNumber,
+          message: `${args.invoiceType} #${response.InvoiceNumber} created successfully`,
+        });
       }
 
       case 'quickfile_invoice_delete': {
-        await client.request<{ InvoiceID: number }, Record<string, never>>(
+        await apiClient.request<{ InvoiceID: number }, Record<string, never>>(
           'Invoice_Delete',
           { InvoiceID: args.invoiceId as number }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  invoiceId: args.invoiceId,
-                  message: `Invoice #${args.invoiceId} deleted successfully`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          invoiceId: args.invoiceId,
+          message: `Invoice #${args.invoiceId} deleted successfully`,
+        });
       }
 
       case 'quickfile_invoice_send': {
@@ -440,60 +397,38 @@ export async function handleInvoiceTool(
           InvoiceID: args.invoiceId as number,
         };
 
-        if (args.emailTo) sendParams.EmailTo = args.emailTo;
-        if (args.emailSubject) sendParams.EmailSubject = args.emailSubject;
-        if (args.emailBody) sendParams.EmailBody = args.emailBody;
+        if (args.emailTo) { sendParams.EmailTo = args.emailTo; }
+        if (args.emailSubject) { sendParams.EmailSubject = args.emailSubject; }
+        if (args.emailBody) { sendParams.EmailBody = args.emailBody; }
         sendParams.AttachPDF = args.attachPdf ?? true;
 
-        await client.request<typeof sendParams, Record<string, never>>(
+        await apiClient.request<typeof sendParams, Record<string, never>>(
           'Invoice_Send',
           sendParams
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  invoiceId: args.invoiceId,
-                  message: `Invoice #${args.invoiceId} sent successfully`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          invoiceId: args.invoiceId,
+          message: `Invoice #${args.invoiceId} sent successfully`,
+        });
       }
 
       case 'quickfile_invoice_get_pdf': {
-        const response = await client.request<{ InvoiceID: number }, InvoicePdfResponse>(
+        const response = await apiClient.request<{ InvoiceID: number }, InvoicePdfResponse>(
           'Invoice_GetPDF',
           { InvoiceID: args.invoiceId as number }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  invoiceId: args.invoiceId,
-                  pdfUrl: response.PDFUri,
-                  message: 'PDF URL generated (valid for limited time)',
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          invoiceId: args.invoiceId,
+          pdfUrl: response.PDFUri,
+          message: 'PDF URL generated (valid for limited time)',
+        });
       }
 
       case 'quickfile_estimate_accept_decline': {
-        await client.request<{ InvoiceID: number; Action: string }, Record<string, never>>(
+        await apiClient.request<{ InvoiceID: number; Action: string }, Record<string, never>>(
           'Estimate_AcceptDecline',
           {
             InvoiceID: args.invoiceId as number,
@@ -501,49 +436,27 @@ export async function handleInvoiceTool(
           }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  estimateId: args.invoiceId,
-                  action: args.action,
-                  message: `Estimate #${args.invoiceId} ${(args.action as string).toLowerCase()}ed`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          estimateId: args.invoiceId,
+          action: args.action,
+          message: `Estimate #${args.invoiceId} ${(args.action as string).toLowerCase()}ed`,
+        });
       }
 
       case 'quickfile_estimate_convert_to_invoice': {
-        const response = await client.request<{ EstimateID: number }, EstimateConvertResponse>(
+        const response = await apiClient.request<{ EstimateID: number }, EstimateConvertResponse>(
           'Estimate_ConvertToInvoice',
           { EstimateID: args.estimateId as number }
         );
 
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  success: true,
-                  estimateId: args.estimateId,
-                  invoiceId: response.InvoiceID,
-                  invoiceNumber: response.InvoiceNumber,
-                  message: `Estimate converted to Invoice #${response.InvoiceNumber}`,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+        return successResult({
+          success: true,
+          estimateId: args.estimateId,
+          invoiceId: response.InvoiceID,
+          invoiceNumber: response.InvoiceNumber,
+          message: `Estimate converted to Invoice #${response.InvoiceNumber}`,
+        });
       }
 
       default:
@@ -553,14 +466,6 @@ export async function handleInvoiceTool(
         };
     }
   } catch (error) {
-    const message =
-      error instanceof QuickFileApiError
-        ? `QuickFile API Error [${error.code}]: ${error.message}`
-        : `Error: ${error instanceof Error ? error.message : 'Unknown error'}`;
-
-    return {
-      content: [{ type: 'text', text: message }],
-      isError: true,
-    };
+    return handleToolError(error);
   }
 }
