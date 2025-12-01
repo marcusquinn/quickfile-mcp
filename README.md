@@ -217,6 +217,46 @@ npm run lint
 QUICKFILE_DEBUG=1 node dist/index.js
 ```
 
+### Testing with MCP Inspector
+
+For development and debugging, use the official [MCP Inspector](https://github.com/modelcontextprotocol/inspector) tool instead of running through an AI assistant. This provides:
+
+- **Direct tool invocation** - Call MCP tools directly with custom parameters
+- **Real-time response viewing** - See full JSON responses without AI interpretation
+- **Faster iteration** - No waiting for AI to process requests
+- **Debug visibility** - View raw server output and errors
+
+#### Quick Start
+
+```bash
+# Install MCP Inspector globally
+npm install -g @modelcontextprotocol/inspector
+
+# Run inspector with this server
+npx @modelcontextprotocol/inspector node dist/index.js
+```
+
+Then open `http://localhost:5173` in your browser to:
+
+1. See all 37 available tools listed
+2. Click a tool to view its input schema
+3. Fill in parameters and execute
+4. View the raw JSON response
+
+#### Example Test Workflow
+
+1. **Test account access**: Call `quickfile_system_get_account` with `{}`
+2. **Test client search**: Call `quickfile_client_search` with `{"companyName": "test"}`
+3. **Test reports**: Call `quickfile_report_profit_loss` with `{"startDate": "2024-01-01", "endDate": "2024-12-31"}`
+4. **Test invoice listing**: Call `quickfile_invoice_search` with `{"invoiceType": "INVOICE"}`
+
+This is the recommended approach for:
+
+- Debugging API response issues
+- Verifying new tools work correctly
+- Testing parameter validation
+- Investigating error responses
+
 ## Contributing
 
 ### QuickFile API Documentation
