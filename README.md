@@ -3,7 +3,8 @@
 **Model Context Protocol server for [QuickFile UK](https://www.quickfile.co.uk/) accounting software - giving AI assistants full access to invoicing, clients, purchases, banking, and financial reporting.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-1.0.0-blue)](https://github.com/marcusquinn/quickfile-mcp/releases)
+[![Version](https://img.shields.io/badge/Version-1.0.1-blue)](https://github.com/marcusquinn/quickfile-mcp/releases)
+[![CI](https://github.com/marcusquinn/quickfile-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/marcusquinn/quickfile-mcp/actions/workflows/ci.yml)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io)
 [![AGENTS.md](https://img.shields.io/badge/AGENTS.md-Compliant-blue.svg)](https://agents.md/)
 [![QuickFile](https://img.shields.io/badge/QuickFile-API%20v1.2-blue.svg)](https://api.quickfile.co.uk/)

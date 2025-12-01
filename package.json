@@ -1,6 +1,6 @@
 {
   "name": "quickfile-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server for QuickFile UK accounting software - invoices, clients, purchases, banking, and reports",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
