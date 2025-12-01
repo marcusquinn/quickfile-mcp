@@ -1,6 +1,6 @@
 # QuickFile MCP Server
 
-**Model Context Protocol server for QuickFile UK accounting software - giving AI assistants full access to invoicing, clients, purchases, banking, and financial reporting.**
+**Model Context Protocol server for [QuickFile UK](https://www.quickfile.co.uk/) accounting software - giving AI assistants full access to invoicing, clients, purchases, banking, and financial reporting.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/Version-1.0.0-blue)](https://github.com/marcusquinn/quickfile-mcp/releases)
@@ -50,6 +50,7 @@ chmod 600 ~/.config/.quickfile-mcp/credentials.json
 ```
 
 **Where to find these:**
+
 1. **Account Number**: Visible in top-right corner of QuickFile dashboard
 2. **API Key**: Account Settings → 3rd Party Integrations → API Key
 3. **Application ID**: Account Settings → Create a QuickFile App → copy the Application ID
@@ -90,69 +91,76 @@ Restart OpenCode and try:
 ## Available Tools
 
 ### System (3 tools)
-| Tool | Description |
-|------|-------------|
-| `quickfile_system_get_account` | Get account details (company, VAT status, year end) |
-| `quickfile_system_search_events` | Search the audit event log |
-| `quickfile_system_create_note` | Add notes to invoices, clients, etc. |
+
+| Tool                             | Description                                         |
+| -------------------------------- | --------------------------------------------------- |
+| `quickfile_system_get_account`   | Get account details (company, VAT status, year end) |
+| `quickfile_system_search_events` | Search the audit event log                          |
+| `quickfile_system_create_note`   | Add notes to invoices, clients, etc.                |
 
 ### Clients (7 tools)
-| Tool | Description |
-|------|-------------|
-| `quickfile_client_search` | Search clients by name, email, postcode |
-| `quickfile_client_get` | Get full client details |
-| `quickfile_client_create` | Create a new client |
-| `quickfile_client_update` | Update client details |
-| `quickfile_client_delete` | Delete a client |
-| `quickfile_client_insert_contacts` | Add contacts to a client |
-| `quickfile_client_login_url` | Get passwordless login URL for client portal |
+
+| Tool                               | Description                                  |
+| ---------------------------------- | -------------------------------------------- |
+| `quickfile_client_search`          | Search clients by name, email, postcode      |
+| `quickfile_client_get`             | Get full client details                      |
+| `quickfile_client_create`          | Create a new client                          |
+| `quickfile_client_update`          | Update client details                        |
+| `quickfile_client_delete`          | Delete a client                              |
+| `quickfile_client_insert_contacts` | Add contacts to a client                     |
+| `quickfile_client_login_url`       | Get passwordless login URL for client portal |
 
 ### Invoices (8 tools)
-| Tool | Description |
-|------|-------------|
-| `quickfile_invoice_search` | Search invoices by type, client, date, status |
-| `quickfile_invoice_get` | Get full invoice with line items |
-| `quickfile_invoice_create` | Create invoice, estimate, or credit note |
-| `quickfile_invoice_delete` | Delete an invoice |
-| `quickfile_invoice_send` | Send invoice by email |
-| `quickfile_invoice_get_pdf` | Get PDF download URL |
-| `quickfile_estimate_accept_decline` | Accept or decline an estimate |
-| `quickfile_estimate_convert_to_invoice` | Convert estimate to invoice |
+
+| Tool                                    | Description                                   |
+| --------------------------------------- | --------------------------------------------- |
+| `quickfile_invoice_search`              | Search invoices by type, client, date, status |
+| `quickfile_invoice_get`                 | Get full invoice with line items              |
+| `quickfile_invoice_create`              | Create invoice, estimate, or credit note      |
+| `quickfile_invoice_delete`              | Delete an invoice                             |
+| `quickfile_invoice_send`                | Send invoice by email                         |
+| `quickfile_invoice_get_pdf`             | Get PDF download URL                          |
+| `quickfile_estimate_accept_decline`     | Accept or decline an estimate                 |
+| `quickfile_estimate_convert_to_invoice` | Convert estimate to invoice                   |
 
 ### Purchases (4 tools)
-| Tool | Description |
-|------|-------------|
+
+| Tool                        | Description              |
+| --------------------------- | ------------------------ |
 | `quickfile_purchase_search` | Search purchase invoices |
-| `quickfile_purchase_get` | Get purchase details |
-| `quickfile_purchase_create` | Create purchase invoice |
-| `quickfile_purchase_delete` | Delete purchase invoice |
+| `quickfile_purchase_get`    | Get purchase details     |
+| `quickfile_purchase_create` | Create purchase invoice  |
+| `quickfile_purchase_delete` | Delete purchase invoice  |
 
 ### Suppliers (4 tools)
-| Tool | Description |
-|------|-------------|
-| `quickfile_supplier_search` | Search suppliers |
-| `quickfile_supplier_get` | Get supplier details |
+
+| Tool                        | Description           |
+| --------------------------- | --------------------- |
+| `quickfile_supplier_search` | Search suppliers      |
+| `quickfile_supplier_get`    | Get supplier details  |
 | `quickfile_supplier_create` | Create a new supplier |
-| `quickfile_supplier_delete` | Delete a supplier |
+| `quickfile_supplier_delete` | Delete a supplier     |
 
 ### Banking (5 tools)
-| Tool | Description |
-|------|-------------|
-| `quickfile_bank_get_accounts` | List all bank accounts |
-| `quickfile_bank_get_balances` | Get account balances |
-| `quickfile_bank_search` | Search transactions |
-| `quickfile_bank_create_account` | Create a bank account |
-| `quickfile_bank_create_transaction` | Add bank transaction |
+
+| Tool                                | Description            |
+| ----------------------------------- | ---------------------- |
+| `quickfile_bank_get_accounts`       | List all bank accounts |
+| `quickfile_bank_get_balances`       | Get account balances   |
+| `quickfile_bank_search`             | Search transactions    |
+| `quickfile_bank_create_account`     | Create a bank account  |
+| `quickfile_bank_create_transaction` | Add bank transaction   |
 
 ### Reports (6 tools)
-| Tool | Description |
-|------|-------------|
-| `quickfile_report_profit_loss` | Profit & Loss report |
-| `quickfile_report_balance_sheet` | Balance Sheet report |
-| `quickfile_report_vat_obligations` | VAT returns (filed & open) |
-| `quickfile_report_ageing` | Debtor/Creditor ageing |
-| `quickfile_report_chart_of_accounts` | List nominal codes |
-| `quickfile_report_subscriptions` | Recurring subscriptions |
+
+| Tool                                 | Description                |
+| ------------------------------------ | -------------------------- |
+| `quickfile_report_profit_loss`       | Profit & Loss report       |
+| `quickfile_report_balance_sheet`     | Balance Sheet report       |
+| `quickfile_report_vat_obligations`   | VAT returns (filed & open) |
+| `quickfile_report_ageing`            | Debtor/Creditor ageing     |
+| `quickfile_report_chart_of_accounts` | List nominal codes         |
+| `quickfile_report_subscriptions`     | Recurring subscriptions    |
 
 ## API Rate Limits
 
@@ -232,7 +240,7 @@ quickfile-mcp/
 │   └── types/
 │       └── quickfile.ts   # TypeScript types
 ├── tests/
-│   ├── unit/              # Unit tests (118 tests)
+│   ├── unit/              # Unit tests (201 tests)
 │   └── integration/       # API integration tests (16 tests)
 ├── .agent/                # AI assistant documentation
 └── .opencode/agent/       # OpenCode agent files
