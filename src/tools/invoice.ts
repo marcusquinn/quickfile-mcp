@@ -261,10 +261,9 @@ export const invoiceTools: Tool[] = [
 // =============================================================================
 
 interface InvoiceSearchResponse {
-  Invoices: {
-    Invoice: Invoice[];
-  };
-  TotalRecords: number;
+  RecordsetCount: number;
+  ReturnCount: number;
+  Record: Invoice[];
 }
 
 interface InvoiceGetResponse {
@@ -315,9 +314,9 @@ export async function handleInvoiceTool(
           InvoiceSearchResponse
         >('Invoice_Search', { SearchParameters: cleaned });
 
-        const invoices = response.Invoices?.Invoice || [];
+        const invoices = response.Record || [];
         return successResult({
-          totalRecords: response.TotalRecords,
+          totalRecords: response.RecordsetCount,
           count: invoices.length,
           invoices: invoices,
         });

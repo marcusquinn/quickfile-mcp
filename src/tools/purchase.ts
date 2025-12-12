@@ -169,10 +169,9 @@ export const purchaseTools: Tool[] = [
 // =============================================================================
 
 interface PurchaseSearchResponse {
-  Purchases: {
-    Purchase: Purchase[];
-  };
-  TotalRecords: number;
+  RecordsetCount: number;
+  ReturnCount: number;
+  Record: Purchase[];
 }
 
 interface PurchaseGetResponse {
@@ -216,9 +215,9 @@ export async function handlePurchaseTool(
           PurchaseSearchResponse
         >('Purchase_Search', { SearchParameters: searchParams });
 
-        const purchases = response.Purchases?.Purchase || [];
+        const purchases = response.Record || [];
         return successResult({
-          totalRecords: response.TotalRecords,
+          totalRecords: response.RecordsetCount,
           count: purchases.length,
           purchases: purchases,
         });

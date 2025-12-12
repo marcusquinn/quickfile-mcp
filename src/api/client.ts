@@ -9,6 +9,7 @@ import type {
   QuickFileRequest,
   QuickFileResponse,
   QuickFileError,
+  QuickFileHeader,
 } from "../types/quickfile.js";
 import { loadCredentials, createAuthHeader } from "./auth.js";
 
@@ -25,9 +26,9 @@ export interface ApiClientOptions {
 // Helper Functions (extracted to reduce cognitive complexity)
 // =============================================================================
 
-function logDebugRequest<TRequest>(
+function logDebugRequest(
   url: string,
-  request: QuickFileRequest<TRequest>,
+  request: { payload: { Header: QuickFileHeader; Body?: unknown } },
 ): void {
   console.error(`[DEBUG] URL: ${url}`);
   const safeRequest = {
@@ -111,16 +112,16 @@ export class QuickFileApiClient {
   async request<TRequest, TResponse>(
     methodName: string,
     body: TRequest,
+    options?: { noBody?: boolean },
   ): Promise<TResponse> {
     const url = this.buildUrl(methodName);
     const header = createAuthHeader(this.credentials, this.testMode);
 
-    const request: QuickFileRequest<TRequest> = {
-      payload: {
-        Header: header,
-        Body: body,
-      },
-    };
+    // Some QuickFile endpoints don't accept a Body element at all
+    const request: QuickFileRequest<TRequest> | { payload: { Header: typeof header } } = 
+      options?.noBody
+        ? { payload: { Header: header } }
+        : { payload: { Header: header, Body: body } };
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);

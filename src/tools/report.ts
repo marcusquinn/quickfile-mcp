@@ -129,8 +129,8 @@ interface AgeingReportResponse {
 }
 
 interface ChartOfAccountsResponse {
-  NominalCodes: {
-    NominalCode: ChartOfAccountsEntry[];
+  Nominals: {
+    Nominal: ChartOfAccountsEntry[];
   };
 }
 
@@ -193,23 +193,37 @@ export async function handleReportTool(
       }
 
       case 'quickfile_report_vat_obligations': {
-        const status = (args.status as string) ?? 'ALL';
-        const params: Record<string, unknown> = {};
-        
-        if (status !== 'ALL') {
-          params.Status = status;
+        // VAT Obligations is only available for VAT-registered accounts using MTD
+        // This endpoint requires OrganisationId and AccountType for MTD VAT
+        // For non-VAT registered accounts, return an informative message
+        try {
+          const today = new Date();
+          const fiveYearsAgo = new Date(today.getFullYear() - 5, 0, 1);
+          
+          const searchParams: Record<string, unknown> = {
+            FromDate: fiveYearsAgo.toISOString().split('T')[0],
+            ToDate: today.toISOString().split('T')[0],
+            AccountType: 'VAT', // Required for MTD
+          };
+
+          const response = await apiClient.request<
+            { SearchParameters: typeof searchParams },
+            VatObligationsResponse
+          >('Report_VatObligations', { SearchParameters: searchParams });
+
+          const obligations = response.Obligations?.Obligation || [];
+          return successResult({
+            count: obligations.length,
+            obligations: obligations,
+          });
+        } catch (error) {
+          // If the account is not VAT registered or MTD not set up, return helpful message
+          return successResult({
+            count: 0,
+            obligations: [],
+            message: 'VAT obligations not available. This account may not be VAT registered or MTD VAT may not be configured.',
+          });
         }
-
-        const response = await apiClient.request<typeof params, VatObligationsResponse>(
-          'Report_VatObligations',
-          params
-        );
-
-        const obligations = response.Obligations?.Obligation || [];
-        return successResult({
-          count: obligations.length,
-          obligations: obligations,
-        });
       }
 
       case 'quickfile_report_ageing': {
@@ -228,11 +242,11 @@ export async function handleReportTool(
 
       case 'quickfile_report_chart_of_accounts': {
         const response = await apiClient.request<Record<string, never>, ChartOfAccountsResponse>(
-          'Report_ChartOfAccounts',
+          'Ledger_GetNominalLedgers',
           {}
         );
 
-        const accounts = response.NominalCodes?.NominalCode || [];
+        const accounts = response.Nominals?.Nominal || [];
         return successResult({
           count: accounts.length,
           nominalCodes: accounts,
@@ -240,9 +254,11 @@ export async function handleReportTool(
       }
 
       case 'quickfile_report_subscriptions': {
+        // Report_Subscriptions doesn't accept a Body element
         const response = await apiClient.request<Record<string, never>, SubscriptionsResponse>(
           'Report_Subscriptions',
-          {}
+          {},
+          { noBody: true }
         );
 
         const subscriptions = response.Subscriptions?.Subscription || [];

@@ -277,6 +277,29 @@ The QuickFile API has strict requirements for element ordering and required fiel
 - **SearchParameters wrapper** - Most endpoints need this wrapper around query params
 - **NominalCode types** - Sometimes string, sometimes int (check schema)
 
+### Response Structure Patterns
+
+The API returns data in different structures depending on the endpoint:
+
+| Endpoint Type | Response Structure |
+|---------------|-------------------|
+| Search (Client, Invoice, Supplier, Purchase) | `{ RecordsetCount, ReturnCount, Record: [...] }` |
+| Bank_GetAccounts | `{ BankAccounts: [...] }` (direct array) |
+| Bank_Search | `{ Transactions: { Transaction: [...] } }` (nested) |
+| Ledger_GetNominalLedgers | `{ Nominals: { Nominal: [...] } }` |
+| Report_Subscriptions | Requires `noBody` option (no Body element) |
+| Report_VatObligations | Only for VAT-registered accounts with MTD |
+
+### Debugging API Calls
+
+Enable debug mode to see raw requests and responses:
+
+```bash
+QUICKFILE_DEBUG=1 node dist/index.js
+```
+
+This shows the full request/response with credentials redacted - essential for troubleshooting API issues.
+
 ## Architecture
 
 ```

@@ -116,6 +116,36 @@ This agent provides access to QuickFile UK accounting software through the MCP s
 "Record a purchase invoice from Amazon for £50 office supplies"
 "List all purchases from supplier 11111"
 
+## API Notes
+
+### Known Working Patterns
+
+**Search endpoints** return `Record` array with `RecordsetCount`:
+```json
+{ "RecordsetCount": 154, "ReturnCount": 25, "Record": [...] }
+```
+
+**Bank accounts** return direct array:
+```json
+{ "BankAccounts": [...] }
+```
+
+**Chart of accounts** uses `Ledger_GetNominalLedgers` endpoint:
+```json
+{ "Nominals": { "Nominal": [...] } }
+```
+
+**VAT Obligations** - Only works for VAT-registered accounts with MTD. Returns helpful message if not configured.
+
+**Subscriptions** - Uses `noBody` request (no Body element).
+
+### Debugging
+
+Enable debug mode to see raw API requests/responses:
+```bash
+QUICKFILE_DEBUG=1 node dist/index.js
+```
+
 ## Security Notes
 
 - Credentials stored in `~/.config/.quickfile-mcp/credentials.json`

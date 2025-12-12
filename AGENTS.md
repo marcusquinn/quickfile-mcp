@@ -213,6 +213,56 @@ Debtor or creditor ageing report.
 4. quickfile_report_ageing (both DEBTOR and CREDITOR)
 ```
 
+## API Response Patterns
+
+**Important**: The QuickFile API has inconsistent response structures. The MCP server handles these automatically, but developers should be aware:
+
+### Search Endpoints
+Most search endpoints return data in this structure:
+```json
+{
+  "RecordsetCount": 154,
+  "ReturnCount": 25,
+  "Record": [ ... ]
+}
+```
+
+**Affected endpoints**: `Client_Search`, `Invoice_Search`, `Supplier_Search`, `Purchase_Search`
+
+### Bank Accounts
+Returns a direct array (not nested):
+```json
+{
+  "BankAccounts": [ ... ]
+}
+```
+
+### Bank Transactions
+Uses nested structure:
+```json
+{
+  "Transactions": {
+    "Transaction": [ ... ]
+  }
+}
+```
+
+### Chart of Accounts
+Uses `Ledger_GetNominalLedgers` (not `Report_ChartOfAccounts`):
+```json
+{
+  "Nominals": {
+    "Nominal": [ ... ]
+  }
+}
+```
+
+### Subscriptions
+Requires `noBody` option - doesn't accept a Body element in the request.
+
+### VAT Obligations
+Only available for VAT-registered accounts with MTD configured. Requires `AccountType` parameter.
+
 ## Error Handling
 
 API errors return structured responses:
@@ -222,6 +272,7 @@ Common error codes:
 - `INVALID_AUTH`: Authentication failed (check credentials)
 - `TIMEOUT`: Request timed out
 - `NETWORK_ERROR`: Connection issues
+- `400 Bad Request`: Usually indicates wrong request structure or missing required fields
 
 ## Rate Limits
 

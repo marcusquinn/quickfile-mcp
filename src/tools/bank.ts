@@ -202,9 +202,7 @@ export const bankTools: Tool[] = [
 // =============================================================================
 
 interface BankAccountsResponse {
-  BankAccounts: {
-    BankAccount: BankAccount[];
-  };
+  BankAccounts: BankAccount[];
 }
 
 interface BankBalancesResponse {
@@ -327,7 +325,7 @@ export async function handleBankTool(
             },
           },
         });
-        const accounts = response.BankAccounts?.BankAccount || [];
+        const accounts = response.BankAccounts || [];
         return successResult({ count: accounts.length, accounts });
       }
 
