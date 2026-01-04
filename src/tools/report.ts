@@ -6,10 +6,7 @@
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { getApiClient } from '../api/client.js';
 import type {
-  ProfitAndLossReport,
-  BalanceSheetReport,
   VatObligation,
-  AgeingReport,
   ChartOfAccountsEntry,
 } from '../types/quickfile.js';
 import { handleToolError, successResult, type ToolResult } from './utils.js';
@@ -110,12 +107,48 @@ export const reportTools: Tool[] = [
 // Tool Handlers
 // =============================================================================
 
+// Actual API response structures (not wrapped in Report property)
 interface ProfitLossResponse {
-  Report: ProfitAndLossReport;
+  Totals: {
+    Turnover: number;
+    LessCostofSales: number;
+    LessExpenses: number;
+    NetProfit: number;
+  };
+  Breakdown: {
+    Turnover?: {
+      Balances?: {
+        Balance?: Array<{
+          NominalCode: number;
+          NominalAccountName: string;
+          Amount: number;
+        }>;
+      };
+    };
+    LessCostofSales?: {
+      Balances?: {
+        Balance?: Array<{
+          NominalCode: number;
+          NominalAccountName: string;
+          Amount: number;
+        }>;
+      };
+    };
+    LessExpenses?: {
+      Balances?: {
+        Balance?: Array<{
+          NominalCode: number;
+          NominalAccountName: string;
+          Amount: number;
+        }>;
+      };
+    };
+  };
 }
 
 interface BalanceSheetResponse {
-  Report: BalanceSheetReport;
+  // Balance Sheet response structure - to be determined from actual API response
+  [key: string]: unknown;
 }
 
 interface VatObligationsResponse {
@@ -125,7 +158,8 @@ interface VatObligationsResponse {
 }
 
 interface AgeingReportResponse {
-  Report: AgeingReport;
+  // Ageing Report response structure - to be determined from actual API response
+  [key: string]: unknown;
 }
 
 interface ChartOfAccountsResponse {
@@ -174,7 +208,7 @@ export async function handleReportTool(
           SearchParameters: searchParams,
         });
 
-        return successResult(response.Report);
+        return successResult(response);
       }
 
       case 'quickfile_report_balance_sheet': {
@@ -189,7 +223,7 @@ export async function handleReportTool(
           SearchParameters: searchParams,
         });
 
-        return successResult(response.Report);
+        return successResult(response);
       }
 
       case 'quickfile_report_vat_obligations': {
@@ -237,7 +271,7 @@ export async function handleReportTool(
           AsAtDate: reportDate,
         });
 
-        return successResult(response.Report);
+        return successResult(response);
       }
 
       case 'quickfile_report_chart_of_accounts': {
