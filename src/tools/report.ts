@@ -110,12 +110,36 @@ export const reportTools: Tool[] = [
 // Tool Handlers
 // =============================================================================
 
+// Note: The QuickFile API returns Totals/Breakdown directly, not wrapped in a Report field
 interface ProfitLossResponse {
-  Report: ProfitAndLossReport;
+  Totals: {
+    Turnover: number;
+    LessCostofSales: number;
+    LessExpenses: number;
+    NetProfit: number;
+  };
+  Breakdown: {
+    Turnover: { Balances: { Balance: Array<{ NominalCode: number; NominalAccountName: string; Amount: number }> } };
+    LessCostofSales: { Balances: { Balance: Array<{ NominalCode: number; NominalAccountName: string; Amount: number }> } };
+    LessExpenses: { Balances: { Balance: Array<{ NominalCode: number; NominalAccountName: string; Amount: number }> } };
+  };
 }
 
 interface BalanceSheetResponse {
-  Report: BalanceSheetReport;
+  Totals: {
+    FixedAssets: number;
+    CurrentAssets: number;
+    CurrentLiabilities: number;
+    LongTermLiabilities: number;
+    CapitalAndReserves: number;
+  };
+  Breakdown: {
+    FixedAssets: { Balances: { Balance: Array<{ NominalCode: string | null; NominalAccountName: string; Amount: number }> } };
+    CurrentAssets: { Balances: { Balance: Array<{ NominalCode: string | null; NominalAccountName: string; Amount: number }> } };
+    CurrentLiabilities: { Balances: { Balance: Array<{ NominalCode: string | null; NominalAccountName: string; Amount: number }> } };
+    LongTermLiabilities: null | { Balances: { Balance: Array<{ NominalCode: string | null; NominalAccountName: string; Amount: number }> } };
+    CapitalAndReserves: { Balances: { Balance: Array<{ NominalCode: string | null; NominalAccountName: string; Amount: number }> } };
+  };
 }
 
 interface VatObligationsResponse {
@@ -174,7 +198,8 @@ export async function handleReportTool(
           SearchParameters: searchParams,
         });
 
-        return successResult(response.Report);
+        // FIX: QuickFile API returns Totals/Breakdown directly, not wrapped in Report field
+        return successResult(response);
       }
 
       case 'quickfile_report_balance_sheet': {
@@ -189,7 +214,8 @@ export async function handleReportTool(
           SearchParameters: searchParams,
         });
 
-        return successResult(response.Report);
+        // FIX: QuickFile API returns Totals/Breakdown directly, not wrapped in Report field
+        return successResult(response);
       }
 
       case 'quickfile_report_vat_obligations': {
