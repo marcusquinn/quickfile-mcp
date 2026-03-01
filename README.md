@@ -18,7 +18,7 @@
 
 ## Features
 
-- **40+ MCP Tools** for complete QuickFile API coverage
+- **37 MCP Tools** across 7 categories for complete QuickFile API coverage
 - **Client Management**: Create, search, update, delete clients and contacts
 - **Invoicing**: Create invoices, estimates, credit notes; send by email; get PDF
 - **Purchases**: Record and manage purchase invoices from suppliers
@@ -32,7 +32,6 @@
 ### 1. Clone and Install
 
 ```bash
-cd ~/git
 git clone https://github.com/marcusquinn/quickfile-mcp.git
 cd quickfile-mcp
 npm install
@@ -55,29 +54,42 @@ EOF
 chmod 600 ~/.config/.quickfile-mcp/credentials.json
 ```
 
+Or use the interactive setup script:
+
+```bash
+./setup.sh configure
+```
+
 **Where to find these:**
 
 1. **Account Number**: Visible in top-right corner of QuickFile dashboard
-2. **API Key**: Account Settings → 3rd Party Integrations → API Key
-3. **Application ID**: Account Settings → Create a QuickFile App → copy the Application ID
+2. **API Key**: Account Settings > 3rd Party Integrations > API Key
+3. **Application ID**: Account Settings > Create a QuickFile App > copy the Application ID
 
-### 3. Install OpenCode (if not already installed)
+### 3. Add to Your MCP Client
 
-[OpenCode](https://opencode.ai/) is an open-source AI coding assistant that runs in your terminal. It supports MCP (Model Context Protocol) servers like this one.
+This server works with any MCP-compatible client. Add it to your client's configuration:
 
-```bash
-# Install OpenCode globally
-npm install -g opencode
+**Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
-# Or run directly with npx
-npx opencode
+```json
+{
+  "mcpServers": {
+    "quickfile": {
+      "command": "node",
+      "args": ["/path/to/quickfile-mcp/dist/index.js"]
+    }
+  }
+}
 ```
 
-See the [OpenCode documentation](https://opencode.ai/docs) for more installation options and configuration.
+**Claude Code**:
 
-### 4. Configure OpenCode
+```bash
+claude mcp add quickfile node /path/to/quickfile-mcp/dist/index.js
+```
 
-Add to your `~/.config/opencode/opencode.json`:
+**OpenCode** (`~/.config/opencode/opencode.json`):
 
 ```json
 {
@@ -91,15 +103,9 @@ Add to your `~/.config/opencode/opencode.json`:
 }
 ```
 
-Or use the setup script:
+### 4. Start Using
 
-```bash
-./setup.sh opencode
-```
-
-### 5. Start Using
-
-Restart OpenCode and try:
+Restart your MCP client and try:
 
 ```
 "Show me my QuickFile account details"
@@ -182,123 +188,35 @@ Restart OpenCode and try:
 | `quickfile_report_chart_of_accounts` | List nominal codes         |
 | `quickfile_report_subscriptions`     | Recurring subscriptions    |
 
-## API Rate Limits
-
-QuickFile has a default limit of **1000 API calls per day** per account. Contact QuickFile support if you need this increased.
-
 ## Development
 
 ```bash
-# Install dependencies
-npm install
+npm install          # Install dependencies
+npm run build        # Build TypeScript
+npm run dev          # Development mode (auto-reload)
+npm test             # Unit tests (no API calls)
+npm run test:integration  # Integration tests (requires credentials)
+npm run test:all     # All tests
+npm run typecheck    # Type check
+npm run lint         # Lint
+npm run secretlint   # Scan for secrets
+```
 
-# Build TypeScript
-npm run build
+Enable debug mode to see raw API requests/responses (credentials redacted):
 
-# Run in development mode (with auto-reload)
-npm run dev
-
-# Run unit tests (fast, no API calls)
-npm test
-
-# Run integration tests (requires credentials)
-npm run test:integration
-
-# Run all tests
-npm run test:all
-
-# Type check
-npm run typecheck
-
-# Lint
-npm run lint
-
-# Debug API calls (shows request/response with redacted credentials)
+```bash
 QUICKFILE_DEBUG=1 node dist/index.js
 ```
 
 ### Testing with MCP Inspector
 
-For development and debugging, use the official [MCP Inspector](https://github.com/modelcontextprotocol/inspector) tool instead of running through an AI assistant. This provides:
-
-- **Direct tool invocation** - Call MCP tools directly with custom parameters
-- **Real-time response viewing** - See full JSON responses without AI interpretation
-- **Faster iteration** - No waiting for AI to process requests
-- **Debug visibility** - View raw server output and errors
-
-#### Quick Start
+For development and debugging, use the official [MCP Inspector](https://github.com/modelcontextprotocol/inspector) to call tools directly without an AI client:
 
 ```bash
-# Install MCP Inspector globally
-npm install -g @modelcontextprotocol/inspector
-
-# Run inspector with this server
 npx @modelcontextprotocol/inspector node dist/index.js
 ```
 
-Then open `http://localhost:5173` in your browser to:
-
-1. See all 37 available tools listed
-2. Click a tool to view its input schema
-3. Fill in parameters and execute
-4. View the raw JSON response
-
-#### Example Test Workflow
-
-1. **Test account access**: Call `quickfile_system_get_account` with `{}`
-2. **Test client search**: Call `quickfile_client_search` with `{"companyName": "test"}`
-3. **Test reports**: Call `quickfile_report_profit_loss` with `{"startDate": "2024-01-01", "endDate": "2024-12-31"}`
-4. **Test invoice listing**: Call `quickfile_invoice_search` with `{"invoiceType": "INVOICE"}`
-
-This is the recommended approach for:
-
-- Debugging API response issues
-- Verifying new tools work correctly
-- Testing parameter validation
-- Investigating error responses
-
-## Contributing
-
-### QuickFile API Documentation
-
-The QuickFile API has strict requirements for element ordering and required fields. When contributing:
-
-1. **Always check the official API schema** at https://api.quickfile.co.uk/
-2. **Use Context7 for AI-assisted development**: https://context7.com/websites/api_quickfile_co_uk
-   - Context7 has indexed the full QuickFile API documentation
-   - Use it to query exact field names, required parameters, and element ordering
-   - Example: "What are the required fields for Purchase_Search?"
-
-### Key API Quirks
-
-- **Element ordering matters** - XML schema validation requires specific field order
-- **Required fields vary by endpoint** - `OrderResultsBy` and `OrderDirection` are required for most search endpoints
-- **Field naming is inconsistent** - e.g., `FromDate`/`ToDate` vs `DateFrom`/`DateTo`
-- **SearchParameters wrapper** - Most endpoints need this wrapper around query params
-- **NominalCode types** - Sometimes string, sometimes int (check schema)
-
-### Response Structure Patterns
-
-The API returns data in different structures depending on the endpoint:
-
-| Endpoint Type | Response Structure |
-|---------------|-------------------|
-| Search (Client, Invoice, Supplier, Purchase) | `{ RecordsetCount, ReturnCount, Record: [...] }` |
-| Bank_GetAccounts | `{ BankAccounts: [...] }` (direct array) |
-| Bank_Search | `{ Transactions: { Transaction: [...] } }` (nested) |
-| Ledger_GetNominalLedgers | `{ Nominals: { Nominal: [...] } }` |
-| Report_Subscriptions | Requires `noBody` option (no Body element) |
-| Report_VatObligations | Only for VAT-registered accounts with MTD |
-
-### Debugging API Calls
-
-Enable debug mode to see raw requests and responses:
-
-```bash
-QUICKFILE_DEBUG=1 node dist/index.js
-```
-
-This shows the full request/response with credentials redacted - essential for troubleshooting API issues.
+Then open `http://localhost:5173` to browse all 37 tools, fill in parameters, and view raw JSON responses.
 
 ## Architecture
 
@@ -313,21 +231,29 @@ quickfile-mcp/
 │   │   ├── index.ts       # Tool registry & exports
 │   │   ├── utils.ts       # Shared utilities (error handling, logging)
 │   │   ├── schemas.ts     # Zod validation schemas
-│   │   ├── system.ts      # System tools
-│   │   ├── client.ts      # Client tools
-│   │   ├── invoice.ts     # Invoice tools
-│   │   ├── purchase.ts    # Purchase tools
-│   │   ├── supplier.ts    # Supplier tools
-│   │   ├── bank.ts        # Bank tools
-│   │   └── report.ts      # Report tools
+│   │   ├── system.ts      # System tools (3)
+│   │   ├── client.ts      # Client tools (7)
+│   │   ├── invoice.ts     # Invoice & estimate tools (8)
+│   │   ├── purchase.ts    # Purchase tools (4)
+│   │   ├── supplier.ts    # Supplier tools (4)
+│   │   ├── bank.ts        # Bank tools (5)
+│   │   └── report.ts      # Report tools (6)
 │   └── types/
 │       └── quickfile.ts   # TypeScript types
 ├── tests/
-│   ├── unit/              # Unit tests (201 tests)
-│   └── integration/       # API integration tests (16 tests)
-├── .agent/                # AI assistant documentation
-└── .opencode/agent/       # OpenCode agent files
+│   ├── unit/              # Unit tests (201 tests, ~96% coverage)
+│   └── integration/       # API integration tests (19 tests)
+├── .agents/               # AI assistant documentation (AGENTS.md)
+└── .github/workflows/     # CI/CD (test, lint, build, release)
 ```
+
+## Contributing
+
+The QuickFile API has strict requirements for element ordering and required fields. When contributing:
+
+1. **Always check the official API schema** at https://api.quickfile.co.uk/
+2. **Use Context7 for AI-assisted development**: https://context7.com/websites/api_quickfile_co_uk
+3. **Read AGENTS.md** for API quirks, response structure patterns, and common workflows
 
 ## Credential Security
 
@@ -336,18 +262,20 @@ quickfile-mcp/
 - **Never commit credentials to version control**
 - API key provides full access - treat it like a password
 - **Secretlint** runs automatically on pre-commit to prevent accidental secret exposure
-- Run `npm run secretlint` manually to scan for secrets
+
+## API Rate Limits
+
+QuickFile has a default limit of **1000 API calls per day** per account. Contact QuickFile support if you need this increased.
 
 ## Related Projects
 
-- [OpenCode](https://opencode.ai/) - Open-source AI coding assistant with MCP support
 - [QuickFile](https://www.quickfile.co.uk/) - UK accounting software
 - [QuickFile API Documentation](https://api.quickfile.co.uk/)
 - [Model Context Protocol](https://modelcontextprotocol.io/) - Protocol specification for AI tool integration
-- [AI DevOps Framework](https://github.com/marcusquinn/aidevops) - Comprehensive AI infrastructure management
+- [AI DevOps Framework](https://github.com/marcusquinn/aidevops) - AI infrastructure management
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-**Created by Marcus Quinn** - Copyright © 2025
+**Created by Marcus Quinn** - Copyright 2025-2026
