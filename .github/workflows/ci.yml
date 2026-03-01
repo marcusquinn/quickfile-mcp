@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check for secrets
+        run: npm run secretlint
+
       - name: Type check
         run: npm run typecheck
 
@@ -39,6 +42,7 @@ jobs:
       - name: Test Summary
         run: |
           echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "- Secretlint: Passed" >> $GITHUB_STEP_SUMMARY
           echo "- TypeScript: Passed" >> $GITHUB_STEP_SUMMARY
           echo "- ESLint: Passed" >> $GITHUB_STEP_SUMMARY
           echo "- Unit Tests: Passed" >> $GITHUB_STEP_SUMMARY
