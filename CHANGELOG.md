@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-03-01
+
+### Security
+
+- **Dependency updates**: Upgraded `@typescript-eslint/eslint-plugin` and `@typescript-eslint/parser` from v6 to v8, resolving 6 high-severity `minimatch` ReDoS vulnerabilities in the transitive dependency chain
+- **Previous lockfile update** (v1.0.2): Resolved 3 high-severity `@modelcontextprotocol/sdk` vulnerabilities (ReDoS, cross-client data leak, DNS rebinding) and 2 high-severity `qs` vulnerabilities (DoS via memory exhaustion)
+
+### Fixed
+
+- **Lint config**: Added `caughtErrorsIgnorePattern` to `@typescript-eslint/no-unused-vars` rule for proper catch clause handling
+- **Unused variable**: Prefixed unused catch variable with `_` in `src/tools/report.ts`
+
 ## [1.0.2] - 2026-03-01
 
 ### Fixed
