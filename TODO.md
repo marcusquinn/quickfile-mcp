@@ -58,7 +58,7 @@ Compatible with [todo-md](https://github.com/todo-md/todo-md), [todomd](https://
 t004,Audit README.md — ensure API endpoint coverage matches implementation and setup instructions accurate and example usage current and supported tools list complete,marcus,docs audit,~30m,,2026-03-01,pending
 -->
 
-- [ ] t004 Audit README.md — ensure API endpoint coverage matches implementation, setup instructions accurate, example usage current, supported tools list complete. #docs #audit #auto-dispatch ~30m model:sonnet logged:2026-03-01
+- [ ] t004 Audit README.md — ensure API endpoint coverage matches implementation, setup instructions accurate, example usage current, supported tools list complete. #docs #audit #auto-dispatch ~30m model:sonnet ref:GH#7 logged:2026-03-01
 
 ## In Progress
 
