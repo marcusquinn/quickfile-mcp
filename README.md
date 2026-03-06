@@ -3,7 +3,7 @@
 **Model Context Protocol server for [QuickFile UK](https://www.quickfile.co.uk/) accounting software - giving AI assistants full access to invoicing, clients, purchases, banking, and financial reporting.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Version-1.0.2-blue)](https://github.com/marcusquinn/quickfile-mcp/releases)
+[![Version](https://img.shields.io/badge/Version-1.0.3-blue)](https://github.com/marcusquinn/quickfile-mcp/releases)
 [![CI](https://github.com/marcusquinn/quickfile-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/marcusquinn/quickfile-mcp/actions/workflows/ci.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=marcusquinn_quickfile-mcp&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=marcusquinn_quickfile-mcp)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/a2777b7658f140e894037816a0ca3a9c)](https://app.codacy.com/gh/marcusquinn/quickfile-mcp/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
@@ -38,6 +38,8 @@ npm install
 npm run build
 ```
 
+Note your install path for step 3 (run `pwd` to see it). The built server is at `<your-path>/dist/index.js`.
+
 ### 2. Configure Credentials
 
 Create your QuickFile API credentials:
@@ -68,7 +70,7 @@ Or use the interactive setup script:
 
 ### 3. Add to Your MCP Client
 
-This server works with any MCP-compatible client. Add it to your client's configuration:
+This server works with any MCP-compatible client. Replace `/absolute/path/to/quickfile-mcp` below with the actual path from step 1 (the output of `pwd`).
 
 **Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
@@ -77,7 +79,7 @@ This server works with any MCP-compatible client. Add it to your client's config
   "mcpServers": {
     "quickfile": {
       "command": "node",
-      "args": ["/path/to/quickfile-mcp/dist/index.js"]
+      "args": ["/absolute/path/to/quickfile-mcp/dist/index.js"]
     }
   }
 }
@@ -86,7 +88,7 @@ This server works with any MCP-compatible client. Add it to your client's config
 **Claude Code**:
 
 ```bash
-claude mcp add quickfile node /path/to/quickfile-mcp/dist/index.js
+claude mcp add quickfile node /absolute/path/to/quickfile-mcp/dist/index.js
 ```
 
 **OpenCode** (`~/.config/opencode/opencode.json`):
@@ -96,11 +98,17 @@ claude mcp add quickfile node /path/to/quickfile-mcp/dist/index.js
   "mcp": {
     "quickfile": {
       "type": "local",
-      "command": ["node", "/path/to/quickfile-mcp/dist/index.js"],
+      "command": ["node", "/absolute/path/to/quickfile-mcp/dist/index.js"],
       "enabled": true
     }
   }
 }
+```
+
+You can also use the setup script to configure your client automatically:
+
+```bash
+./setup.sh client
 ```
 
 ### 4. Start Using
