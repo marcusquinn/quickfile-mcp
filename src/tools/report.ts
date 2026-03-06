@@ -109,6 +109,23 @@ export const reportTools: Tool[] = [
 // =============================================================================
 
 // Actual API response structures (not wrapped in Report property)
+
+// Shared structure for nominal balance line items used across P&L and Balance Sheet.
+// NominalCode is number in P&L responses but string (or null) in Balance Sheet.
+interface NominalBalance {
+  NominalCode: number | string | null;
+  NominalAccountName: string;
+  Amount: number;
+}
+
+// Shared breakdown section — each category in P&L and Balance Sheet uses this
+// nested Balances > Balance[] pattern. Sections can be null when empty.
+interface BalancesSection {
+  Balances?: {
+    Balance?: NominalBalance[];
+  };
+}
+
 interface ProfitLossResponse {
   Totals: {
     Turnover: number;
@@ -117,39 +134,29 @@ interface ProfitLossResponse {
     NetProfit: number;
   };
   Breakdown: {
-    Turnover?: {
-      Balances?: {
-        Balance?: Array<{
-          NominalCode: number;
-          NominalAccountName: string;
-          Amount: number;
-        }>;
-      };
-    };
-    LessCostofSales?: {
-      Balances?: {
-        Balance?: Array<{
-          NominalCode: number;
-          NominalAccountName: string;
-          Amount: number;
-        }>;
-      };
-    };
-    LessExpenses?: {
-      Balances?: {
-        Balance?: Array<{
-          NominalCode: number;
-          NominalAccountName: string;
-          Amount: number;
-        }>;
-      };
-    };
+    Turnover?: BalancesSection | null;
+    LessCostofSales?: BalancesSection | null;
+    LessExpenses?: BalancesSection | null;
   };
 }
 
+// Balance Sheet uses the same Totals + Breakdown pattern as P&L, with five
+// sections matching the standard UK balance sheet layout.
 interface BalanceSheetResponse {
-  // Balance Sheet response structure - to be determined from actual API response
-  [key: string]: unknown;
+  Totals: {
+    FixedAssets: number;
+    CurrentAssets: number;
+    CurrentLiabilities: number;
+    LongTermLiabilities: number;
+    CapitalAndReserves: number;
+  };
+  Breakdown: {
+    FixedAssets?: BalancesSection | null;
+    CurrentAssets?: BalancesSection | null;
+    CurrentLiabilities?: BalancesSection | null;
+    LongTermLiabilities?: BalancesSection | null;
+    CapitalAndReserves?: BalancesSection | null;
+  };
 }
 
 interface VatObligationsResponse {
@@ -158,9 +165,40 @@ interface VatObligationsResponse {
   };
 }
 
+// Ageing bucket totals shared by both creditor (supplier) and debtor (client) entries
+interface AgeingBucketTotals {
+  Prepayments: number;
+  TotalOverdue: number;
+  NotYetDue: number;
+  Aged_0_15: number;
+  Aged_16_30: number;
+  Aged_31_60: number;
+  Aged_61_90: number;
+  Aged_Over90: number;
+}
+
+interface AgeingSupplierEntry {
+  SupplierName: string;
+  SupplierID: number;
+  Totals: AgeingBucketTotals;
+}
+
+interface AgeingClientEntry {
+  ClientName: string;
+  ClientID: number;
+  Totals: AgeingBucketTotals;
+}
+
+// CREDITOR reports return Suppliers; DEBTOR reports return Clients
 interface AgeingReportResponse {
-  // Ageing Report response structure - to be determined from actual API response
-  [key: string]: unknown;
+  RecordsetCount: number;
+  ReturnCount: number;
+  Suppliers?: {
+    Supplier?: AgeingSupplierEntry[];
+  };
+  Clients?: {
+    Client?: AgeingClientEntry[];
+  };
 }
 
 interface ChartOfAccountsResponse {
