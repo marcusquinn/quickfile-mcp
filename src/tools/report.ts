@@ -109,6 +109,17 @@ export const reportTools: Tool[] = [
 // =============================================================================
 
 // Actual API response structures (not wrapped in Report property)
+
+interface ProfitLossBreakdownSection {
+  Balances?: {
+    Balance?: Array<{
+      NominalCode: number;
+      NominalAccountName: string;
+      Amount: number;
+    }>;
+  };
+}
+
 interface ProfitLossResponse {
   Totals: {
     Turnover: number;
@@ -117,38 +128,15 @@ interface ProfitLossResponse {
     NetProfit: number;
   };
   Breakdown: {
-    Turnover?: {
-      Balances?: {
-        Balance?: Array<{
-          NominalCode: number;
-          NominalAccountName: string;
-          Amount: number;
-        }>;
-      };
-    };
-    LessCostofSales?: {
-      Balances?: {
-        Balance?: Array<{
-          NominalCode: number;
-          NominalAccountName: string;
-          Amount: number;
-        }>;
-      };
-    };
-    LessExpenses?: {
-      Balances?: {
-        Balance?: Array<{
-          NominalCode: number;
-          NominalAccountName: string;
-          Amount: number;
-        }>;
-      };
-    };
+    Turnover?: ProfitLossBreakdownSection;
+    LessCostofSales?: ProfitLossBreakdownSection;
+    LessExpenses?: ProfitLossBreakdownSection;
   };
 }
 
 interface BalanceSheetResponse {
-  // Balance Sheet response structure - to be determined from actual API response
+  // TODO: Define the actual structure for the Balance Sheet API response to improve type safety.
+  // Requires capturing a real API response to determine the exact shape.
   [key: string]: unknown;
 }
 
@@ -159,7 +147,8 @@ interface VatObligationsResponse {
 }
 
 interface AgeingReportResponse {
-  // Ageing Report response structure - to be determined from actual API response
+  // TODO: Define the actual structure for the Ageing Report API response to improve type safety.
+  // Requires capturing a real API response to determine the exact shape.
   [key: string]: unknown;
 }
 
