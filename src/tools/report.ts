@@ -4,7 +4,7 @@
  */
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { getApiClient } from "../api/client.js";
+import { getApiClient, QuickFileApiError } from "../api/client.js";
 import type {
   VatObligation,
   ChartOfAccountsEntry,
@@ -257,14 +257,23 @@ export async function handleReportTool(
             count: obligations.length,
             obligations: obligations,
           });
-        } catch (_error) {
-          // If the account is not VAT registered or MTD not set up, return helpful message
-          return successResult({
-            count: 0,
-            obligations: [],
-            message:
-              "VAT obligations not available. This account may not be VAT registered or MTD VAT may not be configured.",
-          });
+        } catch (error) {
+          // Only handle VAT-specific errors gracefully; re-throw unexpected errors
+          // so the outer catch block can handle network/auth failures properly
+          if (
+            error instanceof QuickFileApiError &&
+            (error.message.includes("not VAT registered") ||
+              error.message.includes("MTD not configured") ||
+              error.message.includes("VAT"))
+          ) {
+            return successResult({
+              count: 0,
+              obligations: [],
+              message:
+                "VAT obligations not available. This account may not be VAT registered or MTD VAT may not be configured.",
+            });
+          }
+          throw error;
         }
       }
 
