@@ -13,6 +13,7 @@ import type {
 import {
   handleToolError,
   successResult,
+  errorResult,
   cleanParams,
   mapLineItems,
   dateRangeSearchProperties,
@@ -259,12 +260,7 @@ export async function handlePurchaseTool(
       }
 
       default:
-        return {
-          content: [
-            { type: "text", text: `Unknown purchase tool: ${toolName}` },
-          ],
-          isError: true,
-        };
+        return errorResult(`Unknown purchase tool: ${toolName}`);
     }
   } catch (error) {
     return handleToolError(error);

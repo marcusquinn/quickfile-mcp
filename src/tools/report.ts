@@ -9,7 +9,12 @@ import type {
   VatObligation,
   ChartOfAccountsEntry,
 } from "../types/quickfile.js";
-import { handleToolError, successResult, type ToolResult } from "./utils.js";
+import {
+  handleToolError,
+  successResult,
+  errorResult,
+  type ToolResult,
+} from "./utils.js";
 
 // =============================================================================
 // Tool Definitions
@@ -310,10 +315,7 @@ export async function handleReportTool(
       }
 
       default:
-        return {
-          content: [{ type: "text", text: `Unknown report tool: ${toolName}` }],
-          isError: true,
-        };
+        return errorResult(`Unknown report tool: ${toolName}`);
     }
   } catch (error) {
     return handleToolError(error);

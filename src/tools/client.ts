@@ -9,6 +9,7 @@ import type { Client, ClientContact } from "../types/quickfile.js";
 import {
   handleToolError,
   successResult,
+  errorResult,
   cleanParams,
   buildAddressFromArgs,
   buildEntityData,
@@ -305,10 +306,7 @@ export async function handleClientTool(
       }
 
       default:
-        return {
-          content: [{ type: "text", text: `Unknown client tool: ${toolName}` }],
-          isError: true,
-        };
+        return errorResult(`Unknown client tool: ${toolName}`);
     }
   } catch (error) {
     return handleToolError(error);

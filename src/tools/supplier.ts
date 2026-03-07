@@ -9,6 +9,7 @@ import type { Supplier, SupplierSearchParams } from "../types/quickfile.js";
 import {
   handleToolError,
   successResult,
+  errorResult,
   cleanParams,
   buildAddressFromArgs,
   buildEntityData,
@@ -170,12 +171,7 @@ export async function handleSupplierTool(
       }
 
       default:
-        return {
-          content: [
-            { type: "text", text: `Unknown supplier tool: ${toolName}` },
-          ],
-          isError: true,
-        };
+        return errorResult(`Unknown supplier tool: ${toolName}`);
     }
   } catch (error) {
     return handleToolError(error);

@@ -138,6 +138,31 @@ function decodeHtmlEntities(value: string): string {
 }
 
 /**
+ * Find the next occurrence of a tag marker in a string (case-insensitive).
+ * Returns -1 if not found. Centralises the indexOf logic used by both
+ * stripTagWithContent and stripAllTags to eliminate duplication.
+ */
+function findTag(
+  haystack: string,
+  needle: string,
+  fromIndex: number,
+  caseInsensitive: boolean,
+): number {
+  const source = caseInsensitive ? haystack.toLowerCase() : haystack;
+  return source.indexOf(needle, fromIndex);
+}
+
+/**
+ * Remove a matched tag region from a string: everything from `start` to
+ * `end` (exclusive). If `end` is -1, removes from `start` to end of string
+ * (unclosed tag). Returns the resulting string.
+ */
+function excise(value: string, start: number, end: number): string {
+  if (end === -1) return value.slice(0, start);
+  return value.slice(0, start) + value.slice(end);
+}
+
+/**
  * Remove content between matched tag pairs (e.g., `<script>...</script>`).
  * Uses indexOf-based iteration instead of regex to avoid ReDoS risk
  * from backtracking on crafted input.
@@ -148,20 +173,17 @@ function stripTagWithContent(input: string, tagName: string): string {
   const closeTag = `</${tagName}>`;
 
   // Loop terminates because `result` shrinks on each match (tag+content removed).
-  // searchFrom stays at 0 because content shifts left after each removal.
   for (;;) {
-    const openIdx = result.toLowerCase().indexOf(openTag);
+    const openIdx = findTag(result, openTag, 0, true);
     if (openIdx === -1) break;
 
-    const closeIdx = result.toLowerCase().indexOf(closeTag, openIdx);
-    if (closeIdx === -1) {
-      // Unclosed tag — remove from open tag to end of string
-      result = result.slice(0, openIdx);
-      break;
-    }
-
-    result =
-      result.slice(0, openIdx) + result.slice(closeIdx + closeTag.length);
+    const closeIdx = findTag(result, closeTag, openIdx, true);
+    result = excise(
+      result,
+      openIdx,
+      closeIdx === -1 ? -1 : closeIdx + closeTag.length,
+    );
+    if (closeIdx === -1) break;
   }
 
   return result;
@@ -198,13 +220,8 @@ function stripAllTags(input: string): string {
     if (openIdx === -1) break;
 
     const closeIdx = result.indexOf(">", openIdx);
-    if (closeIdx === -1) {
-      // Unclosed `<` — remove it and everything after
-      result = result.slice(0, openIdx);
-      break;
-    }
-
-    result = result.slice(0, openIdx) + result.slice(closeIdx + 1);
+    result = excise(result, openIdx, closeIdx === -1 ? -1 : closeIdx + 1);
+    if (closeIdx === -1) break;
   }
   return result;
 }

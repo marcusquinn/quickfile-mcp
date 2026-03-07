@@ -14,6 +14,7 @@ import type {
 import {
   handleToolError,
   successResult,
+  errorResult,
   cleanParams,
   type ToolResult,
 } from "./utils.js";
@@ -391,10 +392,7 @@ export async function handleBankTool(
       }
 
       default:
-        return {
-          content: [{ type: "text", text: `Unknown bank tool: ${toolName}` }],
-          isError: true,
-        };
+        return errorResult(`Unknown bank tool: ${toolName}`);
     }
   } catch (error) {
     return handleToolError(error);

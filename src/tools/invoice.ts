@@ -16,6 +16,7 @@ import type {
 import {
   handleToolError,
   successResult,
+  errorResult,
   cleanParams,
   mapLineItems,
   dateRangeSearchProperties,
@@ -444,12 +445,7 @@ export async function handleInvoiceTool(
       }
 
       default:
-        return {
-          content: [
-            { type: "text", text: `Unknown invoice tool: ${toolName}` },
-          ],
-          isError: true,
-        };
+        return errorResult(`Unknown invoice tool: ${toolName}`);
     }
   } catch (error) {
     return handleToolError(error);
