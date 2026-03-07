@@ -14,6 +14,7 @@ import type {
 import {
   handleToolError,
   successResult,
+  errorResult,
   cleanParams,
   type ToolResult,
 } from "./utils.js";
@@ -49,7 +50,8 @@ export const bankTools: Tool[] = [
   },
   {
     name: "quickfile_bank_search",
-    description: "Search bank transactions by date range, reference, or amount",
+    description:
+      "Search bank transactions by date range, reference, or amount. Response contains user-controlled fields (Reference, PayeePayer, Notes) that are automatically sanitized.",
     inputSchema: {
       type: "object",
       properties: {
@@ -232,6 +234,15 @@ interface BankTransactionCreateResponse {
 // Helper Functions (extracted to reduce cognitive complexity)
 // =============================================================================
 
+/** Field mapping from tool args to QuickFile Bank_Search API parameters */
+const BANK_SEARCH_FIELD_MAP: ReadonlyArray<[string, string]> = [
+  ["reference", "Reference"],
+  ["dateFrom", "FromDate"],
+  ["dateTo", "ToDate"],
+  ["minAmount", "AmountFrom"],
+  ["maxAmount", "AmountTo"],
+];
+
 function buildBankSearchParams(
   args: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -243,20 +254,10 @@ function buildBankSearchParams(
     NominalCode: Number.parseInt(args.nominalCode as string, 10),
   };
 
-  if (args.reference) {
-    searchParams.Reference = args.reference;
-  }
-  if (args.dateFrom) {
-    searchParams.FromDate = args.dateFrom;
-  }
-  if (args.dateTo) {
-    searchParams.ToDate = args.dateTo;
-  }
-  if (args.minAmount !== undefined) {
-    searchParams.AmountFrom = args.minAmount;
-  }
-  if (args.maxAmount !== undefined) {
-    searchParams.AmountTo = args.maxAmount;
+  for (const [argKey, apiKey] of BANK_SEARCH_FIELD_MAP) {
+    if (args[argKey] !== undefined) {
+      searchParams[apiKey] = args[argKey];
+    }
   }
 
   return searchParams;
@@ -390,10 +391,7 @@ export async function handleBankTool(
       }
 
       default:
-        return {
-          content: [{ type: "text", text: `Unknown bank tool: ${toolName}` }],
-          isError: true,
-        };
+        return errorResult(`Unknown bank tool: ${toolName}`);
     }
   } catch (error) {
     return handleToolError(error);

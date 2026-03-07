@@ -9,6 +9,7 @@ import type { Supplier, SupplierSearchParams } from "../types/quickfile.js";
 import {
   handleToolError,
   successResult,
+  errorResult,
   cleanParams,
   buildAddressFromArgs,
   buildEntityData,
@@ -25,7 +26,7 @@ export const supplierTools: Tool[] = [
   {
     name: "quickfile_supplier_search",
     description:
-      "Search for suppliers by company name, contact name, email, or postcode",
+      "Search for suppliers by company name, contact name, email, or postcode. Response contains user-controlled fields (CompanyName, contact names) that are automatically sanitized.",
     inputSchema: {
       type: "object",
       properties: {
@@ -41,7 +42,8 @@ export const supplierTools: Tool[] = [
   },
   {
     name: "quickfile_supplier_get",
-    description: "Get detailed information about a specific supplier",
+    description:
+      "Get detailed information about a specific supplier. Response contains user-controlled fields (CompanyName, Notes, Address, contact names) that are automatically sanitized.",
     inputSchema: {
       type: "object",
       properties: {
@@ -169,12 +171,7 @@ export async function handleSupplierTool(
       }
 
       default:
-        return {
-          content: [
-            { type: "text", text: `Unknown supplier tool: ${toolName}` },
-          ],
-          isError: true,
-        };
+        return errorResult(`Unknown supplier tool: ${toolName}`);
     }
   } catch (error) {
     return handleToolError(error);
