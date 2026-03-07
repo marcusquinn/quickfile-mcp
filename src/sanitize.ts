@@ -197,14 +197,13 @@ function stripTagWithContent(input: string, tagName: string): string {
  */
 function containsHtmlTags(value: string): boolean {
   // Check for literal HTML tags
-  const openIdx = value.indexOf("<");
-  if (openIdx !== -1 && value.indexOf(">", openIdx) !== -1) return true;
+  if (value.includes("<") && value.includes(">")) return true;
 
   // Check for HTML-entity-encoded tags (e.g., &lt;script&gt;)
-  if (value.indexOf("&lt;") !== -1 && value.indexOf("&gt;") !== -1) return true;
+  if (value.includes("&lt;") && value.includes("&gt;")) return true;
 
   // Check for double-encoded entities (e.g., &amp;lt;)
-  if (value.indexOf("&amp;lt;") !== -1) return true;
+  if (value.includes("&amp;lt;")) return true;
 
   return false;
 }

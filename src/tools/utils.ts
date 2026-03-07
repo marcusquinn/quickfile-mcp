@@ -105,37 +105,39 @@ export function errorResult(message: string): ToolResult {
 // =============================================================================
 
 /**
+ * Format a log entry with level prefix and optional JSON context.
+ * Centralised to avoid duplication across log-level methods.
+ */
+function formatLog(
+  level: string,
+  message: string,
+  context?: Record<string, unknown>,
+): string {
+  return context
+    ? `[${level}] ${message} ${JSON.stringify(context)}`
+    : `[${level}] ${message}`;
+}
+
+/**
  * Structured logger that writes to stderr (required for MCP servers)
  * stdout is reserved for protocol communication
  */
 export const logger = {
   info: (message: string, context?: Record<string, unknown>) => {
-    const log = context
-      ? `[INFO] ${message} ${JSON.stringify(context)}`
-      : `[INFO] ${message}`;
-    console.error(log);
+    console.error(formatLog("INFO", message, context));
   },
 
   warn: (message: string, context?: Record<string, unknown>) => {
-    const log = context
-      ? `[WARN] ${message} ${JSON.stringify(context)}`
-      : `[WARN] ${message}`;
-    console.error(log);
+    console.error(formatLog("WARN", message, context));
   },
 
   error: (message: string, context?: Record<string, unknown>) => {
-    const log = context
-      ? `[ERROR] ${message} ${JSON.stringify(context)}`
-      : `[ERROR] ${message}`;
-    console.error(log);
+    console.error(formatLog("ERROR", message, context));
   },
 
   debug: (message: string, context?: Record<string, unknown>) => {
     if (process.env.QUICKFILE_DEBUG) {
-      const log = context
-        ? `[DEBUG] ${message} ${JSON.stringify(context)}`
-        : `[DEBUG] ${message}`;
-      console.error(log);
+      console.error(formatLog("DEBUG", message, context));
     }
   },
 };
