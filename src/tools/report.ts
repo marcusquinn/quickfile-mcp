@@ -110,13 +110,15 @@ export const reportTools: Tool[] = [
 
 // Actual API response structures (not wrapped in Report property)
 
+interface ProfitLossBalanceEntry {
+  NominalCode: number;
+  NominalAccountName: string;
+  Amount: number;
+}
+
 interface ProfitLossBreakdownSection {
   Balances?: {
-    Balance?: Array<{
-      NominalCode: number;
-      NominalAccountName: string;
-      Amount: number;
-    }>;
+    Balance?: ProfitLossBalanceEntry[];
   };
 }
 
