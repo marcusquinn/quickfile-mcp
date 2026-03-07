@@ -110,13 +110,34 @@ const INJECTION_PATTERNS: ReadonlyArray<{
 // =============================================================================
 
 /**
+ * Decode common HTML entities in a string.
+ * This is applied before tag stripping to prevent encoded tags from bypassing
+ * the filter (e.g., `&lt;script&gt;` → `<script>` → stripped).
+ */
+function decodeHtmlEntities(value: string): string {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ");
+}
+
+/**
  * Strip HTML tags from a string value.
  * Removes all HTML elements including script, style, and event handlers.
  * Preserves the text content within tags.
+ *
+ * Entities are decoded FIRST so that encoded tags (e.g., `&lt;script&gt;`)
+ * cannot bypass the tag-stripping pass.
  */
 export function stripHtmlTags(value: string): string {
+  // Decode HTML entities first to catch encoded tags like &lt;script&gt;
+  let cleaned = decodeHtmlEntities(value);
+
   // Remove script and style elements entirely (including content)
-  let cleaned = value.replace(
+  cleaned = cleaned.replace(
     /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
     "",
   );
@@ -125,17 +146,8 @@ export function stripHtmlTags(value: string): string {
     "",
   );
 
-  // Remove all remaining HTML tags
-  cleaned = cleaned.replace(/<[^>]+>/g, "");
-
-  // Decode common HTML entities
-  cleaned = cleaned
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ");
+  // Remove all remaining HTML tags (atomic: no backtracking risk)
+  cleaned = cleaned.replace(/<[^>]*>/g, "");
 
   return cleaned.trim();
 }
@@ -246,7 +258,11 @@ function sanitizeValue(
   }
 
   if (typeof value === "object") {
-    return sanitizeObject(value as Record<string, unknown>, metadata);
+    return sanitizeObject(
+      value as Record<string, unknown>,
+      fieldName,
+      metadata,
+    );
   }
 
   // Numbers, booleans, etc. pass through unchanged
@@ -282,7 +298,7 @@ function sanitizeStringValue(
   }
 
   // Strip HTML only from user-controlled fields
-  if (isUserField && /<[^>]+>/.test(value)) {
+  if (isUserField && /<[^>]*>/.test(value)) {
     const stripped = stripHtmlTags(value);
     if (stripped !== value) {
       metadata.htmlStripped++;
@@ -296,15 +312,19 @@ function sanitizeStringValue(
 
 /**
  * Sanitize all values in an object, tracking field paths.
+ * The basePath is propagated so nested fields get full paths
+ * (e.g., "InvoiceDetails.Notes" instead of just "Notes").
  */
 function sanitizeObject(
   obj: Record<string, unknown>,
+  basePath: string,
   metadata: SanitizationMetadata,
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(obj)) {
-    result[key] = sanitizeValue(value, key, metadata);
+    const fieldPath = basePath ? `${basePath}.${key}` : key;
+    result[key] = sanitizeValue(value, fieldPath, metadata);
   }
 
   return result;
