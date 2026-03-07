@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
-- **README tool count** (retroactive): Acknowledged correction from 37 to actual count, applied in PR #8 between v1.0.1 and v1.0.2 releases
+- **README tool count** (retroactive): Acknowledged correction of tool count from 40+ to 37, applied in PR #8 between v1.0.1 and v1.0.2 releases
 
 ## [1.0.1] - 2025-12-01
 
