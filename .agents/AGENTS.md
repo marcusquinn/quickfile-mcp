@@ -26,3 +26,19 @@ Create `.md` files in this directory for domain-specific context:
 ```
 
 Each file is read on demand by AI assistants when relevant to the task.
+
+## Security
+
+### MCP Server Output Sanitization
+
+This project is an MCP server. MCP server outputs are consumed by AI agents, making them a prompt injection attack surface. If the QuickFile API returns user-controlled content (invoice descriptions, contact names, notes, free-text fields) containing injection payloads, the consuming AI agent could be manipulated.
+
+**When returning data from QuickFile API responses:**
+
+1. **Document which fields contain user-controlled content** in tool descriptions
+2. **Strip HTML/script tags** from free-text fields before returning
+3. **Be aware** that consumers should use `@stackone/defender` to wrap tool results from this server
+
+See the [framework security docs](https://github.com/marcusquinn/aidevops) `tools/security/prompt-injection-defender.md` for the full MCP trust model and defense layers.
+
+**Related issue**: [#38](https://github.com/marcusquinn/quickfile-mcp/issues/38)
