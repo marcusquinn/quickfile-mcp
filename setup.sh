@@ -13,7 +13,7 @@
 #   status      - Show current configuration status
 #   help        - Show this help
 #
-# Version: 0.2.0
+# Version: 0.3.0
 # =============================================================================
 
 set -euo pipefail
@@ -128,19 +128,36 @@ configure_credentials() {
 	local existing_app=""
 
 	if [[ -f "$CREDENTIALS_FILE" ]]; then
-		existing_account=$(grep -o '"accountNumber"[[:space:]]*:[[:space:]]*"[^"]*"' "$CREDENTIALS_FILE" 2>/dev/null | sed 's/.*"\([^"]*\)"$/\1/' || echo "")
-		existing_key=$(grep -o '"apiKey"[[:space:]]*:[[:space:]]*"[^"]*"' "$CREDENTIALS_FILE" 2>/dev/null | sed 's/.*"\([^"]*\)"$/\1/' || echo "")
-		existing_app=$(grep -o '"applicationId"[[:space:]]*:[[:space:]]*"[^"]*"' "$CREDENTIALS_FILE" 2>/dev/null | sed 's/.*"\([^"]*\)"$/\1/' || echo "")
+		if command -v jq &>/dev/null; then
+			existing_account=$(jq -r '.accountNumber // ""' "$CREDENTIALS_FILE" 2>/dev/null || echo "")
+			existing_key=$(jq -r '.apiKey // ""' "$CREDENTIALS_FILE" 2>/dev/null || echo "")
+			existing_app=$(jq -r '.applicationId // ""' "$CREDENTIALS_FILE" 2>/dev/null || echo "")
+		else
+			print_warning "jq not found, using grep/sed to read existing credentials (may be unreliable)"
+			existing_account=$(grep -o '"accountNumber"[[:space:]]*:[[:space:]]*"[^"]*"' "$CREDENTIALS_FILE" 2>/dev/null | sed 's/.*"\([^"]*\)"$/\1/' || echo "")
+			existing_key=$(grep -o '"apiKey"[[:space:]]*:[[:space:]]*"[^"]*"' "$CREDENTIALS_FILE" 2>/dev/null | sed 's/.*"\([^"]*\)"$/\1/' || echo "")
+			existing_app=$(grep -o '"applicationId"[[:space:]]*:[[:space:]]*"[^"]*"' "$CREDENTIALS_FILE" 2>/dev/null | sed 's/.*"\([^"]*\)"$/\1/' || echo "")
+		fi
 	fi
 
-	# Prompt for values
+	# Prompt for values (mask sensitive fields to prevent shoulder-surfing)
 	read -r -p "Account Number [$existing_account]: " account_number
 	account_number="${account_number:-$existing_account}"
 
-	read -r -p "API Key [$existing_key]: " api_key
+	local key_hint=""
+	if [[ -n "$existing_key" ]]; then
+		key_hint="****${existing_key: -4}"
+	fi
+	read -rs -p "API Key [$key_hint]: " api_key
+	echo "" # newline after silent read
 	api_key="${api_key:-$existing_key}"
 
-	read -r -p "Application ID [$existing_app]: " application_id
+	local app_hint=""
+	if [[ -n "$existing_app" ]]; then
+		app_hint="****${existing_app: -4}"
+	fi
+	read -rs -p "Application ID [$app_hint]: " application_id
+	echo "" # newline after silent read
 	application_id="${application_id:-$existing_app}"
 
 	# Validate inputs
@@ -149,17 +166,19 @@ configure_credentials() {
 		return 1
 	fi
 
-	# Write credentials file
-	cat >"$CREDENTIALS_FILE" <<EOF
+	# Write credentials file with secure permissions from creation
+	# Use umask to ensure the file is created with 600 permissions,
+	# eliminating the race condition between creation and chmod
+	(
+		umask 077
+		cat >"$CREDENTIALS_FILE" <<EOF
 {
   "accountNumber": "$account_number",
   "apiKey": "$api_key",
   "applicationId": "$application_id"
 }
 EOF
-
-	# Set secure permissions
-	chmod 600 "$CREDENTIALS_FILE"
+	)
 
 	print_success "Credentials saved to $CREDENTIALS_FILE"
 	print_info "File permissions set to 600"
