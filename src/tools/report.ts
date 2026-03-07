@@ -252,8 +252,7 @@ export async function handleReportTool(
           if (
             error instanceof QuickFileApiError &&
             (error.message.includes("not VAT registered") ||
-              error.message.includes("MTD not configured") ||
-              error.message.includes("VAT"))
+              error.message.includes("MTD not configured"))
           ) {
             return successResult({
               count: 0,
