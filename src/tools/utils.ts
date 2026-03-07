@@ -155,10 +155,59 @@ export function cleanParams<T extends object>(params: T): Partial<T> {
 }
 
 // =============================================================================
-// Shared MCP Tool Schema Definitions
+// Shared Line Item Mapping
 // =============================================================================
 
-import type { ClientAddress } from "../types/quickfile.js";
+import type { ClientAddress, InvoiceLineTax } from "../types/quickfile.js";
+
+/**
+ * Raw line item input from tool arguments (shared between invoice and purchase)
+ */
+export interface LineItemInput {
+  description: string;
+  unitCost: number;
+  quantity: number;
+  vatPercentage?: number;
+  nominalCode?: string;
+}
+
+/**
+ * Map raw line item inputs to QuickFile API line format.
+ * Shared between invoice and purchase create operations.
+ *
+ * @param lines - Raw line items from tool arguments
+ * @param options - Optional overrides (e.g., include ItemID for invoices)
+ */
+export function mapLineItems<
+  T extends {
+    ItemDescription: string;
+    UnitCost: number;
+    Qty: number;
+    NominalCode?: string;
+    Tax1?: InvoiceLineTax;
+  },
+>(lines: LineItemInput[], options: { includeItemId?: boolean } = {}): T[] {
+  return lines.map((line) => {
+    const mapped: Record<string, unknown> = {
+      ItemDescription: line.description,
+      UnitCost: line.unitCost,
+      Qty: line.quantity,
+      NominalCode: line.nominalCode,
+      Tax1: {
+        TaxName: "VAT",
+        TaxPercentage: line.vatPercentage ?? 20,
+      },
+    };
+    if (options.includeItemId) {
+      mapped.ItemID = 0;
+    }
+    return mapped as T;
+  });
+}
+
+// =============================================================================
+// Shared MCP Tool Schema Definitions
+// =============================================================================
 
 /**
  * Common search properties for entity search tools
@@ -194,6 +243,58 @@ export const searchSchemaProperties = {
     type: "string" as const,
     enum: ["ASC", "DESC"] as const,
     description: "Order direction",
+  },
+};
+
+/**
+ * Common date range and pagination properties for invoice/purchase search tools
+ */
+export const dateRangeSearchProperties = {
+  dateFrom: {
+    type: "string" as const,
+    description: "Start date (YYYY-MM-DD)",
+  },
+  dateTo: {
+    type: "string" as const,
+    description: "End date (YYYY-MM-DD)",
+  },
+  returnCount: {
+    type: "number" as const,
+    description: "Number of results (default: 25)",
+    default: 25,
+  },
+  offset: {
+    type: "number" as const,
+    description: "Offset for pagination",
+    default: 0,
+  },
+  orderDirection: {
+    type: "string" as const,
+    enum: ["ASC", "DESC"] as const,
+    description: "Order direction",
+  },
+};
+
+/**
+ * Common line item schema for invoice/purchase create tools
+ */
+export const lineItemSchemaProperties = {
+  description: {
+    type: "string" as const,
+    description: "Item description",
+  },
+  unitCost: {
+    type: "number" as const,
+    description: "Unit cost",
+  },
+  quantity: {
+    type: "number" as const,
+    description: "Quantity",
+  },
+  vatPercentage: {
+    type: "number" as const,
+    description: "VAT percentage (default: 20)",
+    default: 20,
   },
 };
 

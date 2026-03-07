@@ -17,6 +17,10 @@ import {
   handleToolError,
   successResult,
   cleanParams,
+  mapLineItems,
+  dateRangeSearchProperties,
+  lineItemSchemaProperties,
+  type LineItemInput,
   type ToolResult,
 } from "./utils.js";
 
@@ -41,14 +45,7 @@ export const invoiceTools: Tool[] = [
           type: "number",
           description: "Filter by client ID",
         },
-        dateFrom: {
-          type: "string",
-          description: "Start date (YYYY-MM-DD)",
-        },
-        dateTo: {
-          type: "string",
-          description: "End date (YYYY-MM-DD)",
-        },
+        ...dateRangeSearchProperties,
         status: {
           type: "string",
           enum: [
@@ -66,16 +63,6 @@ export const invoiceTools: Tool[] = [
           type: "string",
           description: "Search keyword (invoice number, client name, etc.)",
         },
-        returnCount: {
-          type: "number",
-          description: "Number of results (default: 25)",
-          default: 25,
-        },
-        offset: {
-          type: "number",
-          description: "Offset for pagination",
-          default: 0,
-        },
         orderBy: {
           type: "string",
           enum: [
@@ -86,11 +73,6 @@ export const invoiceTools: Tool[] = [
             "GrossAmount",
           ],
           description: "Field to order by",
-        },
-        orderDirection: {
-          type: "string",
-          enum: ["ASC", "DESC"],
-          description: "Order direction",
         },
       },
       required: [],
@@ -154,23 +136,7 @@ export const invoiceTools: Tool[] = [
           items: {
             type: "object",
             properties: {
-              description: {
-                type: "string",
-                description: "Item description",
-              },
-              unitCost: {
-                type: "number",
-                description: "Unit price",
-              },
-              quantity: {
-                type: "number",
-                description: "Quantity",
-              },
-              vatPercentage: {
-                type: "number",
-                description: "VAT percentage (default: 20)",
-                default: 20,
-              },
+              ...lineItemSchemaProperties,
               nominalCode: {
                 type: "string",
                 description: "Nominal code for accounting",
@@ -358,25 +324,10 @@ export async function handleInvoiceTool(
       }
 
       case "quickfile_invoice_create": {
-        const lineItems = args.lines as Array<{
-          description: string;
-          unitCost: number;
-          quantity: number;
-          vatPercentage?: number;
-          nominalCode?: string;
-        }>;
-
-        const invoiceLines: InvoiceLine[] = lineItems.map((line) => ({
-          ItemID: 0,
-          ItemDescription: line.description,
-          UnitCost: line.unitCost,
-          Qty: line.quantity,
-          NominalCode: line.nominalCode,
-          Tax1: {
-            TaxName: "VAT",
-            TaxPercentage: line.vatPercentage ?? 20,
-          },
-        }));
+        const lineItems = args.lines as LineItemInput[];
+        const invoiceLines = mapLineItems<InvoiceLine>(lineItems, {
+          includeItemId: true,
+        });
 
         const createParams: InvoiceCreateParams = {
           InvoiceType: args.invoiceType as InvoiceType,

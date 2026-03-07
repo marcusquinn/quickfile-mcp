@@ -14,6 +14,10 @@ import {
   handleToolError,
   successResult,
   cleanParams,
+  mapLineItems,
+  dateRangeSearchProperties,
+  lineItemSchemaProperties,
+  type LineItemInput,
   type ToolResult,
 } from "./utils.js";
 
@@ -33,14 +37,7 @@ export const purchaseTools: Tool[] = [
           type: "number",
           description: "Filter by supplier ID",
         },
-        dateFrom: {
-          type: "string",
-          description: "Start date (YYYY-MM-DD)",
-        },
-        dateTo: {
-          type: "string",
-          description: "End date (YYYY-MM-DD)",
-        },
+        ...dateRangeSearchProperties,
         status: {
           type: "string",
           enum: ["UNPAID", "PAID", "PART_PAID", "CANCELLED"],
@@ -50,25 +47,10 @@ export const purchaseTools: Tool[] = [
           type: "string",
           description: "Search keyword",
         },
-        returnCount: {
-          type: "number",
-          description: "Number of results (default: 25)",
-          default: 25,
-        },
-        offset: {
-          type: "number",
-          description: "Offset for pagination",
-          default: 0,
-        },
         orderBy: {
           type: "string",
           enum: ["ReceiptNumber", "ReceiptDate", "SupplierName", "Total"],
           description: "Field to order by",
-        },
-        orderDirection: {
-          type: "string",
-          enum: ["ASC", "DESC"],
-          description: "Order direction",
         },
       },
       required: [],
@@ -126,27 +108,11 @@ export const purchaseTools: Tool[] = [
           items: {
             type: "object",
             properties: {
-              description: {
-                type: "string",
-                description: "Item description",
-              },
-              unitCost: {
-                type: "number",
-                description: "Unit cost",
-              },
-              quantity: {
-                type: "number",
-                description: "Quantity",
-              },
+              ...lineItemSchemaProperties,
               nominalCode: {
                 type: "string",
                 description:
                   "Nominal code for accounting (e.g., 5000 for cost of sales)",
-              },
-              vatPercentage: {
-                type: "number",
-                description: "VAT percentage (default: 20)",
-                default: 20,
               },
             },
             required: ["description", "unitCost", "quantity", "nominalCode"],
@@ -251,24 +217,8 @@ export async function handlePurchaseTool(
       }
 
       case "quickfile_purchase_create": {
-        const lineItems = args.lines as Array<{
-          description: string;
-          unitCost: number;
-          quantity: number;
-          nominalCode: string;
-          vatPercentage?: number;
-        }>;
-
-        const purchaseLines: PurchaseLine[] = lineItems.map((line) => ({
-          ItemDescription: line.description,
-          UnitCost: line.unitCost,
-          Qty: line.quantity,
-          NominalCode: line.nominalCode,
-          Tax1: {
-            TaxName: "VAT",
-            TaxPercentage: line.vatPercentage ?? 20,
-          },
-        }));
+        const lineItems = args.lines as LineItemInput[];
+        const purchaseLines = mapLineItems<PurchaseLine>(lineItems);
 
         const createParams: PurchaseCreateParams = {
           SupplierID: args.supplierId as number,

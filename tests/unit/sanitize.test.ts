@@ -232,7 +232,7 @@ describe("Output Sanitization", () => {
     it("should pass through clean data unchanged", () => {
       const data = {
         InvoiceID: 12345,
-        GrossAmount: 100.0,
+        GrossAmount: 100,
         Status: "PAID",
       };
       const { data: result, metadata } = sanitizeOutput(data);
@@ -381,11 +381,11 @@ describe("Output Sanitization", () => {
             ClientName: "Acme Corp",
             Status: "PAID",
             Notes: "Payment received via bank transfer",
-            GrossAmount: 1200.0,
+            GrossAmount: 1200,
             InvoiceLines: [
               {
                 ItemDescription: "Web development services - Phase 1",
-                UnitCost: 1000.0,
+                UnitCost: 1000,
                 Qty: 1,
               },
             ],

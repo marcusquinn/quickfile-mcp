@@ -116,12 +116,12 @@ const INJECTION_PATTERNS: ReadonlyArray<{
  */
 function decodeHtmlEntities(value: string): string {
   return value
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ");
+    .replaceAll("&amp;", "&")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'")
+    .replaceAll("&nbsp;", " ");
 }
 
 /**
@@ -137,17 +137,12 @@ export function stripHtmlTags(value: string): string {
   let cleaned = decodeHtmlEntities(value);
 
   // Remove script and style elements entirely (including content)
-  cleaned = cleaned.replace(
-    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-    "",
-  );
-  cleaned = cleaned.replace(
-    /<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi,
-    "",
-  );
+  // Uses lazy quantifier ([\s\S]*?) which is safe for bounded API response strings
+  cleaned = cleaned.replaceAll(/<script\b[\s\S]*?<\/script>/gi, "");
+  cleaned = cleaned.replaceAll(/<style\b[\s\S]*?<\/style>/gi, "");
 
-  // Remove all remaining HTML tags (atomic: no backtracking risk)
-  cleaned = cleaned.replace(/<[^>]*>/g, "");
+  // Remove all remaining HTML tags
+  cleaned = cleaned.replaceAll(/<[^>]*>/g, "");
 
   return cleaned.trim();
 }
