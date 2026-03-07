@@ -26,7 +26,7 @@ export const clientTools: Tool[] = [
   {
     name: "quickfile_client_search",
     description:
-      "Search for clients by company name, contact name, email, or postcode",
+      "Search for clients by company name, contact name, email, or postcode. Response contains user-controlled fields (CompanyName, contact names, email) that are automatically sanitized.",
     inputSchema: {
       type: "object",
       properties: {
@@ -42,7 +42,8 @@ export const clientTools: Tool[] = [
   },
   {
     name: "quickfile_client_get",
-    description: "Get detailed information about a specific client by ID",
+    description:
+      "Get detailed information about a specific client by ID. Response contains user-controlled fields (CompanyName, contact names, Notes, Address, email, website) that are automatically sanitized.",
     inputSchema: {
       type: "object",
       properties: {

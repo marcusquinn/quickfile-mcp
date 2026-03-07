@@ -49,7 +49,8 @@ export const bankTools: Tool[] = [
   },
   {
     name: "quickfile_bank_search",
-    description: "Search bank transactions by date range, reference, or amount",
+    description:
+      "Search bank transactions by date range, reference, or amount. Response contains user-controlled fields (Reference, PayeePayer, Notes) that are automatically sanitized.",
     inputSchema: {
       type: "object",
       properties: {
