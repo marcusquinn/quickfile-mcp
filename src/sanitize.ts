@@ -110,39 +110,96 @@ const INJECTION_PATTERNS: ReadonlyArray<{
 // =============================================================================
 
 /**
+ * HTML entity map for decoding. Covers the most common entities found in
+ * QuickFile API responses. Order matters: &amp; must be decoded last to
+ * avoid double-decoding (e.g., `&amp;lt;` → `&lt;` → `<`).
+ */
+const HTML_ENTITY_MAP: ReadonlyArray<[string, string]> = [
+  ["&lt;", "<"],
+  ["&gt;", ">"],
+  ["&quot;", '"'],
+  ["&#39;", "'"],
+  ["&nbsp;", " "],
+  // &amp; decoded last to prevent double-decode chains
+  ["&amp;", "&"],
+];
+
+/**
  * Decode common HTML entities in a string.
- * This is applied before tag stripping to prevent encoded tags from bypassing
+ * Applied before tag stripping to prevent encoded tags from bypassing
  * the filter (e.g., `&lt;script&gt;` → `<script>` → stripped).
  */
 function decodeHtmlEntities(value: string): string {
-  return value
-    .replaceAll("&amp;", "&")
-    .replaceAll("&lt;", "<")
-    .replaceAll("&gt;", ">")
-    .replaceAll("&quot;", '"')
-    .replaceAll("&#39;", "'")
-    .replaceAll("&nbsp;", " ");
+  let result = value;
+  for (const [entity, char] of HTML_ENTITY_MAP) {
+    result = result.replaceAll(entity, char);
+  }
+  return result;
+}
+
+/**
+ * Remove content between matched tag pairs (e.g., `<script>...</script>`).
+ * Uses indexOf-based iteration instead of regex to avoid ReDoS risk
+ * from backtracking on crafted input.
+ */
+function stripTagWithContent(input: string, tagName: string): string {
+  let result = input;
+  const openTag = `<${tagName}`;
+  const closeTag = `</${tagName}>`;
+
+  let searchFrom = 0;
+  while (searchFrom < result.length) {
+    const openIdx = result.toLowerCase().indexOf(openTag, searchFrom);
+    if (openIdx === -1) break;
+
+    const closeIdx = result.toLowerCase().indexOf(closeTag, openIdx);
+    if (closeIdx === -1) {
+      // Unclosed tag — remove from open tag to end of string
+      result = result.slice(0, openIdx);
+      break;
+    }
+
+    result =
+      result.slice(0, openIdx) + result.slice(closeIdx + closeTag.length);
+    // Don't advance searchFrom — new content may have shifted into position
+  }
+
+  return result;
 }
 
 /**
  * Strip HTML tags from a string value.
  * Removes all HTML elements including script, style, and event handlers.
- * Preserves the text content within tags.
+ * Preserves the text content within non-dangerous tags.
  *
- * Entities are decoded FIRST so that encoded tags (e.g., `&lt;script&gt;`)
- * cannot bypass the tag-stripping pass.
+ * Defence-in-depth approach:
+ * 1. Decode HTML entities (catches `&lt;script&gt;` bypass)
+ * 2. Strip dangerous elements with content (script, style) via indexOf
+ * 3. Strip remaining HTML tags via simple regex (no backtracking risk)
+ * 4. Iterate decode+strip to catch double-encoded payloads
+ *
+ * The tag-stripping regex `/<[^>]*>/g` is linear-time (no nested
+ * quantifiers or alternation) and safe from ReDoS.
  */
 export function stripHtmlTags(value: string): string {
-  // Decode HTML entities first to catch encoded tags like &lt;script&gt;
-  let cleaned = decodeHtmlEntities(value);
+  let cleaned = value;
 
-  // Remove script and style elements entirely (including content)
-  // Uses lazy quantifier ([\s\S]*?) which is safe for bounded API response strings
-  cleaned = cleaned.replaceAll(/<script\b[\s\S]*?<\/script>/gi, "");
-  cleaned = cleaned.replaceAll(/<style\b[\s\S]*?<\/style>/gi, "");
+  // Iterative decode-then-strip handles double-encoded payloads
+  // (e.g., `&amp;lt;script&amp;gt;` → `&lt;script&gt;` → `<script>` → stripped)
+  // Max 3 iterations is sufficient for any realistic encoding depth
+  for (let i = 0; i < 3; i++) {
+    const decoded = decodeHtmlEntities(cleaned);
 
-  // Remove all remaining HTML tags
-  cleaned = cleaned.replaceAll(/<[^>]*>/g, "");
+    // Remove script and style elements entirely (including content)
+    let stripped = stripTagWithContent(decoded, "script");
+    stripped = stripTagWithContent(stripped, "style");
+
+    // Remove all remaining HTML tags (linear-time regex, no backtracking)
+    stripped = stripped.replaceAll(/<[^>]*>/g, "");
+
+    if (stripped === cleaned) break; // Stable — no further changes
+    cleaned = stripped;
+  }
 
   return cleaned.trim();
 }

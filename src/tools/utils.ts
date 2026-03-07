@@ -210,25 +210,9 @@ export function mapLineItems<
 // =============================================================================
 
 /**
- * Common search properties for entity search tools
+ * Shared pagination and ordering properties used by all search tools
  */
-export const searchSchemaProperties = {
-  companyName: {
-    type: "string" as const,
-    description: "Search by company name (partial match)",
-  },
-  contactName: {
-    type: "string" as const,
-    description: "Search by contact name",
-  },
-  email: {
-    type: "string" as const,
-    description: "Search by email address",
-  },
-  postcode: {
-    type: "string" as const,
-    description: "Search by postcode",
-  },
+const paginationSchemaProperties = {
   returnCount: {
     type: "number" as const,
     description: "Number of results (default: 25)",
@@ -247,6 +231,29 @@ export const searchSchemaProperties = {
 };
 
 /**
+ * Common search properties for entity search tools (clients, suppliers)
+ */
+export const searchSchemaProperties = {
+  companyName: {
+    type: "string" as const,
+    description: "Search by company name (partial match)",
+  },
+  contactName: {
+    type: "string" as const,
+    description: "Search by contact name",
+  },
+  email: {
+    type: "string" as const,
+    description: "Search by email address",
+  },
+  postcode: {
+    type: "string" as const,
+    description: "Search by postcode",
+  },
+  ...paginationSchemaProperties,
+};
+
+/**
  * Common date range and pagination properties for invoice/purchase search tools
  */
 export const dateRangeSearchProperties = {
@@ -258,21 +265,7 @@ export const dateRangeSearchProperties = {
     type: "string" as const,
     description: "End date (YYYY-MM-DD)",
   },
-  returnCount: {
-    type: "number" as const,
-    description: "Number of results (default: 25)",
-    default: 25,
-  },
-  offset: {
-    type: "number" as const,
-    description: "Offset for pagination",
-    default: 0,
-  },
-  orderDirection: {
-    type: "string" as const,
-    enum: ["ASC", "DESC"] as const,
-    description: "Order direction",
-  },
+  ...paginationSchemaProperties,
 };
 
 /**
@@ -436,37 +429,10 @@ export function buildAddressFromArgs(
 }
 
 /**
- * Build entity data from tool arguments
- * Shared between client and supplier create/update operations
+ * Extract common entity fields from tool arguments.
+ * Shared mapping used by both create and update operations.
  */
-export function buildEntityData(
-  args: Record<string, unknown>,
-  address: ClientAddress,
-  defaults: { currency?: string; termDays?: number } = {},
-): EntityData {
-  const { currency = "GBP", termDays = 30 } = defaults;
-  return {
-    CompanyName: args.companyName as string | undefined,
-    Title: args.title as string | undefined,
-    FirstName: args.firstName as string | undefined,
-    LastName: args.lastName as string | undefined,
-    Email: args.email as string | undefined,
-    Telephone: args.telephone as string | undefined,
-    Mobile: args.mobile as string | undefined,
-    Website: args.website as string | undefined,
-    VatNumber: args.vatNumber as string | undefined,
-    CompanyRegNo: args.companyRegNo as string | undefined,
-    Currency: (args.currency as string) ?? currency,
-    TermDays: (args.termDays as number) ?? termDays,
-    Notes: args.notes as string | undefined,
-    Address: Object.keys(address).length > 0 ? address : undefined,
-  };
-}
-
-/**
- * Build entity update data (preserves undefined for partial updates)
- */
-export function buildEntityUpdateData(
+function extractEntityFields(
   args: Record<string, unknown>,
   address: ClientAddress,
 ): EntityData {
@@ -486,4 +452,30 @@ export function buildEntityUpdateData(
     Notes: args.notes as string | undefined,
     Address: Object.keys(address).length > 0 ? address : undefined,
   };
+}
+
+/**
+ * Build entity data from tool arguments (for create operations).
+ * Applies defaults for Currency and TermDays when not provided.
+ */
+export function buildEntityData(
+  args: Record<string, unknown>,
+  address: ClientAddress,
+  defaults: { currency?: string; termDays?: number } = {},
+): EntityData {
+  const { currency = "GBP", termDays = 30 } = defaults;
+  const data = extractEntityFields(args, address);
+  data.Currency = data.Currency ?? currency;
+  data.TermDays = data.TermDays ?? termDays;
+  return data;
+}
+
+/**
+ * Build entity update data (preserves undefined for partial updates)
+ */
+export function buildEntityUpdateData(
+  args: Record<string, unknown>,
+  address: ClientAddress,
+): EntityData {
+  return extractEntityFields(args, address);
 }
