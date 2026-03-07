@@ -147,9 +147,10 @@ function stripTagWithContent(input: string, tagName: string): string {
   const openTag = `<${tagName}`;
   const closeTag = `</${tagName}>`;
 
-  let searchFrom = 0;
-  while (searchFrom < result.length) {
-    const openIdx = result.toLowerCase().indexOf(openTag, searchFrom);
+  // Loop terminates because `result` shrinks on each match (tag+content removed).
+  // searchFrom stays at 0 because content shifts left after each removal.
+  for (;;) {
+    const openIdx = result.toLowerCase().indexOf(openTag);
     if (openIdx === -1) break;
 
     const closeIdx = result.toLowerCase().indexOf(closeTag, openIdx);
@@ -161,9 +162,50 @@ function stripTagWithContent(input: string, tagName: string): string {
 
     result =
       result.slice(0, openIdx) + result.slice(closeIdx + closeTag.length);
-    // Don't advance searchFrom — new content may have shifted into position
   }
 
+  return result;
+}
+
+/**
+ * Check whether a string contains any HTML tags, including encoded ones.
+ * Checks for both literal tags (`<...>`) and HTML-entity-encoded tags
+ * (`&lt;...&gt;`) to prevent encoded payloads from bypassing the guard.
+ * Uses indexOf instead of regex to avoid SonarCloud S5852 (ReDoS) flags.
+ */
+function containsHtmlTags(value: string): boolean {
+  // Check for literal HTML tags
+  const openIdx = value.indexOf("<");
+  if (openIdx !== -1 && value.indexOf(">", openIdx) !== -1) return true;
+
+  // Check for HTML-entity-encoded tags (e.g., &lt;script&gt;)
+  if (value.indexOf("&lt;") !== -1 && value.indexOf("&gt;") !== -1) return true;
+
+  // Check for double-encoded entities (e.g., &amp;lt;)
+  if (value.indexOf("&amp;lt;") !== -1) return true;
+
+  return false;
+}
+
+/**
+ * Remove all HTML tags from a string, preserving text content.
+ * Uses indexOf-based iteration instead of regex to avoid ReDoS risk.
+ */
+function stripAllTags(input: string): string {
+  let result = input;
+  for (;;) {
+    const openIdx = result.indexOf("<");
+    if (openIdx === -1) break;
+
+    const closeIdx = result.indexOf(">", openIdx);
+    if (closeIdx === -1) {
+      // Unclosed `<` — remove it and everything after
+      result = result.slice(0, openIdx);
+      break;
+    }
+
+    result = result.slice(0, openIdx) + result.slice(closeIdx + 1);
+  }
   return result;
 }
 
@@ -175,11 +217,8 @@ function stripTagWithContent(input: string, tagName: string): string {
  * Defence-in-depth approach:
  * 1. Decode HTML entities (catches `&lt;script&gt;` bypass)
  * 2. Strip dangerous elements with content (script, style) via indexOf
- * 3. Strip remaining HTML tags via simple regex (no backtracking risk)
+ * 3. Strip remaining HTML tags via indexOf (no regex, no ReDoS risk)
  * 4. Iterate decode+strip to catch double-encoded payloads
- *
- * The tag-stripping regex `/<[^>]*>/g` is linear-time (no nested
- * quantifiers or alternation) and safe from ReDoS.
  */
 export function stripHtmlTags(value: string): string {
   let cleaned = value;
@@ -194,8 +233,8 @@ export function stripHtmlTags(value: string): string {
     let stripped = stripTagWithContent(decoded, "script");
     stripped = stripTagWithContent(stripped, "style");
 
-    // Remove all remaining HTML tags (linear-time regex, no backtracking)
-    stripped = stripped.replaceAll(/<[^>]*>/g, "");
+    // Remove all remaining HTML tags (indexOf-based, no regex)
+    stripped = stripAllTags(stripped);
 
     if (stripped === cleaned) break; // Stable — no further changes
     cleaned = stripped;
@@ -341,8 +380,15 @@ function sanitizeStringValue(
   const injections = detectInjectionPatterns(value);
   if (injections.length > 0) {
     const fieldLabel = fieldName || "unknown";
+    // Truncate value for logging context — enough to debug, short enough to
+    // avoid exposing the full malicious payload in metadata/logs
+    const maxContextLength = 80;
+    const truncated =
+      value.length > maxContextLength
+        ? `${value.slice(0, maxContextLength)}...`
+        : value;
     for (const injection of injections) {
-      const warning = `Potential prompt injection in field "${fieldLabel}": ${injection}`;
+      const warning = `Potential prompt injection in field "${fieldLabel}" (${injection}). Context: "${truncated}"`;
       if (!metadata.injectionWarnings.includes(warning)) {
         metadata.injectionWarnings.push(warning);
       }
@@ -350,7 +396,7 @@ function sanitizeStringValue(
   }
 
   // Strip HTML only from user-controlled fields
-  if (isUserField && /<[^>]*>/.test(value)) {
+  if (isUserField && containsHtmlTags(value)) {
     const stripped = stripHtmlTags(value);
     if (stripped !== value) {
       metadata.htmlStripped++;
