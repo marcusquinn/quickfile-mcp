@@ -158,7 +158,9 @@ function findTag(
  * (unclosed tag). Returns the resulting string.
  */
 function excise(value: string, start: number, end: number): string {
-  if (end === -1) return value.slice(0, start);
+  if (end === -1) {
+    return value.slice(0, start);
+  }
   return value.slice(0, start) + value.slice(end);
 }
 
@@ -175,7 +177,9 @@ function stripTagWithContent(input: string, tagName: string): string {
   // Loop terminates because `result` shrinks on each match (tag+content removed).
   for (;;) {
     const openIdx = findTag(result, openTag, 0, true);
-    if (openIdx === -1) break;
+    if (openIdx === -1) {
+      break;
+    }
 
     const closeIdx = findTag(result, closeTag, openIdx, true);
     result = excise(
@@ -183,7 +187,9 @@ function stripTagWithContent(input: string, tagName: string): string {
       openIdx,
       closeIdx === -1 ? -1 : closeIdx + closeTag.length,
     );
-    if (closeIdx === -1) break;
+    if (closeIdx === -1) {
+      break;
+    }
   }
 
   return result;
@@ -197,13 +203,19 @@ function stripTagWithContent(input: string, tagName: string): string {
  */
 function containsHtmlTags(value: string): boolean {
   // Check for literal HTML tags
-  if (value.includes("<") && value.includes(">")) return true;
+  if (value.includes("<") && value.includes(">")) {
+    return true;
+  }
 
   // Check for HTML-entity-encoded tags (e.g., &lt;script&gt;)
-  if (value.includes("&lt;") && value.includes("&gt;")) return true;
+  if (value.includes("&lt;") && value.includes("&gt;")) {
+    return true;
+  }
 
   // Check for double-encoded entities (e.g., &amp;lt;)
-  if (value.includes("&amp;lt;")) return true;
+  if (value.includes("&amp;lt;")) {
+    return true;
+  }
 
   return false;
 }
@@ -216,11 +228,15 @@ function stripAllTags(input: string): string {
   let result = input;
   for (;;) {
     const openIdx = result.indexOf("<");
-    if (openIdx === -1) break;
+    if (openIdx === -1) {
+      break;
+    }
 
     const closeIdx = result.indexOf(">", openIdx);
     result = excise(result, openIdx, closeIdx === -1 ? -1 : closeIdx + 1);
-    if (closeIdx === -1) break;
+    if (closeIdx === -1) {
+      break;
+    }
   }
   return result;
 }
@@ -252,7 +268,10 @@ export function stripHtmlTags(value: string): string {
     // Remove all remaining HTML tags (indexOf-based, no regex)
     stripped = stripAllTags(stripped);
 
-    if (stripped === cleaned) break; // Stable — no further changes
+    // Stable — no further changes
+    if (stripped === cleaned) {
+      break;
+    }
     cleaned = stripped;
   }
 
