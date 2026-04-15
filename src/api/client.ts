@@ -148,8 +148,22 @@ export class QuickFileApiClient {
       }
 
       if (!response.ok) {
+        let detailMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorBody = (await response.json()) as {
+            Errors?: { Error?: string | string[] };
+          };
+          const qfErrors = errorBody?.Errors?.Error;
+          if (Array.isArray(qfErrors) && qfErrors.length > 0) {
+            detailMessage = qfErrors.join("; ");
+          } else if (typeof qfErrors === "string") {
+            detailMessage = qfErrors;
+          }
+        } catch {
+          // Body wasn't JSON or didn't match expected shape — keep HTTP status fallback
+        }
         throw new QuickFileApiError(
-          `HTTP ${response.status}: ${response.statusText}`,
+          detailMessage,
           response.status.toString(),
         );
       }

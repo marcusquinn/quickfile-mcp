@@ -327,6 +327,14 @@ export interface BankTransactionCreateParams {
   Notes?: string;
 }
 
+export interface BankTransactionWireItem {
+  BankNominalCode: number;
+  Date: string;
+  Amount: number;
+  Reference?: string;
+  Notes?: string;
+}
+
 // =============================================================================
 // Report Types
 // =============================================================================

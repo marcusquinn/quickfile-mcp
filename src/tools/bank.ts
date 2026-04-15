@@ -8,7 +8,7 @@ import { getApiClient } from "../api/client.js";
 import type {
   BankAccount,
   BankTransaction,
-  BankTransactionCreateParams,
+  BankTransactionWireItem,
   BankAccountType,
 } from "../types/quickfile.js";
 import {
@@ -227,7 +227,8 @@ interface BankAccountCreateResponse {
 }
 
 interface BankTransactionCreateResponse {
-  TransactionID: number;
+  InsertCount: number;
+  FailCount: number;
 }
 
 // =============================================================================
@@ -369,24 +370,31 @@ export async function handleBankTool(
       }
 
       case "quickfile_bank_create_transaction": {
-        const txnParams: BankTransactionCreateParams = {
-          NominalCode: args.nominalCode as string,
-          TransactionDate: args.transactionDate as string,
-          Amount: args.amount as number,
-          TransactionType: args.transactionType as "MONEY_IN" | "MONEY_OUT",
+        const direction = args.transactionType as "MONEY_IN" | "MONEY_OUT";
+        const magnitude = args.amount as number;
+        const signedAmount = direction === "MONEY_OUT" ? -Math.abs(magnitude) : Math.abs(magnitude);
+        const wireItem: BankTransactionWireItem = {
+          BankNominalCode: Number(args.nominalCode),
+          Date: args.transactionDate as string,
+          Amount: signedAmount,
           Reference: args.reference as string | undefined,
-          PayeePayer: args.payeePayer as string | undefined,
           Notes: args.notes as string | undefined,
         };
-        const cleaned = cleanParams(txnParams);
+        const cleaned = cleanParams(wireItem) as BankTransactionWireItem;
         const response = await apiClient.request<
-          { TransactionData: typeof cleaned },
+          { Transaction: BankTransactionWireItem[] },
           BankTransactionCreateResponse
-        >("Bank_CreateTransaction", { TransactionData: cleaned });
+        >("Bank_CreateTransaction", { Transaction: [cleaned] });
+        if (response.FailCount > 0 || response.InsertCount < 1) {
+          return errorResult(
+            `Bank transaction not created: InsertCount=${response.InsertCount}, FailCount=${response.FailCount}`,
+          );
+        }
         return successResult({
           success: true,
-          transactionId: response.TransactionID,
-          message: `Bank transaction created with ID ${response.TransactionID}`,
+          insertCount: response.InsertCount,
+          failCount: response.FailCount,
+          message: `Bank transaction created (InsertCount=${response.InsertCount})`,
         });
       }
 
