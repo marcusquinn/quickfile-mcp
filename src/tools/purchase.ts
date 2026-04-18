@@ -8,14 +8,13 @@ import { getApiClient } from "../api/client.js";
 import type {
   Purchase,
   PurchaseCreateParams,
-  PurchaseLine,
+  PurchaseItemLine,
 } from "../types/quickfile.js";
 import {
   handleToolError,
   successResult,
   errorResult,
   cleanParams,
-  mapLineItems,
   dateRangeSearchProperties,
   lineItemSchemaProperties,
   type LineItemInput,
@@ -89,19 +88,16 @@ export const purchaseTools: Tool[] = [
         },
         issueDate: {
           type: "string",
-          description: "Invoice date (YYYY-MM-DD)",
-        },
-        dueDate: {
-          type: "string",
-          description: "Due date (YYYY-MM-DD)",
+          description: "Receipt date on the supplier's document (YYYY-MM-DD)",
         },
         supplierRef: {
           type: "string",
           description: "Supplier invoice reference number",
         },
-        notes: {
-          type: "string",
-          description: "Notes",
+        termDays: {
+          type: "number",
+          description: "Payment terms in days from the receipt date (default: 30)",
+          default: 30,
         },
         lines: {
           type: "array",
@@ -155,7 +151,7 @@ interface PurchaseGetResponse {
 
 interface PurchaseCreateResponse {
   PurchaseID: number;
-  PurchaseNumber: string;
+  PurchaseTotal?: number;
 }
 
 // =============================================================================
@@ -233,16 +229,33 @@ export async function handlePurchaseTool(
 
       case "quickfile_purchase_create": {
         const lineItems = args.lines as LineItemInput[];
-        const purchaseLines = mapLineItems<PurchaseLine>(lineItems);
 
+        // Purchase_Create's ItemLine schema differs from Invoice_Create's:
+        // it expects pre-calculated SubTotal and VatTotal fields rather than
+        // the raw UnitCost/Qty/Tax1 triple that mapLineItems produces. We
+        // therefore build the line items inline rather than using that helper.
+        const itemLines: PurchaseItemLine[] = lineItems.map((line) => {
+          const subTotal =
+            Math.round(line.unitCost * line.quantity * 100) / 100;
+          const vatRate = line.vatPercentage ?? 0;
+          const vatTotal = Math.round(subTotal * vatRate) / 100;
+          return {
+            ItemDescription: line.description,
+            ItemNominalCode: line.nominalCode ?? "",
+            SubTotal: subTotal,
+            VatRate: vatRate,
+            VatTotal: vatTotal,
+          };
+        });
+
+        // Element order matches the XSD xs:sequence for PurchaseData.
         const createParams: PurchaseCreateParams = {
           SupplierID: args.supplierId as number,
           Currency: (args.currency as string) ?? "GBP",
-          IssueDate: args.issueDate as string | undefined,
-          DueDate: args.dueDate as string | undefined,
-          SupplierRef: args.supplierRef as string | undefined,
-          Notes: args.notes as string | undefined,
-          PurchaseLines: purchaseLines,
+          ReceiptDate: args.issueDate as string | undefined,
+          SupplierReference: args.supplierRef as string | undefined,
+          TermDays: (args.termDays as number) ?? 30,
+          InvoiceLines: { ItemLine: itemLines },
         };
 
         const cleaned = cleanParams(createParams);
@@ -255,8 +268,8 @@ export async function handlePurchaseTool(
         return successResult({
           success: true,
           purchaseId: response.PurchaseID,
-          purchaseNumber: response.PurchaseNumber,
-          message: `Purchase #${response.PurchaseNumber} created successfully`,
+          purchaseTotal: response.PurchaseTotal,
+          message: `Purchase ${response.PurchaseID} created successfully`,
         });
       }
 
