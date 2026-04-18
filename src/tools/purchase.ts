@@ -162,31 +162,35 @@ interface PurchaseCreateResponse {
 // Helper Functions (extracted to reduce duplication)
 // =============================================================================
 
-/** Field mapping from tool args to QuickFile Purchase_Search API parameters */
-const PURCHASE_SEARCH_FIELD_MAP: ReadonlyArray<[string, string]> = [
-  ["supplierId", "SupplierID"],
-  ["dateFrom", "DateFrom"],
-  ["dateTo", "DateTo"],
-  ["status", "Status"],
-  ["searchKeyword", "SearchKeyword"],
-];
-
 function buildPurchaseSearchParams(
   args: Record<string, unknown>,
 ): Record<string, unknown> {
+  // The Purchase_Search XSD is an xs:sequence — the server enforces element
+  // order. Build in the schema's required order: paging → ordering → filters.
+  // Also note that SupplierID must be nested under SupplierDetails (not a bare
+  // field) and date filters use ReceiptDate prefix on this endpoint.
   const searchParams: Record<string, unknown> = {
     ReturnCount: (args.returnCount as number) ?? 25,
     Offset: (args.offset as number) ?? 0,
+    OrderResultsBy: (args.orderBy as string) ?? "ReceiptDate",
+    OrderDirection: (args.orderDirection as string) ?? "DESC",
   };
 
-  for (const [argKey, apiKey] of PURCHASE_SEARCH_FIELD_MAP) {
-    if (args[argKey] !== undefined) {
-      searchParams[apiKey] = args[argKey];
-    }
+  if (args.supplierId !== undefined) {
+    searchParams.SupplierDetails = { SupplierID: args.supplierId };
   }
-
-  searchParams.OrderResultsBy = (args.orderBy as string) ?? "ReceiptDate";
-  searchParams.OrderDirection = (args.orderDirection as string) ?? "DESC";
+  if (args.dateFrom !== undefined) {
+    searchParams.ReceiptDateFrom = args.dateFrom;
+  }
+  if (args.dateTo !== undefined) {
+    searchParams.ReceiptDateTo = args.dateTo;
+  }
+  if (args.status !== undefined) {
+    searchParams.Status = args.status;
+  }
+  if (args.searchKeyword !== undefined) {
+    searchParams.SearchKeyword = args.searchKeyword;
+  }
 
   return searchParams;
 }
