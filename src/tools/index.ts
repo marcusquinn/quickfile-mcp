@@ -13,6 +13,7 @@ import { purchaseTools, handlePurchaseTool } from "./purchase.js";
 import { supplierTools, handleSupplierTool } from "./supplier.js";
 import { bankTools, handleBankTool } from "./bank.js";
 import { reportTools, handleReportTool } from "./report.js";
+import { documentTools, handleDocumentTool } from "./document.js";
 
 // Import ToolResult for local use, then re-export
 import type { ToolResult } from "./utils.js";
@@ -36,6 +37,7 @@ export const allTools: Tool[] = [
   ...supplierTools,
   ...bankTools,
   ...reportTools,
+  ...documentTools,
 ];
 
 /**
@@ -83,12 +85,17 @@ export async function handleToolCall(
     return handleReportTool(toolName, args);
   }
 
+  // Document tools
+  if (toolName.startsWith("quickfile_document_")) {
+    return handleDocumentTool(toolName, args);
+  }
+
   // Unknown tool
   return {
     content: [
       {
         type: "text",
-        text: `Unknown tool: ${toolName}. Available prefixes: quickfile_system_, quickfile_client_, quickfile_invoice_, quickfile_estimate_, quickfile_purchase_, quickfile_supplier_, quickfile_bank_, quickfile_report_`,
+        text: `Unknown tool: ${toolName}. Available prefixes: quickfile_system_, quickfile_client_, quickfile_invoice_, quickfile_estimate_, quickfile_purchase_, quickfile_supplier_, quickfile_bank_, quickfile_report_, quickfile_document_`,
       },
     ],
     isError: true,
@@ -111,4 +118,6 @@ export {
   handleBankTool,
   reportTools,
   handleReportTool,
+  documentTools,
+  handleDocumentTool,
 };
