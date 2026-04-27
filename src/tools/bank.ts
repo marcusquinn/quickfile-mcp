@@ -185,10 +185,6 @@ export const bankTools: Tool[] = [
           type: "string",
           description: "Transaction reference",
         },
-        payeePayer: {
-          type: "string",
-          description: "Name of payee or payer",
-        },
         notes: {
           type: "string",
           description: "Additional notes",
@@ -370,11 +366,18 @@ export async function handleBankTool(
       }
 
       case "quickfile_bank_create_transaction": {
-        const direction = args.transactionType as "MONEY_IN" | "MONEY_OUT";
+        const bankNominalCode = Number.parseInt(args.nominalCode as string, 10);
         const magnitude = args.amount as number;
-        const signedAmount = direction === "MONEY_OUT" ? -Math.abs(magnitude) : Math.abs(magnitude);
+        if (!Number.isInteger(bankNominalCode)) {
+          return errorResult("nominalCode must be a numeric bank account code");
+        }
+        if (!Number.isFinite(magnitude) || magnitude <= 0) {
+          return errorResult("amount must be a positive number");
+        }
+        const direction = args.transactionType as "MONEY_IN" | "MONEY_OUT";
+        const signedAmount = direction === "MONEY_OUT" ? -magnitude : magnitude;
         const wireItem: BankTransactionWireItem = {
-          BankNominalCode: Number(args.nominalCode),
+          BankNominalCode: bankNominalCode,
           Date: args.transactionDate as string,
           Amount: signedAmount,
           Reference: args.reference as string | undefined,
