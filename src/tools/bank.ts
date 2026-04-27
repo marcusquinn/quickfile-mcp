@@ -185,10 +185,6 @@ export const bankTools: Tool[] = [
           type: "string",
           description: "Transaction reference",
         },
-        payeePayer: {
-          type: "string",
-          description: "Name of payee or payer",
-        },
         notes: {
           type: "string",
           description: "Additional notes",
@@ -374,7 +370,7 @@ export async function handleBankTool(
         const magnitude = args.amount as number;
         const signedAmount = direction === "MONEY_OUT" ? -Math.abs(magnitude) : Math.abs(magnitude);
         const wireItem: BankTransactionWireItem = {
-          BankNominalCode: Number(args.nominalCode),
+          BankNominalCode: Number.parseInt(args.nominalCode as string, 10),
           Date: args.transactionDate as string,
           Amount: signedAmount,
           Reference: args.reference as string | undefined,
