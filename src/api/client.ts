@@ -154,18 +154,21 @@ export class QuickFileApiClient {
             Errors?: { Error?: string | string[] };
           };
           const qfErrors = errorBody?.Errors?.Error;
-          if (Array.isArray(qfErrors) && qfErrors.length > 0) {
-            detailMessage = qfErrors.join("; ");
-          } else if (typeof qfErrors === "string") {
-            detailMessage = qfErrors;
+          const messages = Array.isArray(qfErrors) ? qfErrors : [qfErrors];
+          const combined = messages
+            .filter((m): m is string => typeof m === "string" && m.trim() !== "")
+            .join("; ");
+          if (combined) {
+            detailMessage = combined;
           }
         } catch {
           // Body wasn't JSON or didn't match expected shape — keep HTTP status fallback
         }
-        throw new QuickFileApiError(
-          detailMessage,
-          response.status.toString(),
-        );
+        const errorCode =
+          response.status === 401 || response.status === 403
+            ? "INVALID_AUTH"
+            : response.status.toString();
+        throw new QuickFileApiError(detailMessage, errorCode);
       }
 
       const data = (await response.json()) as QuickFileResponse<TResponse>;

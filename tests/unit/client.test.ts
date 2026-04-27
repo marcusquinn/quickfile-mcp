@@ -218,6 +218,52 @@ describe("QuickFileApiClient", () => {
       );
     });
 
+    it("should normalize 401 to INVALID_AUTH error code", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: "Unauthorized",
+        json: () => Promise.resolve({}),
+      });
+
+      const client = await getClient();
+
+      await expect(client.request("Client_Search", {})).rejects.toMatchObject({
+        code: "INVALID_AUTH",
+      });
+    });
+
+    it("should normalize 403 to INVALID_AUTH error code", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        statusText: "Forbidden",
+        json: () => Promise.resolve({}),
+      });
+
+      const client = await getClient();
+
+      await expect(client.request("Client_Search", {})).rejects.toMatchObject({
+        code: "INVALID_AUTH",
+      });
+    });
+
+    it("should filter empty strings from qfErrors array", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        statusText: "Bad Request",
+        json: () =>
+          Promise.resolve({ Errors: { Error: ["", "Real error", "  "] } }),
+      });
+
+      const client = await getClient();
+
+      await expect(client.request("Client_Search", {})).rejects.toMatchObject({
+        message: "Real error",
+      });
+    });
+
     it("should throw on API error response", async () => {
       const mockResponse = {
         Errors: [
