@@ -237,7 +237,7 @@ export async function handlePurchaseTool(
         const itemLines: PurchaseItemLine[] = lineItems.map((line) => {
           const subTotal =
             Math.round(line.unitCost * line.quantity * 100) / 100;
-          const vatRate = line.vatPercentage ?? 0;
+          const vatRate = line.vatPercentage ?? 20;
           const vatTotal = Math.round(subTotal * vatRate) / 100;
           return {
             ItemDescription: line.description,
