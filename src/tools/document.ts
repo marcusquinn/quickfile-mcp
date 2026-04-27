@@ -3,7 +3,7 @@
  * Document upload and receipt attachment operations
  */
 
-import { readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { QuickFileApiClient } from "../api/client.js";
 import type {
@@ -88,7 +88,9 @@ export const documentTools: Tool[] = [
  * `fileData` (already base64-encoded) or `filePath` (absolute local path —
  * read and encoded here). Exactly one of the two must be provided.
  */
-function resolveFileData(args: Record<string, unknown>): string {
+async function resolveFileData(
+  args: Record<string, unknown>,
+): Promise<string> {
   const fileData = args.fileData as string | undefined;
   const filePath = args.filePath as string | undefined;
 
@@ -99,7 +101,8 @@ function resolveFileData(args: Record<string, unknown>): string {
     return fileData;
   }
   if (filePath) {
-    return readFileSync(filePath).toString("base64");
+    const buffer = await readFile(filePath);
+    return buffer.toString("base64");
   }
   throw new Error("Either fileData or filePath must be provided");
 }
@@ -121,7 +124,7 @@ export async function handleDocumentTool(
       case "quickfile_document_upload_receipt": {
         const purchaseId = args.purchaseId as number;
         const fileName = args.fileName as string;
-        const fileData = resolveFileData(args);
+        const fileData = await resolveFileData(args);
         const captureDateTime = new Date().toISOString();
 
         const response = await apiClient.request<
@@ -155,7 +158,7 @@ export async function handleDocumentTool(
       case "quickfile_document_upload_sales_attachment": {
         const invoiceId = args.invoiceId as number;
         const fileName = args.fileName as string;
-        const fileData = resolveFileData(args);
+        const fileData = await resolveFileData(args);
         const captureDateTime = new Date().toISOString();
 
         const response = await apiClient.request<
