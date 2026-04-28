@@ -186,7 +186,7 @@ export interface LineItemInput {
  * │ businessProfile          │ vatPercentage given? │ Result                                       │
  * ├──────────────────────────┼──────────────────────┼──────────────────────────────────────────────┤
  * │ absent                   │ yes                  │ Use the per-line value                       │
- * │ absent                   │ no                   │ 20 (existing default)                        │
+ * │ absent                   │ no                   │ Error — explicit rate required               │
  * │ vatRegistered: false     │ yes (any value)      │ Error — configuration contradiction          │
  * │ vatRegistered: false     │ no                   │ 0 (implicit)                                 │
  * │ vatRegistered: true      │ yes                  │ Use the per-line value                       │
@@ -198,8 +198,16 @@ export function resolveVatPercentage(
   businessProfile: BusinessProfile | undefined,
 ): number {
   if (!businessProfile) {
-    // No profile configured — preserve existing behaviour (default 20%)
-    return vatPercentage ?? 20;
+    // No profile configured — require explicit per-line rate (no silent default)
+    if (vatPercentage === undefined) {
+      throw new Error(
+        `vatPercentage is required when no businessProfile is configured ` +
+          `(rates vary: 20 standard, 5 reduced, 0 zero-rated/exempt — ` +
+          `specify the rate explicitly for each line item, ` +
+          `or configure businessProfile in ~/.config/.quickfile-mcp/credentials.json).`,
+      );
+    }
+    return vatPercentage;
   }
 
   if (!businessProfile.vatRegistered) {
@@ -354,9 +362,11 @@ export const lineItemSchemaProperties = {
   vatPercentage: {
     type: "number" as const,
     description:
-      "VAT percentage. Behaviour depends on businessProfile in credentials: " +
-      "omit when vatRegistered=false (auto-0); required when vatRegistered=true; " +
-      "defaults to 20 when no businessProfile is configured.",
+      "VAT percentage (0-100). Provide a per-line value (20 standard, 5 reduced, " +
+      "0 zero-rated/exempt) — or configure businessProfile in credentials.json " +
+      "to declare your install's VAT posture once. Omit when " +
+      "businessProfile.vatRegistered=false; required otherwise. The call fails " +
+      "with a clear error if neither is provided (no silent default).",
   },
 };
 

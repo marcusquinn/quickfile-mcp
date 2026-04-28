@@ -113,7 +113,12 @@ export const purchaseTools: Tool[] = [
                   "Nominal code for accounting (e.g., 5000 for cost of sales)",
               },
             },
-            required: ["description", "unitCost", "quantity", "nominalCode"],
+            required: [
+              "description",
+              "unitCost",
+              "quantity",
+              "nominalCode",
+            ],
           },
         },
       },
@@ -239,8 +244,6 @@ export async function handlePurchaseTool(
         const itemLines: PurchaseItemLine[] = lineItems.map((line) => {
           const subTotal =
             Math.round(line.unitCost * line.quantity * 100) / 100;
-          // resolveVatPercentage applies businessProfile rules (or falls back
-          // to 20% when no profile is configured — existing behaviour).
           const vatRate = resolveVatPercentage(
             line.vatPercentage,
             businessProfile,

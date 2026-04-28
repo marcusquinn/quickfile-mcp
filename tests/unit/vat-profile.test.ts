@@ -6,7 +6,7 @@
  * | businessProfile      | vatPercentage given? | Expected result           |
  * |----------------------|----------------------|---------------------------|
  * | absent               | yes                  | per-line value            |
- * | absent               | no                   | 20 (default)              |
+ * | absent               | no                   | Error (rate required)     |
  * | vatRegistered: false | yes (any value)      | Error (contradiction)     |
  * | vatRegistered: false | no                   | 0 (implicit)              |
  * | vatRegistered: true  | yes                  | per-line value            |
@@ -27,8 +27,10 @@ describe("resolveVatPercentage", () => {
       expect(resolveVatPercentage(5, undefined)).toBe(5);
     });
 
-    it("returns 20 as the default when vatPercentage is undefined", () => {
-      expect(resolveVatPercentage(undefined, undefined)).toBe(20);
+    it("throws when vatPercentage is undefined (no silent default)", () => {
+      expect(() => resolveVatPercentage(undefined, undefined)).toThrow(
+        /vatPercentage is required.*no businessProfile/,
+      );
     });
 
     it("returns 0 when vatPercentage is explicitly 0", () => {
@@ -120,12 +122,12 @@ describe("resolveVatPercentage", () => {
   // Edge cases
   // ──────────────────────────────────────────────────────────────────────────
   describe("edge cases", () => {
-    it("returns 20 for undefined vatPercentage when profile is absent (falsy value)", () => {
+    it("throws for undefined vatPercentage when profile is null (falsy value)", () => {
       // Confirm that any falsy businessProfile value falls through to the
-      // default-20 path — covers JavaScript callers that pass null.
-      expect(
+      // no-profile path — covers JavaScript callers that pass null.
+      expect(() =>
         resolveVatPercentage(undefined, null as unknown as undefined),
-      ).toBe(20);
+      ).toThrow(/vatPercentage is required/);
     });
 
     it("handles fractional VAT rates correctly", () => {
