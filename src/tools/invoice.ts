@@ -143,7 +143,7 @@ export const invoiceTools: Tool[] = [
                 description: "Nominal code for accounting",
               },
             },
-            required: ["description", "unitCost", "quantity"],
+            required: ["description", "unitCost", "quantity", "vatPercentage"],
           },
         },
       },

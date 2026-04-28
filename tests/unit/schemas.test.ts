@@ -212,17 +212,18 @@ describe("Invoice Schemas", () => {
         description: "Consulting services",
         unitCost: 100,
         quantity: 5,
+        vatPercentage: 20,
       });
       expect(result.success).toBe(true);
     });
 
-    it("should use default VAT percentage", () => {
-      const result = InvoiceLineSchema.parse({
+    it("should reject missing vatPercentage", () => {
+      const result = InvoiceLineSchema.safeParse({
         description: "Test",
         unitCost: 100,
         quantity: 1,
       });
-      expect(result.vatPercentage).toBe(20);
+      expect(result.success).toBe(false);
     });
 
     it("should reject empty description", () => {
@@ -230,6 +231,7 @@ describe("Invoice Schemas", () => {
         description: "",
         unitCost: 100,
         quantity: 1,
+        vatPercentage: 20,
       });
       expect(result.success).toBe(false);
     });
@@ -239,6 +241,7 @@ describe("Invoice Schemas", () => {
         description: "Test",
         unitCost: -50,
         quantity: 1,
+        vatPercentage: 20,
       });
       expect(result.success).toBe(false);
     });
@@ -248,6 +251,7 @@ describe("Invoice Schemas", () => {
         description: "Test",
         unitCost: 100,
         quantity: 0,
+        vatPercentage: 20,
       });
       expect(result.success).toBe(false);
     });
@@ -264,7 +268,9 @@ describe("Invoice Schemas", () => {
   });
 
   describe("InvoiceCreateSchema", () => {
-    const validLines = [{ description: "Service", unitCost: 100, quantity: 1 }];
+    const validLines = [
+      { description: "Service", unitCost: 100, quantity: 1, vatPercentage: 20 },
+    ];
 
     it("should accept valid invoice", () => {
       const result = InvoiceCreateSchema.safeParse({
@@ -708,6 +714,7 @@ describe("Additional Invoice Schema Tests", () => {
         description: "Service",
         unitCost: 100,
         quantity: 1,
+        vatPercentage: 20,
         nominalCode: "4000",
       });
       expect(result.success).toBe(true);
@@ -762,9 +769,24 @@ describe("Additional Invoice Schema Tests", () => {
         invoiceType: "INVOICE",
         clientId: 123,
         lines: [
-          { description: "Item 1", unitCost: 100, quantity: 1 },
-          { description: "Item 2", unitCost: 200, quantity: 2 },
-          { description: "Item 3", unitCost: 50, quantity: 10 },
+          {
+            description: "Item 1",
+            unitCost: 100,
+            quantity: 1,
+            vatPercentage: 20,
+          },
+          {
+            description: "Item 2",
+            unitCost: 200,
+            quantity: 2,
+            vatPercentage: 20,
+          },
+          {
+            description: "Item 3",
+            unitCost: 50,
+            quantity: 10,
+            vatPercentage: 0,
+          },
         ],
       });
       expect(result.success).toBe(true);

@@ -169,7 +169,7 @@ export interface LineItemInput {
   description: string;
   unitCost: number;
   quantity: number;
-  vatPercentage?: number;
+  vatPercentage: number;
   nominalCode?: string;
 }
 
@@ -197,7 +197,7 @@ export function mapLineItems<
       NominalCode: line.nominalCode,
       Tax1: {
         TaxName: "VAT",
-        TaxPercentage: line.vatPercentage ?? 20,
+        TaxPercentage: line.vatPercentage,
       },
     };
     if (options.includeItemId) {
@@ -288,8 +288,8 @@ export const lineItemSchemaProperties = {
   },
   vatPercentage: {
     type: "number" as const,
-    description: "VAT percentage (default: 20)",
-    default: 20,
+    description:
+      "VAT percentage (0-100). Required - must be set explicitly per line. Use 0 for non-VAT-registered businesses, zero-rated, or exempt items; 20 for UK standard; 5 for reduced.",
   },
 };
 

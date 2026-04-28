@@ -112,7 +112,13 @@ export const purchaseTools: Tool[] = [
                   "Nominal code for accounting (e.g., 5000 for cost of sales)",
               },
             },
-            required: ["description", "unitCost", "quantity", "nominalCode"],
+            required: [
+              "description",
+              "unitCost",
+              "quantity",
+              "vatPercentage",
+              "nominalCode",
+            ],
           },
         },
       },
@@ -237,7 +243,7 @@ export async function handlePurchaseTool(
         const itemLines: PurchaseItemLine[] = lineItems.map((line) => {
           const subTotal =
             Math.round(line.unitCost * line.quantity * 100) / 100;
-          const vatRate = line.vatPercentage ?? 0;
+          const vatRate = line.vatPercentage;
           const vatTotal = Math.round(subTotal * vatRate) / 100;
           return {
             ItemDescription: line.description,
