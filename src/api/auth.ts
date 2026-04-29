@@ -41,14 +41,15 @@ let submissionCounter = 0;
 
 /**
  * Validate that all three required credential fields are present.
- * Extracted to reduce cyclomatic complexity of loadCredentials.
+ * Uses an array check to keep cyclomatic complexity minimal.
  */
 function validateRequiredFields(credentials: QuickFileCredentials): void {
-  if (
-    !credentials.accountNumber ||
-    !credentials.apiKey ||
-    !credentials.applicationId
-  ) {
+  const present = [
+    credentials.accountNumber,
+    credentials.apiKey,
+    credentials.applicationId,
+  ];
+  if (present.some((v) => !v)) {
     throw new Error(
       "Missing required credential fields: accountNumber, apiKey, applicationId",
     );
