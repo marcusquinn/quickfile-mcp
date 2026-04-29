@@ -160,7 +160,11 @@ export function cleanParams<T extends object>(params: T): Partial<T> {
 // Shared Line Item Mapping
 // =============================================================================
 
-import type { ClientAddress, InvoiceLineTax } from "../types/quickfile.js";
+import type {
+  ClientAddress,
+  InvoiceLineTax,
+  BusinessProfile,
+} from "../types/quickfile.js";
 
 /**
  * Raw line item input from tool arguments (shared between invoice and purchase)
@@ -174,11 +178,66 @@ export interface LineItemInput {
 }
 
 /**
+ * Resolve the effective VAT percentage for a line item, applying the optional
+ * install-time businessProfile rules from credentials.json.
+ *
+ * Decision table:
+ * ┌──────────────────────────┬──────────────────────┬──────────────────────────────────────────────┐
+ * │ businessProfile          │ vatPercentage given? │ Result                                       │
+ * ├──────────────────────────┼──────────────────────┼──────────────────────────────────────────────┤
+ * │ absent                   │ yes                  │ Use the per-line value                       │
+ * │ absent                   │ no                   │ 20 (existing default)                        │
+ * │ vatRegistered: false     │ yes (any value)      │ Error — configuration contradiction          │
+ * │ vatRegistered: false     │ no                   │ 0 (implicit)                                 │
+ * │ vatRegistered: true      │ yes                  │ Use the per-line value                       │
+ * │ vatRegistered: true      │ no                   │ Error — explicit rate required               │
+ * └──────────────────────────┴──────────────────────┴──────────────────────────────────────────────┘
+ */
+export function resolveVatPercentage(
+  vatPercentage: number | undefined,
+  businessProfile: BusinessProfile | undefined,
+): number {
+  if (!businessProfile) {
+    // No profile configured — preserve existing behaviour (default 20%)
+    return vatPercentage ?? 20;
+  }
+
+  if (!businessProfile.vatRegistered) {
+    // Non-VAT-registered install: any explicit vatPercentage is a contradiction
+    if (vatPercentage !== undefined) {
+      throw new Error(
+        `Configuration contradiction (vatRegistered=false in businessProfile): ` +
+          `vatPercentage=${vatPercentage} was provided but this install is configured as not VAT-registered. ` +
+          `Remove vatPercentage from line items — it is implicitly 0 for non-VAT-registered installs. ` +
+          `See businessProfile in ~/.config/.quickfile-mcp/credentials.json.`,
+      );
+    }
+    // Implicit 0% for non-VAT-registered
+    return 0;
+  }
+
+  // vatRegistered: true — caller must provide an explicit rate because rates
+  // vary (standard 20%, reduced 5%, zero-rated 0%, exempt)
+  if (vatPercentage === undefined) {
+    throw new Error(
+      `vatPercentage is required when businessProfile.vatRegistered=true ` +
+        `(VAT rates vary: standard 20%, reduced 5%, zero 0%, exempt — ` +
+        `specify the rate explicitly for each line item). ` +
+        `See businessProfile in ~/.config/.quickfile-mcp/credentials.json.`,
+    );
+  }
+
+  return vatPercentage;
+}
+
+/**
  * Map raw line item inputs to QuickFile API line format.
  * Shared between invoice and purchase create operations.
  *
  * @param lines - Raw line items from tool arguments
- * @param options - Optional overrides (e.g., include ItemID for invoices)
+ * @param options - Optional overrides:
+ *   - `includeItemId` — add ItemID:0 (required by Invoice_Create wire schema)
+ *   - `businessProfile` — install-time VAT profile (see resolveVatPercentage)
  */
 export function mapLineItems<
   T extends {
@@ -188,7 +247,10 @@ export function mapLineItems<
     NominalCode?: string;
     Tax1?: InvoiceLineTax;
   },
->(lines: LineItemInput[], options: { includeItemId?: boolean } = {}): T[] {
+>(
+  lines: LineItemInput[],
+  options: { includeItemId?: boolean; businessProfile?: BusinessProfile } = {},
+): T[] {
   return lines.map((line) => {
     const mapped: Record<string, unknown> = {
       ItemDescription: line.description,
@@ -197,7 +259,10 @@ export function mapLineItems<
       NominalCode: line.nominalCode,
       Tax1: {
         TaxName: "VAT",
-        TaxPercentage: line.vatPercentage ?? 20,
+        TaxPercentage: resolveVatPercentage(
+          line.vatPercentage,
+          options.businessProfile,
+        ),
       },
     };
     if (options.includeItemId) {
@@ -288,8 +353,10 @@ export const lineItemSchemaProperties = {
   },
   vatPercentage: {
     type: "number" as const,
-    description: "VAT percentage (default: 20)",
-    default: 20,
+    description:
+      "VAT percentage. Behaviour depends on businessProfile in credentials: " +
+      "omit when vatRegistered=false (auto-0); required when vatRegistered=true; " +
+      "defaults to 20 when no businessProfile is configured.",
   },
 };
 

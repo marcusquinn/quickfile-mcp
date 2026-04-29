@@ -25,6 +25,9 @@ import type {
   QuickFileHeader,
 } from "../types/quickfile.js";
 
+// Credential cache (file read once per process)
+let _cachedCredentials: QuickFileCredentials | null = null;
+
 // Credential storage location following project pattern
 const CREDENTIALS_PATH = join(
   homedir(),
@@ -37,9 +40,15 @@ const CREDENTIALS_PATH = join(
 let submissionCounter = 0;
 
 /**
- * Load credentials from secure storage
+ * Load credentials from secure storage.
+ * Reads the file once per process and caches the result.
+ * Pass `forceReload = true` in tests to bypass the cache.
  */
-export function loadCredentials(): QuickFileCredentials {
+export function loadCredentials(forceReload = false): QuickFileCredentials {
+  if (_cachedCredentials && !forceReload) {
+    return _cachedCredentials;
+  }
+
   if (!existsSync(CREDENTIALS_PATH)) {
     throw new Error(
       `QuickFile credentials not found at ${CREDENTIALS_PATH}\n` +
@@ -62,6 +71,22 @@ export function loadCredentials(): QuickFileCredentials {
       );
     }
 
+    // Validate optional businessProfile block when present
+    if (credentials.businessProfile !== undefined) {
+      const bp = credentials.businessProfile;
+      if (typeof bp !== "object" || bp === null || Array.isArray(bp)) {
+        throw new Error(
+          "Invalid businessProfile in credentials file: must be an object",
+        );
+      }
+      if (typeof bp.vatRegistered !== "boolean") {
+        throw new Error(
+          "Invalid businessProfile in credentials file: vatRegistered must be true or false",
+        );
+      }
+    }
+
+    _cachedCredentials = credentials;
     return credentials;
   } catch (error) {
     if (error instanceof SyntaxError) {
@@ -69,6 +94,15 @@ export function loadCredentials(): QuickFileCredentials {
     }
     throw error;
   }
+}
+
+/**
+ * Clear the credentials cache.
+ * Intended for tests only — not for production use.
+ * @internal
+ */
+export function _clearCredentialsCache(): void {
+  _cachedCredentials = null;
 }
 
 /**

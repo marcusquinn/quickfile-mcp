@@ -15,6 +15,7 @@ import {
   successResult,
   errorResult,
   cleanParams,
+  resolveVatPercentage,
   dateRangeSearchProperties,
   lineItemSchemaProperties,
   type LineItemInput,
@@ -229,6 +230,7 @@ export async function handlePurchaseTool(
 
       case "quickfile_purchase_create": {
         const lineItems = args.lines as LineItemInput[];
+        const businessProfile = apiClient.getBusinessProfile();
 
         // Purchase_Create's ItemLine schema differs from Invoice_Create's:
         // it expects pre-calculated SubTotal and VatTotal fields rather than
@@ -237,7 +239,12 @@ export async function handlePurchaseTool(
         const itemLines: PurchaseItemLine[] = lineItems.map((line) => {
           const subTotal =
             Math.round(line.unitCost * line.quantity * 100) / 100;
-          const vatRate = line.vatPercentage ?? 20; // default 20% matches invoice_create and the schema default
+          // resolveVatPercentage applies businessProfile rules (or falls back
+          // to 20% when no profile is configured — existing behaviour).
+          const vatRate = resolveVatPercentage(
+            line.vatPercentage,
+            businessProfile,
+          );
           const vatTotal = Math.round(subTotal * vatRate) / 100;
           return {
             ItemDescription: line.description,

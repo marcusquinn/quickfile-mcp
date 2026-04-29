@@ -328,6 +328,7 @@ export async function handleInvoiceTool(
         const lineItems = args.lines as LineItemInput[];
         const invoiceLines = mapLineItems<InvoiceLine>(lineItems, {
           includeItemId: true,
+          businessProfile: apiClient.getBusinessProfile(),
         });
 
         const createParams: InvoiceCreateParams = {

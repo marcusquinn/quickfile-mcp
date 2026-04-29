@@ -14,6 +14,7 @@ import {
   createAuthHeader,
   validateCredentialsFormat,
   loadCredentials,
+  _clearCredentialsCache,
 } from "../../src/api/auth";
 import type { QuickFileCredentials } from "../../src/types/quickfile";
 import { existsSync, readFileSync } from "node:fs";
@@ -281,6 +282,9 @@ describe("Authentication Module", () => {
     beforeEach(() => {
       jest.clearAllMocks();
       mockHomedir.mockReturnValue("/home/testuser");
+      // Clear the module-level credentials cache before each test so mock
+      // file contents are always applied fresh.
+      _clearCredentialsCache();
     });
 
     it("should load valid credentials from file", () => {
@@ -390,6 +394,114 @@ describe("Authentication Module", () => {
       });
 
       expect(() => loadCredentials()).toThrow("Permission denied");
+    });
+
+    describe("businessProfile loading and validation", () => {
+      it("should accept credentials without businessProfile block", () => {
+        mockExistsSync.mockReturnValue(true);
+        mockReadFileSync.mockReturnValue(JSON.stringify(validCredentials));
+
+        const result = loadCredentials();
+
+        expect(result.businessProfile).toBeUndefined();
+      });
+
+      it("should load vatRegistered:false profile", () => {
+        mockExistsSync.mockReturnValue(true);
+        mockReadFileSync.mockReturnValue(
+          JSON.stringify({
+            ...validCredentials,
+            businessProfile: { vatRegistered: false },
+          }),
+        );
+
+        const result = loadCredentials();
+
+        expect(result.businessProfile).toEqual({ vatRegistered: false });
+      });
+
+      it("should load vatRegistered:true profile", () => {
+        mockExistsSync.mockReturnValue(true);
+        mockReadFileSync.mockReturnValue(
+          JSON.stringify({
+            ...validCredentials,
+            businessProfile: { vatRegistered: true },
+          }),
+        );
+
+        const result = loadCredentials();
+
+        expect(result.businessProfile).toEqual({ vatRegistered: true });
+      });
+
+      it("should throw when businessProfile.vatRegistered is a string", () => {
+        mockExistsSync.mockReturnValue(true);
+        mockReadFileSync.mockReturnValue(
+          JSON.stringify({
+            ...validCredentials,
+            businessProfile: { vatRegistered: "yes" },
+          }),
+        );
+
+        expect(() => loadCredentials()).toThrow(
+          "vatRegistered must be true or false",
+        );
+      });
+
+      it("should throw when businessProfile.vatRegistered is a number", () => {
+        mockExistsSync.mockReturnValue(true);
+        mockReadFileSync.mockReturnValue(
+          JSON.stringify({
+            ...validCredentials,
+            businessProfile: { vatRegistered: 1 },
+          }),
+        );
+
+        expect(() => loadCredentials()).toThrow(
+          "vatRegistered must be true or false",
+        );
+      });
+
+      it("should throw when businessProfile is a string (not an object)", () => {
+        mockExistsSync.mockReturnValue(true);
+        mockReadFileSync.mockReturnValue(
+          JSON.stringify({
+            ...validCredentials,
+            businessProfile: "false",
+          }),
+        );
+
+        expect(() => loadCredentials()).toThrow(
+          "Invalid businessProfile in credentials file: must be an object",
+        );
+      });
+
+      it("should throw when businessProfile is null", () => {
+        mockExistsSync.mockReturnValue(true);
+        mockReadFileSync.mockReturnValue(
+          JSON.stringify({
+            ...validCredentials,
+            businessProfile: null,
+          }),
+        );
+
+        // null is valid JSON but invalid businessProfile
+        expect(() => loadCredentials()).toThrow("Invalid businessProfile");
+      });
+
+      it("should throw when businessProfile.vatRegistered is missing", () => {
+        mockExistsSync.mockReturnValue(true);
+        mockReadFileSync.mockReturnValue(
+          JSON.stringify({
+            ...validCredentials,
+            businessProfile: {},
+          }),
+        );
+
+        expect(() => loadCredentials()).toThrow(
+          "vatRegistered must be true or false",
+        );
+      });
     });
   });
 });

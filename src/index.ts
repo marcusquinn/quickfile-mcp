@@ -46,6 +46,18 @@ async function main(): Promise<void> {
     console.error(
       `QuickFile MCP Server starting for account ${credentials.accountNumber}`,
     );
+
+    // Log active business profile so it surfaces in transcript output
+    const bp = credentials.businessProfile;
+    if (bp) {
+      console.error(
+        `businessProfile: { vatRegistered: ${bp.vatRegistered} }`,
+      );
+    } else {
+      console.error(
+        "businessProfile: not configured — vatPercentage defaults to 20% per line item",
+      );
+    }
   } catch (error) {
     console.error(
       "Failed to load credentials:",

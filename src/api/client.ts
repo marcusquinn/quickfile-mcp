@@ -10,6 +10,7 @@ import type {
   QuickFileResponse,
   QuickFileError,
   QuickFileHeader,
+  BusinessProfile,
 } from "../types/quickfile.js";
 import { loadCredentials, createAuthHeader } from "./auth.js";
 
@@ -219,6 +220,14 @@ export class QuickFileApiClient {
    */
   getAccountNumber(): string {
     return this.credentials.accountNumber;
+  }
+
+  /**
+   * Get the optional business profile from credentials.
+   * Returns undefined when no businessProfile block is configured.
+   */
+  getBusinessProfile(): BusinessProfile | undefined {
+    return this.credentials.businessProfile;
   }
 }
 

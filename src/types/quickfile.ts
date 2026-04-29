@@ -8,10 +8,40 @@
 // Credentials & Configuration
 // =============================================================================
 
+/**
+ * Optional install-time business profile for default VAT behaviour.
+ *
+ * Extend the credentials file at ~/.config/.quickfile-mcp/credentials.json
+ * with this block to configure default VAT handling for single-tenant installs:
+ *
+ * ```json
+ * {
+ *   "accountNumber": "…",
+ *   "apiKey": "…",
+ *   "applicationId": "…",
+ *   "businessProfile": { "vatRegistered": false }
+ * }
+ * ```
+ *
+ * Behaviour when present:
+ * - vatRegistered: false — vatPercentage must NOT be supplied on line items
+ *   (implicit 0%; providing any value is a configuration contradiction error).
+ * - vatRegistered: true  — vatPercentage MUST be supplied on every line item
+ *   (rates vary: 20% standard, 5% reduced, 0% zero-rated, exempt).
+ *
+ * When the block is absent, per-line vatPercentage is used as-is, defaulting
+ * to 20 when omitted (unchanged pre-existing behaviour).
+ */
+export interface BusinessProfile {
+  vatRegistered: boolean;
+}
+
 export interface QuickFileCredentials {
   accountNumber: string;
   apiKey: string;
   applicationId: string;
+  /** Optional install-time business profile for default VAT behaviour. */
+  businessProfile?: BusinessProfile;
 }
 
 export interface QuickFileConfig {
