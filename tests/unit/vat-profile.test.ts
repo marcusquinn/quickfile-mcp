@@ -120,11 +120,12 @@ describe("resolveVatPercentage", () => {
   // Edge cases
   // ──────────────────────────────────────────────────────────────────────────
   describe("edge cases", () => {
-    it("returns 20 for undefined vatPercentage when profile is absent (not null)", () => {
-      // TypeScript allows passing null via loose typing; confirm it falls
-      // through to the default-20 path.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect(resolveVatPercentage(undefined, null as any)).toBe(20);
+    it("returns 20 for undefined vatPercentage when profile is absent (falsy value)", () => {
+      // Confirm that any falsy businessProfile value falls through to the
+      // default-20 path — covers JavaScript callers that pass null.
+      expect(
+        resolveVatPercentage(undefined, null as unknown as undefined),
+      ).toBe(20);
     });
 
     it("handles fractional VAT rates correctly", () => {
