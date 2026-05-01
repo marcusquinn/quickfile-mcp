@@ -101,6 +101,8 @@ export const InvoiceLineSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   unitCost: z.number().min(0, 'Unit cost must be non-negative'),
   quantity: z.number().positive('Quantity must be positive'),
+  // Optional at schema level because businessProfile.vatRegistered=false
+  // requires omission; resolveVatPercentage applies the conditional rule.
   vatPercentage: z.number().min(0).max(100).optional(),
   nominalCode: z.string().optional(),
 });

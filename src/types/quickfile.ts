@@ -29,8 +29,9 @@
  * - vatRegistered: true  — vatPercentage MUST be supplied on every line item
  *   (rates vary: 20% standard, 5% reduced, 0% zero-rated, exempt).
  *
- * When the block is absent, per-line vatPercentage is used as-is, defaulting
- * to 20 when omitted (unchanged pre-existing behaviour).
+ * When the block is absent, per-line vatPercentage MUST be supplied on every
+ * line item; omitted VAT rates fail with a clear error instead of silently
+ * defaulting to 20%.
  */
 export interface BusinessProfile {
   vatRegistered: boolean;

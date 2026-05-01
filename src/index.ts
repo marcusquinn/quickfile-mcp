@@ -55,7 +55,7 @@ async function main(): Promise<void> {
       );
     } else {
       console.error(
-        "businessProfile: not configured — vatPercentage defaults to 20% per line item",
+        "businessProfile: not configured — vatPercentage must be supplied per line item",
       );
     }
   } catch (error) {

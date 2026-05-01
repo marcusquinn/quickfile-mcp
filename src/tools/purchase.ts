@@ -113,6 +113,9 @@ export const purchaseTools: Tool[] = [
                   "Nominal code for accounting (e.g., 5000 for cost of sales)",
               },
             },
+            // vatPercentage is intentionally not JSON-Schema-required: installs
+            // configured with businessProfile.vatRegistered=false must omit it.
+            // resolveVatPercentage enforces the conditional requirement at runtime.
             required: [
               "description",
               "unitCost",
