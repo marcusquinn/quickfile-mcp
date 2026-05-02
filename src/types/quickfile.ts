@@ -239,7 +239,7 @@ export interface Purchase {
   PurchaseLines?: PurchaseLine[];
 }
 
-export type PurchaseStatus = 'UNPAID' | 'PAID' | 'PART_PAID' | 'CANCELLED';
+export type PurchaseStatus = 'UNPAID' | 'PAID' | 'PART_PAID' | 'CANCELLED' | 'DELETED';
 
 export interface PurchaseLine {
   ItemDescription: string;
@@ -282,6 +282,17 @@ export interface PurchaseCreateParams {
   SupplierReference?: string;
   TermDays?: number;
   InvoiceLines: { ItemLine: PurchaseItemLine[] };
+}
+
+export interface PurchaseDeleteParams {
+  PurchaseDetails: {
+    PurchaseIDs: { PurchaseID: number[] };
+    DeleteAssociatedPayments: boolean;
+  };
+}
+
+export interface PurchaseDeleteResponse {
+  PurchasesDeleted: number;
 }
 
 // =============================================================================

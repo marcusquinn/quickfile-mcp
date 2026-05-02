@@ -8,6 +8,8 @@ import { getApiClient } from "../api/client.js";
 import type {
   Purchase,
   PurchaseCreateParams,
+  PurchaseDeleteParams,
+  PurchaseDeleteResponse,
   PurchaseItemLine,
 } from "../types/quickfile.js";
 import {
@@ -130,16 +132,25 @@ export const purchaseTools: Tool[] = [
   },
   {
     name: "quickfile_purchase_delete",
-    description: "Delete a purchase invoice",
+    description:
+      "Delete one or more purchase invoices. The QuickFile API soft-deletes the records — they remain visible via Purchase_Get with Status='DELETED' but are excluded from default Purchase_Search results.",
     inputSchema: {
       type: "object",
       properties: {
-        purchaseId: {
-          type: "number",
-          description: "The purchase ID to delete",
+        purchaseIds: {
+          type: "array",
+          items: { type: "number" },
+          minItems: 1,
+          description: "One or more purchase IDs to delete",
+        },
+        deleteAssociatedPayments: {
+          type: "boolean",
+          default: true,
+          description:
+            "Whether to also delete payments associated with these purchases. Defaults to true to mirror the typical UI delete behaviour.",
         },
       },
-      required: ["purchaseId"],
+      required: ["purchaseIds"],
     },
   },
 ];
@@ -287,15 +298,25 @@ export async function handlePurchaseTool(
       }
 
       case "quickfile_purchase_delete": {
-        await apiClient.request<{ PurchaseID: number }, Record<string, never>>(
-          "Purchase_Delete",
-          { PurchaseID: args.purchaseId as number },
-        );
+        const purchaseIds = args.purchaseIds as number[];
+        const deleteAssociatedPayments =
+          (args.deleteAssociatedPayments as boolean | undefined) ?? true;
+
+        const response = await apiClient.request<
+          PurchaseDeleteParams,
+          PurchaseDeleteResponse
+        >("Purchase_Delete", {
+          PurchaseDetails: {
+            PurchaseIDs: { PurchaseID: purchaseIds },
+            DeleteAssociatedPayments: deleteAssociatedPayments,
+          },
+        });
 
         return successResult({
           success: true,
-          purchaseId: args.purchaseId,
-          message: `Purchase #${args.purchaseId} deleted successfully`,
+          purchaseIds,
+          purchasesDeleted: response.PurchasesDeleted,
+          message: `${response.PurchasesDeleted} purchase(s) deleted`,
         });
       }
 
