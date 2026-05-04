@@ -43,7 +43,7 @@ export const purchaseTools: Tool[] = [
         ...dateRangeSearchProperties,
         status: {
           type: "string",
-          enum: ["UNPAID", "PAID", "PART_PAID", "CANCELLED"],
+          enum: ["UNPAID", "PAID", "PART_PAID", "CANCELLED", "DELETED"],
           description: "Purchase status",
         },
         searchKeyword: {

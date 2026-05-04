@@ -28,6 +28,22 @@ describe("Purchase tools", () => {
     });
   });
 
+  describe("quickfile_purchase_search", () => {
+    it("allows searching soft-deleted purchases by status", () => {
+      const tool = purchaseTools.find(
+        (candidate) => candidate.name === "quickfile_purchase_search",
+      );
+
+      expect(tool?.inputSchema).toMatchObject({
+        properties: {
+          status: {
+            enum: ["UNPAID", "PAID", "PART_PAID", "CANCELLED", "DELETED"],
+          },
+        },
+      });
+    });
+  });
+
   describe("quickfile_purchase_delete", () => {
     it("declares purchaseIds and deleteAssociatedPayments as sibling schema properties", () => {
       const tool = purchaseTools.find(
