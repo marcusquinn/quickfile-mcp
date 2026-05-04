@@ -139,8 +139,11 @@ export const purchaseTools: Tool[] = [
       properties: {
         purchaseIds: {
           type: "array",
-          items: { type: "number" },
+          items: { type: "integer", minimum: 1 },
           minItems: 1,
+          uniqueItems: true,
+          description: "One or more purchase IDs to delete",
+        },
           description: "One or more purchase IDs to delete",
         },
         deleteAssociatedPayments: {
