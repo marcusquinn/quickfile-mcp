@@ -144,8 +144,6 @@ export const purchaseTools: Tool[] = [
           uniqueItems: true,
           description: "One or more purchase IDs to delete",
         },
-          description: "One or more purchase IDs to delete",
-        },
         deleteAssociatedPayments: {
           type: "boolean",
           default: true,
