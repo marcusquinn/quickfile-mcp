@@ -42,6 +42,28 @@ describe("Purchase tools", () => {
         },
       });
     });
+
+    it("passes DELETED status through to QuickFile search", async () => {
+      mockRequest.mockResolvedValueOnce({
+        RecordsetCount: 0,
+        ReturnCount: 0,
+        Record: [],
+      });
+
+      await handlePurchaseTool("quickfile_purchase_search", {
+        status: "DELETED",
+      });
+
+      expect(mockRequest).toHaveBeenCalledWith("Purchase_Search", {
+        SearchParameters: {
+          ReturnCount: 25,
+          Offset: 0,
+          OrderResultsBy: "ReceiptDate",
+          OrderDirection: "DESC",
+          Status: "DELETED",
+        },
+      });
+    });
   });
 
   describe("quickfile_purchase_delete", () => {
