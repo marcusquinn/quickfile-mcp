@@ -50,7 +50,7 @@ describe("Purchase tools", () => {
         Record: [],
       });
 
-      await handlePurchaseTool("quickfile_purchase_search", {
+      const result = await handlePurchaseTool("quickfile_purchase_search", {
         status: "DELETED",
       });
 
@@ -62,6 +62,11 @@ describe("Purchase tools", () => {
           OrderDirection: "DESC",
           Status: "DELETED",
         },
+      });
+      expect(JSON.parse(result.content[0].text)).toEqual({
+        totalRecords: 0,
+        count: 0,
+        purchases: [],
       });
     });
   });
