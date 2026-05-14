@@ -79,7 +79,7 @@ describe("Supplier tools", () => {
       }
     });
 
-    it("wraps SupplierDetails with contact, address, country, and preference fields", async () => {
+    it("wraps SupplierDetails with supplier identity and contact fields", async () => {
       mockRequest.mockResolvedValueOnce({ SupplierID: 12345 });
 
       await handleSupplierTool("quickfile_supplier_create", {
@@ -90,14 +90,6 @@ describe("Supplier tools", () => {
         lastName: "Lovelace",
         email: "ada@example.com",
         telephone: "020 7946 0000",
-        address1: "1 Example Street",
-        address2: "Industrial Estate",
-        address3: "Greater Trading Park",
-        town: "Market Drayton",
-        postcode: "TF9 4LA",
-        countryIso: "gb",
-        defaultVatRate: 20,
-        defaultNominalCode: 5000,
       });
 
       expect(mockRequest).toHaveBeenCalledWith(
@@ -114,6 +106,31 @@ describe("Supplier tools", () => {
         ContactEmail: "ada@example.com",
         ContactTel: "020 7946 0000",
       });
+      expect(details).not.toHaveProperty("SupplierData");
+      expect(details).not.toHaveProperty("ContactSurName");
+      expect(details).not.toHaveProperty("Email");
+    });
+
+    it("wraps SupplierDetails with flat address and preference fields", async () => {
+      mockRequest.mockResolvedValueOnce({ SupplierID: 12345 });
+
+      await handleSupplierTool("quickfile_supplier_create", {
+        companyName: "Acme Widgets Ltd",
+        address1: "1 Example Street",
+        address2: "Industrial Estate",
+        address3: "Greater Trading Park",
+        town: "Market Drayton",
+        postcode: "TF9 4LA",
+        countryIso: "gb",
+        defaultVatRate: 20,
+        defaultNominalCode: 5000,
+      });
+
+      expect(mockRequest).toHaveBeenCalledWith(
+        "Supplier_Create",
+        expect.any(Object),
+      );
+      const details = lastPayload().SupplierDetails;
       expect(details).toMatchObject({
         AddressLine1: "1 Example Street",
         AddressLine2: "Industrial Estate",
@@ -130,10 +147,8 @@ describe("Supplier tools", () => {
       });
       expect(details).not.toHaveProperty("SupplierData");
       expect(details).not.toHaveProperty("Address");
-      expect(details).not.toHaveProperty("ContactSurName");
       expect(details).not.toHaveProperty("Currency");
       expect(details).not.toHaveProperty("TermDays");
-      expect(details).not.toHaveProperty("Email");
     });
 
     it("accepts legacy country only when it is a two-letter ISO code", async () => {
