@@ -454,8 +454,103 @@ export const entitySchemaProperties = {
   },
 };
 
+/**
+ * Supplier-specific properties for Supplier_Create / Supplier_Update.
+ * Supplier endpoints reject several client fields and use flat address fields,
+ * contact-prefixed names, and nested preferences on the wire.
+ */
+export const supplierEntitySchemaProperties = {
+  companyName: {
+    type: "string" as const,
+    description: "Company or organisation name",
+  },
+  companyNumber: {
+    type: "string" as const,
+    description: "Company registration number",
+  },
+  supplierReference: {
+    type: "string" as const,
+    description: "Free-form supplier reference",
+  },
+  firstName: {
+    type: "string" as const,
+    description: "Contact first name",
+  },
+  lastName: {
+    type: "string" as const,
+    description: "Contact last name",
+  },
+  email: {
+    type: "string" as const,
+    description: "Contact email address",
+  },
+  telephone: {
+    type: "string" as const,
+    description: "Contact telephone number",
+  },
+  website: {
+    type: "string" as const,
+    description: "Website URL",
+  },
+  address1: {
+    type: "string" as const,
+    description: "Address line 1",
+  },
+  address2: {
+    type: "string" as const,
+    description: "Address line 2",
+  },
+  address3: {
+    type: "string" as const,
+    description: "Address line 3",
+  },
+  town: {
+    type: "string" as const,
+    description: "Town/City",
+  },
+  postcode: {
+    type: "string" as const,
+    description: "Postcode",
+  },
+  countryIso: {
+    type: "string" as const,
+    description: "ISO 3166-1 alpha-2 country code (e.g. GB)",
+  },
+  country: {
+    type: "string" as const,
+    description:
+      "Deprecated alias for countryIso; must be an ISO alpha-2 country code",
+  },
+  vatNumber: {
+    type: "string" as const,
+    description: "VAT registration number",
+  },
+  vatExempt: {
+    type: "boolean" as const,
+    description: "Whether the supplier is VAT-exempt",
+  },
+  currency: {
+    type: "string" as const,
+    description: "Default currency (e.g. GBP)",
+    default: "GBP",
+  },
+  termDays: {
+    type: "number" as const,
+    description: "Default payment terms in days",
+    default: 30,
+  },
+  defaultVatRate: {
+    type: "number" as const,
+    description: "Default VAT rate",
+  },
+  defaultNominalCode: {
+    type: "number" as const,
+    description: "Default nominal code",
+  },
+};
+
 // =============================================================================
-// Shared Entity Builders (Client/Supplier)
+// Entity Builders (Client / Supplier)
 // =============================================================================
 
 /**
@@ -511,7 +606,7 @@ export function buildAddressFromArgs(
  * Extract common entity fields from tool arguments.
  * Shared mapping used by both create and update operations.
  */
-function extractEntityFields(
+function extractClientFields(
   args: Record<string, unknown>,
   address: ClientAddress,
 ): EntityData {
@@ -537,13 +632,13 @@ function extractEntityFields(
  * Build entity data from tool arguments (for create operations).
  * Applies defaults for Currency and TermDays when not provided.
  */
-export function buildEntityData(
+export function buildClientCreateData(
   args: Record<string, unknown>,
   address: ClientAddress,
   defaults: { currency?: string; termDays?: number } = {},
 ): EntityData {
   const { currency = "GBP", termDays = 30 } = defaults;
-  const data = extractEntityFields(args, address);
+  const data = extractClientFields(args, address);
   data.Currency = data.Currency ?? currency;
   data.TermDays = data.TermDays ?? termDays;
   return data;
@@ -552,9 +647,129 @@ export function buildEntityData(
 /**
  * Build entity update data (preserves undefined for partial updates)
  */
-export function buildEntityUpdateData(
+export function buildClientUpdateData(
   args: Record<string, unknown>,
   address: ClientAddress,
 ): EntityData {
-  return extractEntityFields(args, address);
+  return extractClientFields(args, address);
+}
+
+export interface SupplierAddressFields {
+  AddressLine1?: string;
+  AddressLine2?: string;
+  AddressLine3?: string;
+  Town?: string;
+  Postcode?: string;
+  CountryISO?: string;
+}
+
+export function buildSupplierAddressFields(
+  args: Record<string, unknown>,
+): SupplierAddressFields {
+  const fields = Object.fromEntries(
+    [
+      ["AddressLine1", args.address1],
+      ["AddressLine2", args.address2],
+      ["AddressLine3", args.address3],
+      ["Town", args.town],
+      ["Postcode", args.postcode],
+    ].filter(([, value]) => value !== undefined),
+  ) as SupplierAddressFields;
+
+  const rawCountry =
+    typeof args.countryIso === "string"
+      ? args.countryIso
+      : typeof args.country === "string"
+        ? args.country
+        : undefined;
+  const country = rawCountry?.trim();
+  if (country && /^[A-Za-z]{2}$/.test(country)) {
+    fields.CountryISO = country.toUpperCase();
+  }
+
+  return fields;
+}
+
+export interface SupplierPreferences {
+  DefaultCurrency?: string;
+  DefaultTerm?: number;
+  DefaultVatRate?: number;
+  DefaultNominalCode?: number;
+}
+
+function buildSupplierPreferences(
+  args: Record<string, unknown>,
+): SupplierPreferences | undefined {
+  const preferences = Object.fromEntries(
+    [
+      ["DefaultCurrency", args.currency],
+      ["DefaultTerm", args.termDays],
+      ["DefaultVatRate", args.defaultVatRate],
+      ["DefaultNominalCode", args.defaultNominalCode],
+    ].filter(([, value]) => value !== undefined),
+  ) as SupplierPreferences;
+  return Object.keys(preferences).length > 0 ? preferences : undefined;
+}
+
+interface SupplierBaseData extends SupplierAddressFields {
+  CompanyName?: string;
+  CompanyNumber?: string;
+  SupplierReference?: string;
+  ContactFirstName?: string;
+  ContactTel?: string;
+  ContactEmail?: string;
+  Website?: string;
+  VatNumber?: string;
+  VatExempt?: boolean;
+  Preferences?: SupplierPreferences;
+}
+
+export interface SupplierCreateData extends SupplierBaseData {
+  ContactSurname?: string;
+}
+
+export interface SupplierUpdateData extends SupplierBaseData {
+  ContactSurName?: string;
+}
+
+function buildSupplierBaseData(args: Record<string, unknown>): SupplierBaseData {
+  return {
+    CompanyName: args.companyName as string | undefined,
+    CompanyNumber: args.companyNumber as string | undefined,
+    SupplierReference: args.supplierReference as string | undefined,
+    ContactFirstName: args.firstName as string | undefined,
+    ContactTel: args.telephone as string | undefined,
+    ContactEmail: args.email as string | undefined,
+    Website: args.website as string | undefined,
+    VatNumber: args.vatNumber as string | undefined,
+    VatExempt: args.vatExempt as boolean | undefined,
+    Preferences: buildSupplierPreferences(args),
+    ...buildSupplierAddressFields(args),
+  };
+}
+
+export function buildSupplierCreateData(
+  args: Record<string, unknown>,
+  defaults: { currency?: string; termDays?: number } = {},
+): SupplierCreateData {
+  const { currency = "GBP", termDays = 30 } = defaults;
+  const data = buildSupplierBaseData({
+    ...args,
+    currency: args.currency ?? currency,
+    termDays: args.termDays ?? termDays,
+  });
+  return {
+    ...data,
+    ContactSurname: args.lastName as string | undefined,
+  };
+}
+
+export function buildSupplierUpdateData(
+  args: Record<string, unknown>,
+): SupplierUpdateData {
+  const data = buildSupplierBaseData(args);
+  return {
+    ...data,
+    ContactSurName: args.lastName as string | undefined,
+  };
 }
