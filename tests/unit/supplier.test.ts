@@ -100,30 +100,34 @@ describe("Supplier tools", () => {
         defaultNominalCode: 5000,
       });
 
-      expect(mockRequest).toHaveBeenCalledWith("Supplier_Create", {
-        SupplierDetails: expect.objectContaining({
-          CompanyName: "Acme Widgets Ltd",
-          CompanyNumber: "01234567",
-          SupplierReference: "ACME",
-          ContactFirstName: "Ada",
-          ContactSurname: "Lovelace",
-          ContactEmail: "ada@example.com",
-          ContactTel: "020 7946 0000",
-          AddressLine1: "1 Example Street",
-          AddressLine2: "Industrial Estate",
-          AddressLine3: "Greater Trading Park",
-          Town: "Market Drayton",
-          Postcode: "TF9 4LA",
-          CountryISO: "GB",
-          Preferences: {
-            DefaultCurrency: "GBP",
-            DefaultTerm: 30,
-            DefaultVatRate: 20,
-            DefaultNominalCode: 5000,
-          },
-        }),
-      });
+      expect(mockRequest).toHaveBeenCalledWith(
+        "Supplier_Create",
+        expect.any(Object),
+      );
       const details = lastPayload().SupplierDetails;
+      expect(details).toMatchObject({
+        CompanyName: "Acme Widgets Ltd",
+        CompanyNumber: "01234567",
+        SupplierReference: "ACME",
+        ContactFirstName: "Ada",
+        ContactSurname: "Lovelace",
+        ContactEmail: "ada@example.com",
+        ContactTel: "020 7946 0000",
+      });
+      expect(details).toMatchObject({
+        AddressLine1: "1 Example Street",
+        AddressLine2: "Industrial Estate",
+        AddressLine3: "Greater Trading Park",
+        Town: "Market Drayton",
+        Postcode: "TF9 4LA",
+        CountryISO: "GB",
+      });
+      expect(details.Preferences).toEqual({
+        DefaultCurrency: "GBP",
+        DefaultTerm: 30,
+        DefaultVatRate: 20,
+        DefaultNominalCode: 5000,
+      });
       expect(details).not.toHaveProperty("SupplierData");
       expect(details).not.toHaveProperty("Address");
       expect(details).not.toHaveProperty("ContactSurName");

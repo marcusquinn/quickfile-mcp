@@ -264,13 +264,22 @@ async function handleSupplierDelete(
   });
 }
 
-const supplierHandlers = {
-  quickfile_supplier_search: handleSupplierSearch,
-  quickfile_supplier_get: handleSupplierGet,
-  quickfile_supplier_create: handleSupplierCreate,
-  quickfile_supplier_update: handleSupplierUpdate,
-  quickfile_supplier_delete: handleSupplierDelete,
-} as const;
+function getSupplierHandler(toolName: string) {
+  switch (toolName) {
+    case "quickfile_supplier_search":
+      return handleSupplierSearch;
+    case "quickfile_supplier_get":
+      return handleSupplierGet;
+    case "quickfile_supplier_create":
+      return handleSupplierCreate;
+    case "quickfile_supplier_update":
+      return handleSupplierUpdate;
+    case "quickfile_supplier_delete":
+      return handleSupplierDelete;
+    default:
+      return undefined;
+  }
+}
 
 // =============================================================================
 // Tool Handler
@@ -281,7 +290,7 @@ export async function handleSupplierTool(
   args: Record<string, unknown>,
 ): Promise<ToolResult> {
   const apiClient = getApiClient();
-  const handler = supplierHandlers[toolName as keyof typeof supplierHandlers];
+  const handler = getSupplierHandler(toolName);
 
   if (!handler) {
     return errorResult(`Unknown supplier tool: ${toolName}`);

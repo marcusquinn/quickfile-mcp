@@ -39,20 +39,23 @@ describe("Client tools", () => {
       country: "United Kingdom",
     });
 
-    expect(mockRequest).toHaveBeenCalledWith("Client_Create", {
-      ClientData: expect.objectContaining({
-        CompanyName: "Acme Widgets Ltd",
-        FirstName: "Ada",
-        LastName: "Lovelace",
-        Email: "ada@example.com",
-        Currency: "GBP",
-        TermDays: 30,
-        Address: {
-          Address1: "1 Example Street",
-          Town: "Market Drayton",
-          Country: "United Kingdom",
-        },
-      }),
+    const payload = mockRequest.mock.calls[0][1];
+    expect(mockRequest).toHaveBeenCalledWith(
+      "Client_Create",
+      expect.any(Object),
+    );
+    expect(payload.ClientData).toMatchObject({
+      CompanyName: "Acme Widgets Ltd",
+      FirstName: "Ada",
+      LastName: "Lovelace",
+      Email: "ada@example.com",
+      Currency: "GBP",
+      TermDays: 30,
+    });
+    expect(payload.ClientData.Address).toEqual({
+      Address1: "1 Example Street",
+      Town: "Market Drayton",
+      Country: "United Kingdom",
     });
   });
 
