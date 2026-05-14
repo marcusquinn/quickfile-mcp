@@ -666,22 +666,15 @@ export interface SupplierAddressFields {
 export function buildSupplierAddressFields(
   args: Record<string, unknown>,
 ): SupplierAddressFields {
-  const fields: SupplierAddressFields = {};
-  if (args.address1) {
-    fields.AddressLine1 = args.address1 as string;
-  }
-  if (args.address2) {
-    fields.AddressLine2 = args.address2 as string;
-  }
-  if (args.address3) {
-    fields.AddressLine3 = args.address3 as string;
-  }
-  if (args.town) {
-    fields.Town = args.town as string;
-  }
-  if (args.postcode) {
-    fields.Postcode = args.postcode as string;
-  }
+  const fields = Object.fromEntries(
+    [
+      ["AddressLine1", args.address1],
+      ["AddressLine2", args.address2],
+      ["AddressLine3", args.address3],
+      ["Town", args.town],
+      ["Postcode", args.postcode],
+    ].filter(([, value]) => value !== undefined),
+  ) as SupplierAddressFields;
 
   const rawCountry =
     typeof args.countryIso === "string"
@@ -707,19 +700,14 @@ export interface SupplierPreferences {
 function buildSupplierPreferences(
   args: Record<string, unknown>,
 ): SupplierPreferences | undefined {
-  const preferences: SupplierPreferences = {};
-  if (args.currency !== undefined) {
-    preferences.DefaultCurrency = args.currency as string;
-  }
-  if (args.termDays !== undefined) {
-    preferences.DefaultTerm = args.termDays as number;
-  }
-  if (args.defaultVatRate !== undefined) {
-    preferences.DefaultVatRate = args.defaultVatRate as number;
-  }
-  if (args.defaultNominalCode !== undefined) {
-    preferences.DefaultNominalCode = args.defaultNominalCode as number;
-  }
+  const preferences = Object.fromEntries(
+    [
+      ["DefaultCurrency", args.currency],
+      ["DefaultTerm", args.termDays],
+      ["DefaultVatRate", args.defaultVatRate],
+      ["DefaultNominalCode", args.defaultNominalCode],
+    ].filter(([, value]) => value !== undefined),
+  ) as SupplierPreferences;
   return Object.keys(preferences).length > 0 ? preferences : undefined;
 }
 

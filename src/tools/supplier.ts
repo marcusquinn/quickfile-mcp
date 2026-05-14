@@ -156,6 +156,122 @@ interface SupplierUpdateResponse {
   SupplierDetailsUpdated?: boolean;
 }
 
+interface QuickFileRequester {
+  request<TRequest, TResponse>(
+    methodName: string,
+    body: TRequest,
+  ): Promise<TResponse>;
+}
+
+function buildSupplierSearchParams(
+  args: Record<string, unknown>,
+): Partial<SupplierSearchParams> {
+  return cleanParams({
+    OrderResultsBy:
+      (args.orderBy as SupplierSearchParams["OrderResultsBy"]) ??
+      "CompanyName",
+    OrderDirection:
+      (args.orderDirection as SupplierSearchParams["OrderDirection"]) ?? "ASC",
+    ReturnCount: (args.returnCount as number) ?? 25,
+    Offset: (args.offset as number) ?? 0,
+    CompanyName: args.companyName as string | undefined,
+    ContactFirstName: args.firstName as string | undefined,
+    ContactSurname: args.lastName as string | undefined,
+    ContactEmail: args.email as string | undefined,
+    ContactTel: args.telephone as string | undefined,
+    SupplierReference: args.supplierReference as string | undefined,
+    Postcode: args.postcode as string | undefined,
+    ShowDeleted: args.showDeleted as boolean | undefined,
+  });
+}
+
+async function handleSupplierSearch(
+  apiClient: QuickFileRequester,
+  args: Record<string, unknown>,
+): Promise<ToolResult> {
+  const cleaned = buildSupplierSearchParams(args);
+  const response = await apiClient.request<
+    { SearchParameters: typeof cleaned },
+    SupplierSearchResponse
+  >("Supplier_Search", { SearchParameters: cleaned });
+  const suppliers = response.Record || [];
+  return successResult({
+    totalRecords: response.RecordsetCount,
+    count: suppliers.length,
+    suppliers,
+  });
+}
+
+async function handleSupplierGet(
+  apiClient: QuickFileRequester,
+  args: Record<string, unknown>,
+): Promise<ToolResult> {
+  const response = await apiClient.request<
+    { SupplierID: number },
+    SupplierGetResponse
+  >("Supplier_Get", { SupplierID: args.supplierId as number });
+  return successResult(response.SupplierDetails);
+}
+
+async function handleSupplierCreate(
+  apiClient: QuickFileRequester,
+  args: Record<string, unknown>,
+): Promise<ToolResult> {
+  const supplierData = buildSupplierCreateData(args);
+  const cleanData = cleanParams(supplierData);
+  const response = await apiClient.request<
+    { SupplierDetails: typeof cleanData },
+    SupplierCreateResponse
+  >("Supplier_Create", { SupplierDetails: cleanData });
+  return successResult({
+    success: true,
+    supplierId: response.SupplierID,
+    message: `Supplier created successfully with ID ${response.SupplierID}`,
+  });
+}
+
+async function handleSupplierUpdate(
+  apiClient: QuickFileRequester,
+  args: Record<string, unknown>,
+): Promise<ToolResult> {
+  const supplierId = args.supplierId as number;
+  const supplierData = buildSupplierUpdateData(args);
+  const updateData = { SupplierID: supplierId, ...supplierData };
+  const cleanData = cleanParams(updateData);
+  await apiClient.request<
+    { SupplierDetails: typeof cleanData },
+    SupplierUpdateResponse
+  >("Supplier_Update", { SupplierDetails: cleanData });
+  return successResult({
+    success: true,
+    supplierId,
+    message: `Supplier #${supplierId} updated successfully`,
+  });
+}
+
+async function handleSupplierDelete(
+  apiClient: QuickFileRequester,
+  args: Record<string, unknown>,
+): Promise<ToolResult> {
+  await apiClient.request<{ SupplierID: number }, Record<string, never>>(
+    "Supplier_Delete",
+    { SupplierID: args.supplierId as number },
+  );
+  return successResult({
+    success: true,
+    supplierId: args.supplierId,
+    message: `Supplier #${args.supplierId} deleted successfully`,
+  });
+}
+
+const supplierHandlers = {
+  quickfile_supplier_search: handleSupplierSearch,
+  quickfile_supplier_get: handleSupplierGet,
+  quickfile_supplier_create: handleSupplierCreate,
+  quickfile_supplier_update: handleSupplierUpdate,
+  quickfile_supplier_delete: handleSupplierDelete,
+} as const;
+
 // =============================================================================
 // Tool Handler
 // =============================================================================
@@ -165,94 +281,14 @@ export async function handleSupplierTool(
   args: Record<string, unknown>,
 ): Promise<ToolResult> {
   const apiClient = getApiClient();
+  const handler = supplierHandlers[toolName as keyof typeof supplierHandlers];
+
+  if (!handler) {
+    return errorResult(`Unknown supplier tool: ${toolName}`);
+  }
 
   try {
-    switch (toolName) {
-      case "quickfile_supplier_search": {
-        const params: SupplierSearchParams = {
-          OrderResultsBy:
-            (args.orderBy as SupplierSearchParams["OrderResultsBy"]) ??
-            "CompanyName",
-          OrderDirection:
-            (args.orderDirection as SupplierSearchParams["OrderDirection"]) ??
-            "ASC",
-          ReturnCount: (args.returnCount as number) ?? 25,
-          Offset: (args.offset as number) ?? 0,
-          CompanyName: args.companyName as string | undefined,
-          ContactFirstName: args.firstName as string | undefined,
-          ContactSurname: args.lastName as string | undefined,
-          ContactEmail: args.email as string | undefined,
-          ContactTel: args.telephone as string | undefined,
-          SupplierReference: args.supplierReference as string | undefined,
-          Postcode: args.postcode as string | undefined,
-          ShowDeleted: args.showDeleted as boolean | undefined,
-        };
-        const cleaned = cleanParams(params);
-        const response = await apiClient.request<
-          { SearchParameters: typeof cleaned },
-          SupplierSearchResponse
-        >("Supplier_Search", { SearchParameters: cleaned });
-        const suppliers = response.Record || [];
-        return successResult({
-          totalRecords: response.RecordsetCount,
-          count: suppliers.length,
-          suppliers,
-        });
-      }
-
-      case "quickfile_supplier_get": {
-        const response = await apiClient.request<
-          { SupplierID: number },
-          SupplierGetResponse
-        >("Supplier_Get", { SupplierID: args.supplierId as number });
-        return successResult(response.SupplierDetails);
-      }
-
-      case "quickfile_supplier_create": {
-        const supplierData = buildSupplierCreateData(args);
-        const cleanData = cleanParams(supplierData);
-        const response = await apiClient.request<
-          { SupplierDetails: typeof cleanData },
-          SupplierCreateResponse
-        >("Supplier_Create", { SupplierDetails: cleanData });
-        return successResult({
-          success: true,
-          supplierId: response.SupplierID,
-          message: `Supplier created successfully with ID ${response.SupplierID}`,
-        });
-      }
-
-      case "quickfile_supplier_update": {
-        const supplierId = args.supplierId as number;
-        const supplierData = buildSupplierUpdateData(args);
-        const updateData = { SupplierID: supplierId, ...supplierData };
-        const cleanData = cleanParams(updateData);
-        await apiClient.request<
-          { SupplierDetails: typeof cleanData },
-          SupplierUpdateResponse
-        >("Supplier_Update", { SupplierDetails: cleanData });
-        return successResult({
-          success: true,
-          supplierId,
-          message: `Supplier #${supplierId} updated successfully`,
-        });
-      }
-
-      case "quickfile_supplier_delete": {
-        await apiClient.request<{ SupplierID: number }, Record<string, never>>(
-          "Supplier_Delete",
-          { SupplierID: args.supplierId as number },
-        );
-        return successResult({
-          success: true,
-          supplierId: args.supplierId,
-          message: `Supplier #${args.supplierId} deleted successfully`,
-        });
-      }
-
-      default:
-        return errorResult(`Unknown supplier tool: ${toolName}`);
-    }
+    return await handler(apiClient, args);
   } catch (error) {
     return handleToolError(error);
   }
