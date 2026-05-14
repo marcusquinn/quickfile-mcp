@@ -11,10 +11,9 @@ import {
   successResult,
   errorResult,
   cleanParams,
-  buildAddressFromArgs,
-  buildEntityData,
-  searchSchemaProperties,
-  entitySchemaProperties,
+  buildSupplierCreateData,
+  buildSupplierUpdateData,
+  supplierEntitySchemaProperties,
   type ToolResult,
 } from "./utils.js";
 
@@ -26,15 +25,61 @@ export const supplierTools: Tool[] = [
   {
     name: "quickfile_supplier_search",
     description:
-      "Search for suppliers by company name, contact name, email, or postcode. Response contains user-controlled fields (CompanyName, contact names) that are automatically sanitized.",
+      "Search for suppliers by company name, contact first/last name, contact email, telephone, supplier reference, or postcode. Response contains user-controlled fields that are automatically sanitized.",
     inputSchema: {
       type: "object",
       properties: {
-        ...searchSchemaProperties,
+        companyName: {
+          type: "string",
+          description: "Search by company name (partial match)",
+        },
+        firstName: {
+          type: "string",
+          description: "Search by contact first name",
+        },
+        lastName: {
+          type: "string",
+          description: "Search by contact surname",
+        },
+        email: {
+          type: "string",
+          description: "Search by contact email address",
+        },
+        telephone: {
+          type: "string",
+          description: "Search by contact telephone number",
+        },
+        supplierReference: {
+          type: "string",
+          description: "Search by supplier reference",
+        },
+        postcode: {
+          type: "string",
+          description: "Search by postcode",
+        },
+        showDeleted: {
+          type: "boolean",
+          description: "Include deleted suppliers in results",
+        },
+        returnCount: {
+          type: "number",
+          description: "Number of results (default: 25)",
+          default: 25,
+        },
+        offset: {
+          type: "number",
+          description: "Offset for pagination",
+          default: 0,
+        },
         orderBy: {
           type: "string",
           enum: ["CompanyName", "DateCreated", "SupplierID"],
           description: "Field to order by",
+        },
+        orderDirection: {
+          type: "string",
+          enum: ["ASC", "DESC"],
+          description: "Order direction",
         },
       },
       required: [],
@@ -57,8 +102,20 @@ export const supplierTools: Tool[] = [
     description: "Create a new supplier record",
     inputSchema: {
       type: "object",
-      properties: entitySchemaProperties,
-      required: [],
+      properties: supplierEntitySchemaProperties,
+      required: ["companyName"],
+    },
+  },
+  {
+    name: "quickfile_supplier_update",
+    description: "Update an existing supplier record",
+    inputSchema: {
+      type: "object",
+      properties: {
+        supplierId: { type: "number", description: "The supplier ID" },
+        ...supplierEntitySchemaProperties,
+      },
+      required: ["supplierId"],
     },
   },
   {
@@ -95,6 +152,10 @@ interface SupplierCreateResponse {
   SupplierID: number;
 }
 
+interface SupplierUpdateResponse {
+  SupplierDetailsUpdated?: boolean;
+}
+
 // =============================================================================
 // Tool Handler
 // =============================================================================
@@ -118,9 +179,13 @@ export async function handleSupplierTool(
           ReturnCount: (args.returnCount as number) ?? 25,
           Offset: (args.offset as number) ?? 0,
           CompanyName: args.companyName as string | undefined,
-          ContactName: args.contactName as string | undefined,
-          Email: args.email as string | undefined,
+          ContactFirstName: args.firstName as string | undefined,
+          ContactSurname: args.lastName as string | undefined,
+          ContactEmail: args.email as string | undefined,
+          ContactTel: args.telephone as string | undefined,
+          SupplierReference: args.supplierReference as string | undefined,
           Postcode: args.postcode as string | undefined,
+          ShowDeleted: args.showDeleted as boolean | undefined,
         };
         const cleaned = cleanParams(params);
         const response = await apiClient.request<
@@ -144,17 +209,32 @@ export async function handleSupplierTool(
       }
 
       case "quickfile_supplier_create": {
-        const address = buildAddressFromArgs(args);
-        const supplierData = buildEntityData(args, address);
+        const supplierData = buildSupplierCreateData(args);
         const cleanData = cleanParams(supplierData);
         const response = await apiClient.request<
-          { SupplierData: typeof cleanData },
+          { SupplierDetails: typeof cleanData },
           SupplierCreateResponse
-        >("Supplier_Create", { SupplierData: cleanData });
+        >("Supplier_Create", { SupplierDetails: cleanData });
         return successResult({
           success: true,
           supplierId: response.SupplierID,
           message: `Supplier created successfully with ID ${response.SupplierID}`,
+        });
+      }
+
+      case "quickfile_supplier_update": {
+        const supplierId = args.supplierId as number;
+        const supplierData = buildSupplierUpdateData(args);
+        const updateData = { SupplierID: supplierId, ...supplierData };
+        const cleanData = cleanParams(updateData);
+        await apiClient.request<
+          { SupplierDetails: typeof cleanData },
+          SupplierUpdateResponse
+        >("Supplier_Update", { SupplierDetails: cleanData });
+        return successResult({
+          success: true,
+          supplierId,
+          message: `Supplier #${supplierId} updated successfully`,
         });
       }
 
