@@ -141,7 +141,7 @@ export const supplierTools: Tool[] = [
 interface SupplierSearchResponse {
   RecordsetCount: number;
   ReturnCount: number;
-  Record: Supplier[];
+  Record?: Supplier | Supplier[];
 }
 
 interface SupplierGetResponse {
@@ -194,7 +194,7 @@ async function handleSupplierSearch(
     { SearchParameters: typeof cleaned },
     SupplierSearchResponse
   >("Supplier_Search", { SearchParameters: cleaned });
-  const record = response.Record as Supplier | Supplier[] | undefined;
+  const record = response.Record;
   const suppliers = Array.isArray(record) ? record : record ? [record] : [];
   return successResult({
     totalRecords: response.RecordsetCount,
