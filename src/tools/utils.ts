@@ -689,12 +689,12 @@ export function buildSupplierAddressFields(
     ].filter(([, value]) => value !== undefined),
   ) as SupplierAddressFields;
 
-  let rawCountry: string | undefined;
-  if (typeof args.countryIso === "string") {
-    rawCountry = args.countryIso;
-  } else if (typeof args.country === "string") {
-    rawCountry = args.country;
-  }
+  const rawCountry =
+    typeof args.countryIso === "string"
+      ? args.countryIso
+      : typeof args.country === "string"
+        ? args.country
+        : undefined;
 
   const country = rawCountry?.trim().toUpperCase();
   if (country && VALID_ISO_ALPHA2_CODES.has(country)) {
