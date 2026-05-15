@@ -64,6 +64,21 @@ describe("Supplier tools", () => {
       expect(lastPayload().SearchParameters).not.toHaveProperty("Email");
       expect(lastPayload().SearchParameters).not.toHaveProperty("ContactName");
     });
+
+    it("normalizes a single Supplier_Search record into the suppliers array", async () => {
+      mockRequest.mockResolvedValueOnce({
+        RecordsetCount: 1,
+        Record: { SupplierID: 42, CompanyName: "Solo Supplier" },
+      });
+
+      const result = await handleSupplierTool("quickfile_supplier_search", {});
+
+      expect(JSON.parse(result.content[0].text)).toEqual({
+        totalRecords: 1,
+        count: 1,
+        suppliers: [{ SupplierID: 42, CompanyName: "Solo Supplier" }],
+      });
+    });
   });
 
   describe("quickfile_supplier_create", () => {
@@ -151,7 +166,7 @@ describe("Supplier tools", () => {
       expect(details).not.toHaveProperty("TermDays");
     });
 
-    it("accepts legacy country only when it is a two-letter ISO code", async () => {
+    it("accepts legacy country only when it is a valid two-letter ISO code", async () => {
       mockRequest.mockResolvedValueOnce({ SupplierID: 1 });
       await handleSupplierTool("quickfile_supplier_create", {
         companyName: "Acme",
@@ -166,6 +181,44 @@ describe("Supplier tools", () => {
         country: "gb",
       });
       expect(lastPayload().SupplierDetails.CountryISO).toBe("GB");
+
+      mockRequest.mockClear();
+      mockRequest.mockResolvedValueOnce({ SupplierID: 3 });
+      await handleSupplierTool("quickfile_supplier_create", {
+        companyName: "Acme",
+        countryIso: "ZZ",
+      });
+      expect(lastPayload().SupplierDetails).not.toHaveProperty("CountryISO");
+    });
+  });
+
+  describe("handleSupplierTool", () => {
+    it("wraps getApiClient errors with the standard tool error result", async () => {
+      (getApiClient as jest.Mock).mockImplementationOnce(() => {
+        throw new Error("missing credentials");
+      });
+
+      const result = await handleSupplierTool("quickfile_supplier_search", {});
+
+      expect(result).toEqual({
+        content: [{ type: "text", text: "Error: missing credentials" }],
+        isError: true,
+      });
+    });
+
+    it("does not initialize the API client for unknown supplier tools", async () => {
+      const result = await handleSupplierTool("quickfile_supplier_unknown", {});
+
+      expect(getApiClient).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        content: [
+          {
+            type: "text",
+            text: "Unknown supplier tool: quickfile_supplier_unknown",
+          },
+        ],
+        isError: true,
+      });
     });
   });
 

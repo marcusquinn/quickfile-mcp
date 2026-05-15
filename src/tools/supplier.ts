@@ -194,7 +194,8 @@ async function handleSupplierSearch(
     { SearchParameters: typeof cleaned },
     SupplierSearchResponse
   >("Supplier_Search", { SearchParameters: cleaned });
-  const suppliers = response.Record || [];
+  const record = response.Record as Supplier | Supplier[] | undefined;
+  const suppliers = Array.isArray(record) ? record : record ? [record] : [];
   return successResult({
     totalRecords: response.RecordsetCount,
     count: suppliers.length,
@@ -289,7 +290,6 @@ export async function handleSupplierTool(
   toolName: string,
   args: Record<string, unknown>,
 ): Promise<ToolResult> {
-  const apiClient = getApiClient();
   const handler = getSupplierHandler(toolName);
 
   if (!handler) {
@@ -297,6 +297,7 @@ export async function handleSupplierTool(
   }
 
   try {
+    const apiClient = getApiClient();
     return await handler(apiClient, args);
   } catch (error) {
     return handleToolError(error);

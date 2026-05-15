@@ -332,6 +332,43 @@ export interface SupplierSearchParams {
   OrderDirection?: 'ASC' | 'DESC';
 }
 
+export interface SupplierAddressFields {
+  AddressLine1?: string;
+  AddressLine2?: string;
+  AddressLine3?: string;
+  Town?: string;
+  Postcode?: string;
+  CountryISO?: string;
+}
+
+export interface SupplierPreferences {
+  DefaultCurrency?: string;
+  DefaultTerm?: number;
+  DefaultVatRate?: number;
+  DefaultNominalCode?: number;
+}
+
+export interface SupplierBaseData extends SupplierAddressFields {
+  CompanyName?: string;
+  CompanyNumber?: string;
+  SupplierReference?: string;
+  ContactFirstName?: string;
+  ContactTel?: string;
+  ContactEmail?: string;
+  Website?: string;
+  VatNumber?: string;
+  VatExempt?: boolean;
+  Preferences?: SupplierPreferences;
+}
+
+export interface SupplierCreateData extends SupplierBaseData {
+  ContactSurname?: string;
+}
+
+export interface SupplierUpdateData extends SupplierBaseData {
+  ContactSurName?: string;
+}
+
 // =============================================================================
 // Bank Types
 // =============================================================================

@@ -5,6 +5,13 @@
 
 import { QuickFileApiError } from "../api/client.js";
 import { sanitizeOutput } from "../sanitize.js";
+import type {
+  SupplierAddressFields,
+  SupplierBaseData,
+  SupplierCreateData,
+  SupplierPreferences,
+  SupplierUpdateData,
+} from "../types/quickfile.js";
 
 // Re-export validation helpers and schemas
 export { validateArgs, validateArgsSafe } from "./schemas.js";
@@ -654,14 +661,20 @@ export function buildClientUpdateData(
   return extractClientFields(args, address);
 }
 
-export interface SupplierAddressFields {
-  AddressLine1?: string;
-  AddressLine2?: string;
-  AddressLine3?: string;
-  Town?: string;
-  Postcode?: string;
-  CountryISO?: string;
-}
+const VALID_ISO_ALPHA2_CODES = new Set([
+  "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR", "AS", "AT", "AU", "AW", "AX", "AZ",
+  "BA", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BL", "BM", "BN", "BO", "BQ", "BR", "BS", "BT", "BV", "BW", "BY", "BZ",
+  "CA", "CC", "CD", "CF", "CG", "CH", "CI", "CK", "CL", "CM", "CN", "CO", "CR", "CU", "CV", "CW", "CX", "CY", "CZ",
+  "DE", "DJ", "DK", "DM", "DO", "DZ", "EC", "EE", "EG", "EH", "ER", "ES", "ET", "FI", "FJ", "FK", "FM", "FO", "FR",
+  "GA", "GB", "GD", "GE", "GF", "GG", "GH", "GI", "GL", "GM", "GN", "GP", "GQ", "GR", "GS", "GT", "GU", "GW", "GY",
+  "HK", "HM", "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IM", "IN", "IO", "IQ", "IR", "IS", "IT",
+  "JE", "JM", "JO", "JP", "KE", "KG", "KH", "KI", "KM", "KN", "KP", "KR", "KW", "KY", "KZ", "LA", "LB", "LC", "LI", "LK", "LR", "LS", "LT", "LU", "LV", "LY",
+  "MA", "MC", "MD", "ME", "MF", "MG", "MH", "MK", "ML", "MM", "MN", "MO", "MP", "MQ", "MR", "MS", "MT", "MU", "MV", "MW", "MX", "MY", "MZ",
+  "NA", "NC", "NE", "NF", "NG", "NI", "NL", "NO", "NP", "NR", "NU", "NZ", "OM", "PA", "PE", "PF", "PG", "PH", "PK", "PL", "PM", "PN", "PR", "PS", "PT", "PW", "PY",
+  "QA", "RE", "RO", "RS", "RU", "RW", "SA", "SB", "SC", "SD", "SE", "SG", "SH", "SI", "SJ", "SK", "SL", "SM", "SN", "SO", "SR", "SS", "ST", "SV", "SX", "SY", "SZ",
+  "TC", "TD", "TF", "TG", "TH", "TJ", "TK", "TL", "TM", "TN", "TO", "TR", "TT", "TV", "TW", "TZ", "UA", "UG", "UM", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI", "VN", "VU",
+  "WF", "WS", "YE", "YT", "ZA", "ZM", "ZW",
+]);
 
 export function buildSupplierAddressFields(
   args: Record<string, unknown>,
@@ -676,25 +689,19 @@ export function buildSupplierAddressFields(
     ].filter(([, value]) => value !== undefined),
   ) as SupplierAddressFields;
 
-  const rawCountry =
-    typeof args.countryIso === "string"
-      ? args.countryIso
-      : typeof args.country === "string"
-        ? args.country
-        : undefined;
-  const country = rawCountry?.trim();
-  if (country && /^[A-Za-z]{2}$/.test(country)) {
-    fields.CountryISO = country.toUpperCase();
+  let rawCountry: string | undefined;
+  if (typeof args.countryIso === "string") {
+    rawCountry = args.countryIso;
+  } else if (typeof args.country === "string") {
+    rawCountry = args.country;
+  }
+
+  const country = rawCountry?.trim().toUpperCase();
+  if (country && VALID_ISO_ALPHA2_CODES.has(country)) {
+    fields.CountryISO = country;
   }
 
   return fields;
-}
-
-export interface SupplierPreferences {
-  DefaultCurrency?: string;
-  DefaultTerm?: number;
-  DefaultVatRate?: number;
-  DefaultNominalCode?: number;
 }
 
 function buildSupplierPreferences(
@@ -709,27 +716,6 @@ function buildSupplierPreferences(
     ].filter(([, value]) => value !== undefined),
   ) as SupplierPreferences;
   return Object.keys(preferences).length > 0 ? preferences : undefined;
-}
-
-interface SupplierBaseData extends SupplierAddressFields {
-  CompanyName?: string;
-  CompanyNumber?: string;
-  SupplierReference?: string;
-  ContactFirstName?: string;
-  ContactTel?: string;
-  ContactEmail?: string;
-  Website?: string;
-  VatNumber?: string;
-  VatExempt?: boolean;
-  Preferences?: SupplierPreferences;
-}
-
-export interface SupplierCreateData extends SupplierBaseData {
-  ContactSurname?: string;
-}
-
-export interface SupplierUpdateData extends SupplierBaseData {
-  ContactSurName?: string;
 }
 
 function buildSupplierBaseData(args: Record<string, unknown>): SupplierBaseData {
