@@ -332,6 +332,12 @@ export interface SupplierSearchParams {
   OrderDirection?: 'ASC' | 'DESC';
 }
 
+export interface SupplierSearchResponse {
+  RecordsetCount: number;
+  ReturnCount: number;
+  Record?: Supplier | Supplier[] | null;
+}
+
 export interface SupplierAddressFields {
   AddressLine1?: string;
   AddressLine2?: string;

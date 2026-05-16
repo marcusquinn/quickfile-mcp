@@ -5,7 +5,11 @@
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { getApiClient } from "../api/client.js";
-import type { Supplier, SupplierSearchParams } from "../types/quickfile.js";
+import type {
+  Supplier,
+  SupplierSearchParams,
+  SupplierSearchResponse,
+} from "../types/quickfile.js";
 import {
   handleToolError,
   successResult,
@@ -137,12 +141,6 @@ export const supplierTools: Tool[] = [
 // =============================================================================
 // Tool Handlers
 // =============================================================================
-
-interface SupplierSearchResponse {
-  RecordsetCount: number;
-  ReturnCount: number;
-  Record?: Supplier | Supplier[];
-}
 
 interface SupplierGetResponse {
   SupplierDetails: Supplier;
