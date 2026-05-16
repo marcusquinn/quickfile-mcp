@@ -79,6 +79,18 @@ describe("Supplier tools", () => {
         suppliers: [{ SupplierID: 42, CompanyName: "Solo Supplier" }],
       });
     });
+
+    it("normalizes a null Supplier_Search record into an empty suppliers array", async () => {
+      mockRequest.mockResolvedValueOnce({ RecordsetCount: 0, Record: null });
+
+      const result = await handleSupplierTool("quickfile_supplier_search", {});
+
+      expect(JSON.parse(result.content[0].text)).toEqual({
+        totalRecords: 0,
+        count: 0,
+        suppliers: [],
+      });
+    });
   });
 
   describe("quickfile_supplier_create", () => {
