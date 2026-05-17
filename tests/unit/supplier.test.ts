@@ -179,28 +179,41 @@ describe("Supplier tools", () => {
     });
 
     it("accepts legacy country only when it is a valid two-letter ISO code", async () => {
+      const consoleErrorSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => undefined);
       mockRequest.mockResolvedValueOnce({ SupplierID: 1 });
       await handleSupplierTool("quickfile_supplier_create", {
         companyName: "Acme",
         country: "United Kingdom",
       });
       expect(lastPayload().SupplierDetails).not.toHaveProperty("CountryISO");
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[WARN] Ignored unrecognised country code {"country":"UNITED KINGDOM"}',
+      );
 
       mockRequest.mockClear();
+      consoleErrorSpy.mockClear();
       mockRequest.mockResolvedValueOnce({ SupplierID: 2 });
       await handleSupplierTool("quickfile_supplier_create", {
         companyName: "Acme",
         country: "gb",
       });
       expect(lastPayload().SupplierDetails.CountryISO).toBe("GB");
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
 
       mockRequest.mockClear();
+      consoleErrorSpy.mockClear();
       mockRequest.mockResolvedValueOnce({ SupplierID: 3 });
       await handleSupplierTool("quickfile_supplier_create", {
         companyName: "Acme",
         countryIso: "ZZ",
       });
       expect(lastPayload().SupplierDetails).not.toHaveProperty("CountryISO");
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[WARN] Ignored unrecognised country code {"country":"ZZ"}',
+      );
+      consoleErrorSpy.mockRestore();
     });
   });
 
