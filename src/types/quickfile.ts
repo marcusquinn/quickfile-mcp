@@ -91,6 +91,12 @@ export interface QuickFileError {
   ErrorMessage: string;
 }
 
+export interface SearchResponse<T> {
+  RecordsetCount: number;
+  ReturnCount: number;
+  Record?: T | T[] | null;
+}
+
 // =============================================================================
 // Client Types
 // =============================================================================
@@ -332,10 +338,18 @@ export interface SupplierSearchParams {
   OrderDirection?: 'ASC' | 'DESC';
 }
 
-export interface SupplierSearchResponse {
-  RecordsetCount: number;
-  ReturnCount: number;
-  Record?: Supplier | Supplier[] | null;
+export type SupplierSearchResponse = SearchResponse<Supplier>;
+
+export interface SupplierGetResponse {
+  SupplierDetails: Supplier;
+}
+
+export interface SupplierCreateResponse {
+  SupplierID: number;
+}
+
+export interface SupplierUpdateResponse {
+  SupplierDetailsUpdated?: boolean;
 }
 
 export interface SupplierAddressFields {

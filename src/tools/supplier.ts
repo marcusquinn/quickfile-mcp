@@ -6,9 +6,11 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { getApiClient } from "../api/client.js";
 import type {
-  Supplier,
+  SupplierCreateResponse,
+  SupplierGetResponse,
   SupplierSearchParams,
   SupplierSearchResponse,
+  SupplierUpdateResponse,
 } from "../types/quickfile.js";
 import {
   handleToolError,
@@ -141,18 +143,6 @@ export const supplierTools: Tool[] = [
 // =============================================================================
 // Tool Handlers
 // =============================================================================
-
-interface SupplierGetResponse {
-  SupplierDetails: Supplier;
-}
-
-interface SupplierCreateResponse {
-  SupplierID: number;
-}
-
-interface SupplierUpdateResponse {
-  SupplierDetailsUpdated?: boolean;
-}
 
 interface QuickFileRequester {
   request<TRequest, TResponse>(
