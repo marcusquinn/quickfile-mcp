@@ -699,8 +699,12 @@ export function buildSupplierAddressFields(
   const country = rawCountry?.trim().toUpperCase();
   // QuickFile expects ISO-3166-1 alpha-2 values; ignore unrecognised input
   // instead of throwing so supplier creation can still use other valid fields.
-  if (country && VALID_ISO_ALPHA2_CODES.has(country)) {
-    fields.CountryISO = country;
+  if (country) {
+    if (VALID_ISO_ALPHA2_CODES.has(country)) {
+      fields.CountryISO = country;
+    } else {
+      logger.warn("Ignored unrecognised country code", { country });
+    }
   }
 
   return fields;
