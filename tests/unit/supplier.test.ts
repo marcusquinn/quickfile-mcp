@@ -178,11 +178,18 @@ describe("Supplier tools", () => {
       expect(details).not.toHaveProperty("TermDays");
     });
 
-    it("warns on invalid country inputs and accepts valid legacy ISO codes", async () => {
-      const consoleErrorSpy = jest
-        .spyOn(console, "error")
-        .mockImplementation(() => undefined);
-      try {
+    describe("country validation", () => {
+      let consoleErrorSpy: jest.SpyInstance;
+
+      beforeEach(() => {
+        consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
+      });
+
+      afterEach(() => {
+        consoleErrorSpy.mockRestore();
+      });
+
+      it("ignores and warns on unrecognised country names", async () => {
         mockRequest.mockResolvedValueOnce({ SupplierID: 1 });
         await handleSupplierTool("quickfile_supplier_create", {
           companyName: "Acme",
@@ -192,9 +199,9 @@ describe("Supplier tools", () => {
         expect(consoleErrorSpy).toHaveBeenCalledWith(
           '[WARN] Ignored unrecognised country code {"country":"UNITED KINGDOM"}',
         );
+      });
 
-        mockRequest.mockClear();
-        consoleErrorSpy.mockClear();
+      it("accepts and normalizes valid legacy two-letter country codes", async () => {
         mockRequest.mockResolvedValueOnce({ SupplierID: 2 });
         await handleSupplierTool("quickfile_supplier_create", {
           companyName: "Acme",
@@ -202,9 +209,9 @@ describe("Supplier tools", () => {
         });
         expect(lastPayload().SupplierDetails.CountryISO).toBe("GB");
         expect(consoleErrorSpy).not.toHaveBeenCalled();
+      });
 
-        mockRequest.mockClear();
-        consoleErrorSpy.mockClear();
+      it("ignores and warns on unrecognised countryIso codes", async () => {
         mockRequest.mockResolvedValueOnce({ SupplierID: 3 });
         await handleSupplierTool("quickfile_supplier_create", {
           companyName: "Acme",
@@ -214,9 +221,7 @@ describe("Supplier tools", () => {
         expect(consoleErrorSpy).toHaveBeenCalledWith(
           '[WARN] Ignored unrecognised country code {"country":"ZZ"}',
         );
-      } finally {
-        consoleErrorSpy.mockRestore();
-      }
+      });
     });
   });
 
