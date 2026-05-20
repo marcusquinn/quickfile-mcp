@@ -182,11 +182,12 @@ describe("Supplier tools", () => {
       let consoleErrorSpy: jest.SpyInstance;
 
       beforeEach(() => {
+        mockRequest.mockReset();
         consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
       });
 
       afterEach(() => {
-        consoleErrorSpy.mockRestore();
+        consoleErrorSpy?.mockRestore();
       });
 
       it("ignores and warns on unrecognised country names", async () => {
