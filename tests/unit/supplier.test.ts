@@ -25,6 +25,7 @@ describe("Supplier tools", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRequest.mockReset();
     (getApiClient as jest.Mock).mockReturnValue({ request: mockRequest });
   });
 
@@ -182,7 +183,6 @@ describe("Supplier tools", () => {
       let consoleErrorSpy: jest.SpyInstance;
 
       beforeEach(() => {
-        mockRequest.mockReset();
         consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
       });
 
