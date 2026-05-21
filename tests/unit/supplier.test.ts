@@ -24,8 +24,7 @@ describe("Supplier tools", () => {
   const mockRequest = jest.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockRequest.mockReset();
+    jest.resetAllMocks();
     (getApiClient as jest.Mock).mockReturnValue({ request: mockRequest });
   });
 
