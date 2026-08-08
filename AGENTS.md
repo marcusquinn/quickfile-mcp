@@ -8,7 +8,7 @@
 - **API**: QuickFile JSON API v1.2 at `https://api.quickfile.co.uk/1_2/{method}`
 - **Auth**: MD5 hash of `AccountNumber + APIKey + SubmissionNumber`
 - **Credentials**: `~/.config/.quickfile-mcp/credentials.json` (600 perms)
-- **Tools**: 37 MCP tools across 7 categories
+- **Tools**: 39 MCP tools across 8 categories
 
 **Tool Categories**:
 
@@ -21,6 +21,7 @@
 | Purchases | `quickfile_purchase_` | search, get, create, delete |
 | Suppliers | `quickfile_supplier_` | search, get, create, delete |
 | Banking | `quickfile_bank_` | get_accounts, get_balances, search, create_account, create_transaction |
+| Payments | `quickfile_payment_` | get_methods, create |
 | Reports | `quickfile_report_` | profit_loss, balance_sheet, vat_obligations, ageing, chart_of_accounts, subscriptions |
 
 **Common Operations**:
@@ -203,6 +204,26 @@ Debtor or creditor ageing report.
 ```
 1. quickfile_supplier_search (find or create supplier)
 2. quickfile_purchase_create (record purchase)
+3. quickfile_document_upload_receipt (attach the invoice PDF)
+4. quickfile_payment_create (mark it paid — see below)
+```
+
+### Mark a Purchase Paid
+There is no `Bank_TagTransaction` in the QuickFile API (it's an open feature
+request), so bank-tagging a purchase can't be automated. `Payment_Create` is
+the way through: it posts the payment and its bank entry together, leaving the
+purchase PAIDFULL with nothing to tag by hand.
+```
+1. quickfile_payment_get_methods      (codes are account-specific)
+2. quickfile_payment_create {
+     designation: "SUPPLIER",
+     supplierId:  <supplier>,
+     invoiceId:   <the PURCHASE id>,   // yes, InvoiceID carries the purchase ID
+     amount:      <in the payment currency>,
+     paymentDate: "YYYY-MM-DD",
+     payMethod:   <code from step 1>,
+     bankNominalCode: 1250
+   }
 ```
 
 ### Financial Review
