@@ -1,6 +1,6 @@
 {
   "name": "quickfile-mcp",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Multi-account MCP server for the QuickFile beta REST API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -47,7 +47,7 @@
   },
   "packageManager": "npm@11.17.0",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "zod": "^3.22.0"
   },
   "devDependencies": {
