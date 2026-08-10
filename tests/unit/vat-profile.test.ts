@@ -74,9 +74,9 @@ describe("resolveVatPercentage", () => {
       );
     });
 
-    it("error message references credentials file", () => {
+    it("error message references the account VAT environment variable", () => {
       expect(() => resolveVatPercentage(20, profile)).toThrow(
-        /credentials\.json/,
+        /QUICKFILE_<ACCOUNT>_VAT_REGISTERED/,
       );
     });
   });
@@ -111,9 +111,9 @@ describe("resolveVatPercentage", () => {
       );
     });
 
-    it("error message references credentials file", () => {
+    it("error message references the account VAT environment variable", () => {
       expect(() => resolveVatPercentage(undefined, profile)).toThrow(
-        /credentials\.json/,
+        /QUICKFILE_<ACCOUNT>_VAT_REGISTERED/,
       );
     });
   });

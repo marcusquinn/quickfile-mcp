@@ -4,6 +4,7 @@
  */
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
+import { listConfiguredAccounts } from "../api/auth.js";
 
 // Import tool definitions
 import { systemTools, handleSystemTool } from "./system.js";
@@ -29,7 +30,7 @@ export {
 } from "./utils.js";
 
 // Aggregate all tools
-export const allTools: Tool[] = [
+const baseTools: Tool[] = [
   ...systemTools,
   ...clientTools,
   ...invoiceTools,
@@ -39,6 +40,34 @@ export const allTools: Tool[] = [
   ...reportTools,
   ...documentTools,
 ];
+
+function addAccountSelector(tool: Tool): Tool {
+  const configuredAccounts = listConfiguredAccounts();
+  return {
+    ...tool,
+    description: `${tool.description} Requires an explicit QuickFile account alias.`,
+    inputSchema: {
+      ...tool.inputSchema,
+      properties: {
+        account: {
+          type: "string",
+          ...(configuredAccounts.length > 0
+            ? { enum: configuredAccounts }
+            : {}),
+          description:
+            "Configured QuickFile account alias (for example business or personal)",
+        },
+        ...(tool.inputSchema.properties ?? {}),
+      },
+      required: [
+        "account",
+        ...((tool.inputSchema.required as string[] | undefined) ?? []),
+      ],
+    },
+  };
+}
+
+export const allTools: Tool[] = baseTools.map(addAccountSelector);
 
 /**
  * Route tool calls to appropriate handler
@@ -57,11 +86,8 @@ export async function handleToolCall(
     return handleClientTool(toolName, args);
   }
 
-  // Invoice and estimate tools
-  if (
-    toolName.startsWith("quickfile_invoice_") ||
-    toolName.startsWith("quickfile_estimate_")
-  ) {
+  // Invoice tools (invoice creation also supports estimate and credit types)
+  if (toolName.startsWith("quickfile_invoice_")) {
     return handleInvoiceTool(toolName, args);
   }
 
@@ -95,7 +121,7 @@ export async function handleToolCall(
     content: [
       {
         type: "text",
-        text: `Unknown tool: ${toolName}. Available prefixes: quickfile_system_, quickfile_client_, quickfile_invoice_, quickfile_estimate_, quickfile_purchase_, quickfile_supplier_, quickfile_bank_, quickfile_report_, quickfile_document_`,
+        text: `Unknown tool: ${toolName}. Available prefixes: quickfile_system_, quickfile_client_, quickfile_invoice_, quickfile_purchase_, quickfile_supplier_, quickfile_bank_, quickfile_report_, quickfile_document_`,
       },
     ],
     isError: true,

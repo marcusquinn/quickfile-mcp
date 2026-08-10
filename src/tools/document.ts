@@ -1,77 +1,45 @@
-/**
- * QuickFile Document Tools
- * Document upload and receipt attachment operations
- */
+/** QuickFile REST document upload tools. */
 
 import { readFile } from "node:fs/promises";
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { QuickFileApiClient } from "../api/client.js";
-import type {
-  DocumentUploadParams,
-  DocumentUploadResponse,
-} from "../types/quickfile.js";
+import { getApiClient } from "../api/client.js";
 import { handleToolError, successResult, type ToolResult } from "./utils.js";
-
-// =============================================================================
-// Tool Definitions
-// =============================================================================
 
 const fileSourceProperties = {
   fileData: {
     type: "string" as const,
-    description:
-      "Base64-encoded file content (mutually exclusive with filePath)",
+    description: "Base64-encoded file content (exclusive with filePath)",
   },
   filePath: {
     type: "string" as const,
-    description:
-      "Absolute local file path — the server reads and base64-encodes the " +
-      "file (mutually exclusive with fileData)",
+    description: "Absolute local file path (exclusive with fileData)",
   },
 };
 
 export const documentTools: Tool[] = [
   {
     name: "quickfile_document_upload_receipt",
-    description:
-      "Upload a receipt file (PDF, image) and attach it to an existing " +
-      "purchase invoice. Use this after creating a purchase to attach the " +
-      "original invoice/receipt. Provide either fileData (base64) or " +
-      "filePath (absolute path) — exactly one of the two.",
+    description: "Upload a receipt and optionally attach it to a purchase",
     inputSchema: {
       type: "object",
       properties: {
-        purchaseId: {
-          type: "number",
-          description: "The purchase ID to attach the receipt to",
-        },
-        fileName: {
-          type: "string",
-          description:
-            'File name including extension (e.g., "invoice.pdf", "receipt.png")',
-        },
+        purchaseId: { type: "number" },
+        fileName: { type: "string" },
+        captureDate: { type: "string" },
         ...fileSourceProperties,
       },
-      required: ["purchaseId", "fileName"],
+      required: ["fileName"],
     },
   },
   {
     name: "quickfile_document_upload_sales_attachment",
-    description:
-      "Upload a document and attach it to an existing sales invoice. " +
-      "Provide either fileData (base64) or filePath (absolute path) — " +
-      "exactly one of the two.",
+    description: "Upload a document and attach it to a sales invoice",
     inputSchema: {
       type: "object",
       properties: {
-        invoiceId: {
-          type: "number",
-          description: "The invoice ID to attach the document to",
-        },
-        fileName: {
-          type: "string",
-          description: 'File name including extension (e.g., "contract.pdf")',
-        },
+        invoiceId: { type: "number" },
+        fileName: { type: "string" },
+        notes: { type: "string" },
         ...fileSourceProperties,
       },
       required: ["invoiceId", "fileName"],
@@ -79,121 +47,66 @@ export const documentTools: Tool[] = [
   },
 ];
 
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-/**
- * Resolve the file content to a base64 string. Callers may supply either
- * `fileData` (already base64-encoded) or `filePath` (absolute local path —
- * read and encoded here). Exactly one of the two must be provided.
- */
-async function resolveFileData(
-  args: Record<string, unknown>,
-): Promise<string> {
+async function resolveFile(args: Record<string, unknown>): Promise<Buffer> {
   const fileData = args.fileData as string | undefined;
   const filePath = args.filePath as string | undefined;
-
   if (fileData && filePath) {
     throw new Error("Provide either fileData or filePath, not both");
   }
   if (fileData) {
-    return fileData;
+    return Buffer.from(fileData, "base64");
   }
   if (filePath) {
-    const buffer = await readFile(filePath);
-    return buffer.toString("base64");
+    return readFile(filePath);
   }
   throw new Error("Either fileData or filePath must be provided");
 }
 
-// =============================================================================
-// Tool Handlers
-// =============================================================================
+async function createForm(
+  args: Record<string, unknown>,
+): Promise<FormData> {
+  const data = await resolveFile(args);
+  const form = new FormData();
+  form.append(
+    "file",
+    new Blob([data], { type: "application/octet-stream" }),
+    args.fileName as string,
+  );
+  return form;
+}
 
 export async function handleDocumentTool(
   toolName: string,
   args: Record<string, unknown>,
 ): Promise<ToolResult> {
-  // Dedicated client with a longer timeout for file uploads — don't clobber
-  // the process-wide singleton.
-  const apiClient = new QuickFileApiClient({ timeout: 60000 });
-
+  const client = getApiClient(args.account as string, { timeout: 60000 });
   try {
+    const form = await createForm(args);
     switch (toolName) {
-      case "quickfile_document_upload_receipt": {
-        const purchaseId = args.purchaseId as number;
-        const fileName = args.fileName as string;
-        const fileData = await resolveFileData(args);
-        const captureDateTime = new Date().toISOString();
-
-        const response = await apiClient.request<
-          DocumentUploadParams,
-          DocumentUploadResponse
-        >("Document_Upload", {
-          DocumentDetails: {
-            FileName: fileName,
-            EmbeddedFileBinaryObject: fileData,
-            Type: {
-              Receipt: {
-                PurchaseId: purchaseId,
-                CaptureDateTime: captureDateTime,
-              },
-            },
-          },
-        });
-
-        const firstDoc = response.DocumentData?.Data?.[0];
-
-        return successResult({
-          success: true,
-          purchaseId,
-          documentId: firstDoc?.Id,
-          path: firstDoc?.Path,
-          uploadTimestamp: response.UploadTimeStamp,
-          message: `Receipt "${fileName}" attached to purchase #${purchaseId}`,
-        });
-      }
-
-      case "quickfile_document_upload_sales_attachment": {
-        const invoiceId = args.invoiceId as number;
-        const fileName = args.fileName as string;
-        const fileData = await resolveFileData(args);
-        const captureDateTime = new Date().toISOString();
-
-        const response = await apiClient.request<
-          DocumentUploadParams,
-          DocumentUploadResponse
-        >("Document_Upload", {
-          DocumentDetails: {
-            FileName: fileName,
-            EmbeddedFileBinaryObject: fileData,
-            Type: {
-              SalesAttachment: {
-                InvoiceId: invoiceId,
-                CaptureDateTime: captureDateTime,
-              },
-            },
-          },
-        });
-
-        const firstDoc = response.DocumentData?.Data?.[0];
-
-        return successResult({
-          success: true,
-          invoiceId,
-          documentId: firstDoc?.Id,
-          path: firstDoc?.Path,
-          uploadTimestamp: response.UploadTimeStamp,
-          message: `Document "${fileName}" attached to invoice #${invoiceId}`,
-        });
-      }
-
+      case "quickfile_document_upload_receipt":
+        if (args.purchaseId !== undefined) {
+          form.append("purchase_id", String(args.purchaseId));
+        }
+        form.append(
+          "capture_date",
+          (args.captureDate as string | undefined) ??
+            new Date().toISOString().slice(0, 10),
+        );
+        form.append("receipt_name", args.fileName as string);
+        return successResult(
+          await client.request("/documents/receipt", { method: "POST", form }),
+        );
+      case "quickfile_document_upload_sales_attachment":
+        form.append("invoice_id", String(args.invoiceId));
+        if (args.notes) {
+          form.append("notes", args.notes as string);
+        }
+        return successResult(
+          await client.request("/documents/sales", { method: "POST", form }),
+        );
       default:
         return {
-          content: [
-            { type: "text", text: `Unknown document tool: ${toolName}` },
-          ],
+          content: [{ type: "text", text: `Unknown document tool: ${toolName}` }],
           isError: true,
         };
     }

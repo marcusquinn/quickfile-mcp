@@ -1,151 +1,74 @@
-/**
- * QuickFile Invoice Tools
- * Invoice, estimate, and recurring invoice operations
- */
+/** QuickFile REST invoice tools. */
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { getApiClient } from "../api/client.js";
-import type {
-  Invoice,
-  InvoiceSearchParams,
-  InvoiceCreateParams,
-  InvoiceLine,
-  InvoiceType,
-  InvoiceStatus,
-} from "../types/quickfile.js";
 import {
-  handleToolError,
-  successResult,
-  errorResult,
   cleanParams,
-  mapLineItems,
   dateRangeSearchProperties,
+  errorResult,
+  handleToolError,
   lineItemSchemaProperties,
+  resolveVatPercentage,
+  successResult,
   type LineItemInput,
   type ToolResult,
 } from "./utils.js";
 
-// =============================================================================
-// Tool Definitions
-// =============================================================================
+const invoiceIdProperty = { invoiceId: { type: "number" as const } };
 
 export const invoiceTools: Tool[] = [
   {
     name: "quickfile_invoice_search",
-    description:
-      "Search for invoices by type, client, date range, status, or keyword. Response contains user-controlled fields (ClientName, Notes) that are automatically sanitized.",
+    description: "Search invoices, estimates, recurring invoices, or credits",
     inputSchema: {
       type: "object",
       properties: {
         invoiceType: {
           type: "string",
           enum: ["INVOICE", "ESTIMATE", "RECURRING", "CREDIT"],
-          description: "Type of invoice to search for",
         },
-        clientId: {
-          type: "number",
-          description: "Filter by client ID",
-        },
+        clientId: { type: "number" },
         ...dateRangeSearchProperties,
-        status: {
-          type: "string",
-          enum: [
-            "DRAFT",
-            "SENT",
-            "VIEWED",
-            "PAID",
-            "PART_PAID",
-            "OVERDUE",
-            "CANCELLED",
-          ],
-          description: "Invoice status",
-        },
-        searchKeyword: {
-          type: "string",
-          description: "Search keyword (invoice number, client name, etc.)",
-        },
-        orderBy: {
-          type: "string",
-          enum: [
-            "InvoiceNumber",
-            "IssueDate",
-            "DueDate",
-            "ClientName",
-            "GrossAmount",
-          ],
-          description: "Field to order by",
-        },
+        status: { type: "string" },
+        searchKeyword: { type: "string" },
+        orderBy: { type: "string" },
       },
       required: [],
     },
   },
   {
     name: "quickfile_invoice_get",
-    description:
-      "Get detailed information about a specific invoice including line items. Response contains user-controlled fields (ClientName, Notes, ItemDescription, PONumber) that are automatically sanitized.",
+    description: "Get an invoice and its line items",
     inputSchema: {
       type: "object",
-      properties: {
-        invoiceId: {
-          type: "number",
-          description: "The invoice ID",
-        },
-      },
+      properties: invoiceIdProperty,
       required: ["invoiceId"],
     },
   },
   {
     name: "quickfile_invoice_create",
-    description: "Create a new invoice, estimate, or credit note",
+    description: "Create an invoice, estimate, or credit note",
     inputSchema: {
       type: "object",
       properties: {
         invoiceType: {
           type: "string",
           enum: ["INVOICE", "ESTIMATE", "CREDIT"],
-          description: "Type of document to create",
         },
-        clientId: {
-          type: "number",
-          description: "Client ID",
-        },
-        currency: {
-          type: "string",
-          description: "Currency code (default: GBP)",
-          default: "GBP",
-        },
-        termDays: {
-          type: "number",
-          description: "Payment terms in days",
-          default: 30,
-        },
-        issueDate: {
-          type: "string",
-          description: "Issue date (YYYY-MM-DD, default: today)",
-        },
-        poNumber: {
-          type: "string",
-          description: "Purchase order number",
-        },
-        notes: {
-          type: "string",
-          description: "Notes to appear on invoice",
-        },
+        clientId: { type: "number" },
+        currency: { type: "string", default: "GBP" },
+        termDays: { type: "number", default: 30 },
+        issueDate: { type: "string" },
+        poNumber: { type: "string" },
+        notes: { type: "string" },
         lines: {
           type: "array",
-          description: "Invoice line items",
           items: {
             type: "object",
             properties: {
               ...lineItemSchemaProperties,
-              nominalCode: {
-                type: "string",
-                description: "Nominal code for accounting",
-              },
+              nominalCode: { type: "string" },
             },
-            // vatPercentage is intentionally not JSON-Schema-required: installs
-            // configured with businessProfile.vatRegistered=false must omit it.
-            // resolveVatPercentage enforces the conditional requirement at runtime.
             required: ["description", "unitCost", "quantity"],
           },
         },
@@ -155,299 +78,169 @@ export const invoiceTools: Tool[] = [
   },
   {
     name: "quickfile_invoice_delete",
-    description: "Delete an invoice, estimate, or credit note",
+    description: "Delete an invoice (destructive; confirmation required)",
     inputSchema: {
       type: "object",
-      properties: {
-        invoiceId: {
-          type: "number",
-          description: "The invoice ID to delete",
-        },
-      },
+      properties: invoiceIdProperty,
       required: ["invoiceId"],
     },
   },
   {
     name: "quickfile_invoice_send",
-    description: "Send an invoice or estimate by email",
+    description: "Send an invoice by email using its QuickFile client contact",
     inputSchema: {
       type: "object",
       properties: {
-        invoiceId: {
-          type: "number",
-          description: "The invoice ID to send",
-        },
-        emailTo: {
-          type: "string",
-          description:
-            "Recipient email address (uses client email if not specified)",
-        },
-        emailSubject: {
-          type: "string",
-          description: "Email subject line",
-        },
-        emailBody: {
-          type: "string",
-          description: "Email body text",
-        },
-        attachPdf: {
-          type: "boolean",
-          description: "Attach PDF to email",
-          default: true,
-        },
+        ...invoiceIdProperty,
+        clientContactId: { type: "number" },
       },
       required: ["invoiceId"],
     },
   },
   {
     name: "quickfile_invoice_get_pdf",
-    description: "Get a URL to download the invoice as PDF",
+    description: "Get a time-limited invoice PDF URL",
     inputSchema: {
       type: "object",
-      properties: {
-        invoiceId: {
-          type: "number",
-          description: "The invoice ID",
-        },
-      },
+      properties: invoiceIdProperty,
       required: ["invoiceId"],
-    },
-  },
-  {
-    name: "quickfile_estimate_accept_decline",
-    description: "Accept or decline an estimate",
-    inputSchema: {
-      type: "object",
-      properties: {
-        invoiceId: {
-          type: "number",
-          description: "The estimate ID",
-        },
-        action: {
-          type: "string",
-          enum: ["ACCEPT", "DECLINE"],
-          description: "Accept or decline the estimate",
-        },
-      },
-      required: ["invoiceId", "action"],
-    },
-  },
-  {
-    name: "quickfile_estimate_convert_to_invoice",
-    description: "Convert an accepted estimate to an invoice",
-    inputSchema: {
-      type: "object",
-      properties: {
-        estimateId: {
-          type: "number",
-          description: "The estimate ID to convert",
-        },
-      },
-      required: ["estimateId"],
     },
   },
 ];
 
-// =============================================================================
-// Tool Handlers
-// =============================================================================
-
-interface InvoiceSearchResponse {
-  RecordsetCount: number;
-  ReturnCount: number;
-  Record: Invoice[];
+interface PagingResponse<T> {
+  count: number;
+  data: T[];
 }
 
-interface InvoiceGetResponse {
-  InvoiceDetails: Invoice;
+interface InvoiceResponse {
+  id: number;
+  invoice_number?: string;
 }
 
-interface InvoiceCreateResponse {
-  InvoiceID: number;
-  InvoiceNumber: string;
+interface PdfResponse {
+  id: number;
+  uri: string;
 }
 
-interface InvoicePdfResponse {
-  PDFUri: string;
+function mapStatus(status: unknown): string | undefined {
+  if (!status) {
+    return undefined;
+  }
+  const statuses: Record<string, string> = {
+    DRAFT: "draft",
+    SENT: "sent",
+    VIEWED: "sent",
+    PAID: "paidfull",
+    PART_PAID: "paidpart",
+    OVERDUE: "aged",
+    CANCELLED: "deleted",
+  };
+  return statuses[String(status)] ?? String(status).toLowerCase();
 }
 
-interface EstimateConvertResponse {
-  InvoiceID: number;
-  InvoiceNumber: string;
+function createInvoiceBody(
+  args: Record<string, unknown>,
+  client: ReturnType<typeof getApiClient>,
+): Record<string, unknown> {
+  const lines = (args.lines as LineItemInput[]).map((line) => ({
+    description: line.description,
+    nominal_code: line.nominalCode
+      ? Number.parseInt(line.nominalCode, 10)
+      : undefined,
+    vat_rate: resolveVatPercentage(
+      line.vatPercentage,
+      client.getBusinessProfile(),
+    ),
+    unit_cost: line.unitCost,
+    qty: line.quantity,
+  }));
+  return cleanParams({
+    type: String(args.invoiceType).toLowerCase(),
+    client_id: args.clientId,
+    currency: args.currency ?? "GBP",
+    term_days: args.termDays ?? 30,
+    issue_date: args.issueDate,
+    purchase_reference: args.poNumber,
+    notes: args.notes,
+    item_lines: lines,
+  });
 }
 
 export async function handleInvoiceTool(
   toolName: string,
   args: Record<string, unknown>,
 ): Promise<ToolResult> {
-  const apiClient = getApiClient();
-
+  const client = getApiClient(args.account as string);
   try {
     switch (toolName) {
       case "quickfile_invoice_search": {
-        // Build search parameters - OrderDirection, InvoiceType, OrderResultsBy are REQUIRED
-        const params: InvoiceSearchParams = {
-          InvoiceType: (args.invoiceType as InvoiceType) ?? "INVOICE",
-          OrderResultsBy:
-            (args.orderBy as InvoiceSearchParams["OrderResultsBy"]) ??
-            "InvoiceNumber",
-          OrderDirection:
-            (args.orderDirection as InvoiceSearchParams["OrderDirection"]) ??
-            "DESC",
-          ReturnCount: (args.returnCount as number) ?? 25,
-          Offset: (args.offset as number) ?? 0,
-          ClientID: args.clientId as number | undefined,
-          DateFrom: args.dateFrom as string | undefined,
-          DateTo: args.dateTo as string | undefined,
-          Status: args.status as InvoiceStatus | undefined,
-          SearchKeyword: args.searchKeyword as string | undefined,
-        };
-
-        const cleaned = cleanParams(params);
-
-        const response = await apiClient.request<
-          { SearchParameters: typeof cleaned },
-          InvoiceSearchResponse
-        >("Invoice_Search", { SearchParameters: cleaned });
-
-        const invoices = response.Record || [];
+        const response = await client.request<PagingResponse<unknown>>("/invoices", {
+          query: cleanParams({
+            type: args.invoiceType
+              ? String(args.invoiceType).toLowerCase()
+              : undefined,
+            client_id: args.clientId,
+            date_from: args.dateFrom,
+            date_to: args.dateTo,
+            status: mapStatus(args.status),
+            invoice_number: args.searchKeyword,
+            order_column: args.orderBy ?? "issue_date",
+            order_direction: String(args.orderDirection ?? "DESC").toLowerCase(),
+            offset: args.offset ?? 0,
+            limit: args.returnCount ?? 25,
+          }),
+        });
         return successResult({
-          totalRecords: response.RecordsetCount,
-          count: invoices.length,
-          invoices: invoices,
+          totalRecords: response.count,
+          count: response.data.length,
+          invoices: response.data,
         });
       }
-
-      case "quickfile_invoice_get": {
-        const response = await apiClient.request<
-          { InvoiceID: number },
-          InvoiceGetResponse
-        >("Invoice_Get", { InvoiceID: args.invoiceId as number });
-
-        return successResult(response.InvoiceDetails);
-      }
-
+      case "quickfile_invoice_get":
+        return successResult(await client.request(`/invoices/${args.invoiceId}`));
       case "quickfile_invoice_create": {
-        const lineItems = args.lines as LineItemInput[];
-        const invoiceLines = mapLineItems<InvoiceLine>(lineItems, {
-          includeItemId: true,
-          businessProfile: apiClient.getBusinessProfile(),
+        const response = await client.request<InvoiceResponse>("/invoices", {
+          method: "POST",
+          body: createInvoiceBody(args, client),
         });
-
-        const createParams: InvoiceCreateParams = {
-          InvoiceType: args.invoiceType as InvoiceType,
-          ClientID: args.clientId as number,
-          Currency: (args.currency as string) ?? "GBP",
-          TermDays: (args.termDays as number) ?? 30,
-          IssueDate: args.issueDate as string | undefined,
-          PONumber: args.poNumber as string | undefined,
-          Notes: args.notes as string | undefined,
-          InvoiceLines: invoiceLines,
-        };
-
-        const cleaned = cleanParams(createParams);
-
-        const response = await apiClient.request<
-          { InvoiceData: typeof cleaned },
-          InvoiceCreateResponse
-        >("Invoice_Create", { InvoiceData: cleaned });
-
         return successResult({
           success: true,
-          invoiceId: response.InvoiceID,
-          invoiceNumber: response.InvoiceNumber,
-          message: `${args.invoiceType} #${response.InvoiceNumber} created successfully`,
+          invoiceId: response.id,
+          invoiceNumber: response.invoice_number,
         });
       }
-
-      case "quickfile_invoice_delete": {
-        await apiClient.request<{ InvoiceID: number }, Record<string, never>>(
-          "Invoice_Delete",
-          { InvoiceID: args.invoiceId as number },
-        );
-
-        return successResult({
-          success: true,
-          invoiceId: args.invoiceId,
-          message: `Invoice #${args.invoiceId} deleted successfully`,
+      case "quickfile_invoice_delete":
+        await client.request(`/invoices/${args.invoiceId}`, {
+          method: "DELETE",
+          body: { delete_associated_payments: false },
         });
-      }
-
+        return successResult({ success: true, invoiceId: args.invoiceId });
       case "quickfile_invoice_send": {
-        const sendParams: Record<string, unknown> = {
-          InvoiceID: args.invoiceId as number,
-        };
-
-        if (args.emailTo) {
-          sendParams.EmailTo = args.emailTo;
-        }
-        if (args.emailSubject) {
-          sendParams.EmailSubject = args.emailSubject;
-        }
-        if (args.emailBody) {
-          sendParams.EmailBody = args.emailBody;
-        }
-        sendParams.AttachPDF = args.attachPdf ?? true;
-
-        await apiClient.request<typeof sendParams, Record<string, never>>(
-          "Invoice_Send",
-          sendParams,
+        const response = await client.request<{ success: boolean }>(
+          "/invoices/send",
+          {
+            method: "POST",
+            body: [
+              cleanParams({
+                invoice_id: args.invoiceId,
+                by_email: true,
+                by_snail_mail: false,
+                client_contact_id: args.clientContactId,
+              }),
+            ],
+          },
         );
-
-        return successResult({
-          success: true,
-          invoiceId: args.invoiceId,
-          message: `Invoice #${args.invoiceId} sent successfully`,
-        });
+        return response.success
+          ? successResult({ success: true, invoiceId: args.invoiceId })
+          : errorResult(`QuickFile did not send invoice #${args.invoiceId}`);
       }
-
       case "quickfile_invoice_get_pdf": {
-        const response = await apiClient.request<
-          { InvoiceID: number },
-          InvoicePdfResponse
-        >("Invoice_GetPDF", { InvoiceID: args.invoiceId as number });
-
-        return successResult({
-          invoiceId: args.invoiceId,
-          pdfUrl: response.PDFUri,
-          message: "PDF URL generated (valid for limited time)",
-        });
+        const response = await client.request<PdfResponse>(
+          `/invoices/${args.invoiceId}/get-pdf`,
+        );
+        return successResult({ invoiceId: response.id, pdfUrl: response.uri });
       }
-
-      case "quickfile_estimate_accept_decline": {
-        await apiClient.request<
-          { InvoiceID: number; Action: string },
-          Record<string, never>
-        >("Estimate_AcceptDecline", {
-          InvoiceID: args.invoiceId as number,
-          Action: args.action as string,
-        });
-
-        return successResult({
-          success: true,
-          estimateId: args.invoiceId,
-          action: args.action,
-          message: `Estimate #${args.invoiceId} ${(args.action as string).toLowerCase()}ed`,
-        });
-      }
-
-      case "quickfile_estimate_convert_to_invoice": {
-        const response = await apiClient.request<
-          { EstimateID: number },
-          EstimateConvertResponse
-        >("Estimate_ConvertToInvoice", {
-          EstimateID: args.estimateId as number,
-        });
-
-        return successResult({
-          success: true,
-          estimateId: args.estimateId,
-          invoiceId: response.InvoiceID,
-          invoiceNumber: response.InvoiceNumber,
-          message: `Estimate converted to Invoice #${response.InvoiceNumber}`,
-        });
-      }
-
       default:
         return errorResult(`Unknown invoice tool: ${toolName}`);
     }

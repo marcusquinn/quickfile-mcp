@@ -1,480 +1,137 @@
-/**
- * Unit tests for API client module
- */
+import {
+  _clearClientCache,
+  getApiClient,
+  QuickFileApiClient,
+  QuickFileApiError,
+} from "../../src/api/client";
 
-import { QuickFileApiError } from "../../src/api/client";
-
-// Mock the auth module to prevent file system access
 jest.mock("../../src/api/auth", () => ({
-  loadCredentials: jest.fn().mockReturnValue({
-    accountNumber: "12345678",
-    apiKey: "TEST-API-KEY-1234",
-    applicationId: "12345678-1234-1234-1234-123456789012",
-  }),
-  createAuthHeader: jest.fn().mockReturnValue({
-    MessageType: "Request",
-    SubmissionNumber: "test-submission",
-    Authentication: {
-      AccNumber: "12345678",
-      MD5Value: "abc123def456",
-      ApplicationID: "12345678-1234-1234-1234-123456789012",
-    },
-  }),
+  loadCredentials: jest.fn((account: string) => ({
+    account,
+    bearerToken: `${account}-token`,
+  })),
 }));
 
+function response(status: number, data?: unknown): Response {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    text: jest.fn().mockResolvedValue(
+      data === undefined ? "" : JSON.stringify(data),
+    ),
+  } as unknown as Response;
+}
+
 describe("QuickFileApiError", () => {
-  describe("constructor", () => {
-    it("should create error with message and code", () => {
-      const error = new QuickFileApiError("Not found", "NOT_FOUND");
-
-      expect(error.message).toBe("Not found");
-      expect(error.code).toBe("NOT_FOUND");
-      expect(error.name).toBe("QuickFileApiError");
-    });
-
-    it("should be instanceof Error", () => {
-      const error = new QuickFileApiError("Test error", "TEST");
-
-      expect(error).toBeInstanceOf(Error);
-      expect(error).toBeInstanceOf(QuickFileApiError);
-    });
-
-    it("should preserve stack trace", () => {
-      const error = new QuickFileApiError("Test", "CODE");
-
-      expect(error.stack).toBeDefined();
-      expect(error.stack).toContain("QuickFileApiError");
-    });
-
-    it("should handle empty message", () => {
-      const error = new QuickFileApiError("", "EMPTY");
-
-      expect(error.message).toBe("");
-      expect(error.code).toBe("EMPTY");
-    });
-
-    it("should handle special characters in message", () => {
-      const message = 'Error: "Something" went wrong & failed < test >';
-      const error = new QuickFileApiError(message, "SPECIAL");
-
-      expect(error.message).toBe(message);
-    });
-
-    it("should handle HTTP status codes", () => {
-      const error = new QuickFileApiError("HTTP 401: Unauthorized", "401");
-
-      expect(error.code).toBe("401");
-      expect(error.message).toBe("HTTP 401: Unauthorized");
-    });
-
-    it("should handle network error codes", () => {
-      const error = new QuickFileApiError(
-        "Connection refused",
-        "NETWORK_ERROR",
-      );
-
-      expect(error.code).toBe("NETWORK_ERROR");
-    });
-
-    it("should handle timeout errors", () => {
-      const error = new QuickFileApiError(
-        "Request timeout after 30000ms",
-        "TIMEOUT",
-      );
-
-      expect(error.code).toBe("TIMEOUT");
-    });
-  });
-
-  describe("error code patterns", () => {
-    it("should work with common QuickFile error codes", () => {
-      const errorCodes = [
-        "INVALID_AUTH",
-        "CLIENT_404",
-        "INVOICE_NOT_FOUND",
-        "PARSE_ERROR",
-        "NETWORK_ERROR",
-        "TIMEOUT",
-        "UNKNOWN",
-        "VALIDATION_ERROR",
-      ];
-
-      errorCodes.forEach((code) => {
-        const error = new QuickFileApiError(`Error with code ${code}`, code);
-        expect(error.code).toBe(code);
-      });
-    });
+  it("retains a safe error code", () => {
+    const error = new QuickFileApiError("Not found", "NOT_FOUND");
+    expect(error).toBeInstanceOf(Error);
+    expect(error.name).toBe("QuickFileApiError");
+    expect(error.code).toBe("NOT_FOUND");
   });
 });
 
 describe("QuickFileApiClient", () => {
-  let originalFetch: typeof globalThis.fetch;
+  const originalFetch = globalThis.fetch;
   let mockFetch: jest.Mock;
 
   beforeEach(() => {
-    originalFetch = globalThis.fetch;
     mockFetch = jest.fn();
     globalThis.fetch = mockFetch;
+    _clearClientCache();
   });
 
-  afterEach(() => {
+  afterAll(() => {
     globalThis.fetch = originalFetch;
-    jest.clearAllMocks();
   });
 
-  // Import after mocking
-  const getClient = async () => {
-    const { QuickFileApiClient } = await import("../../src/api/client");
-    return new QuickFileApiClient();
-  };
+  it("uses the REST base URL and bearer authorization", async () => {
+    mockFetch.mockResolvedValue(response(200, { BusinessName: "Example" }));
+    const client = new QuickFileApiClient({ account: "evergreen" });
 
-  describe("constructor", () => {
-    it("should create client with default options", async () => {
-      const client = await getClient();
-
-      expect(client.isTestMode()).toBe(false);
+    await expect(client.request("/account/me")).resolves.toEqual({
+      BusinessName: "Example",
     });
-
-    it("should create client with test mode enabled", async () => {
-      const { QuickFileApiClient } = await import("../../src/api/client");
-      const client = new QuickFileApiClient({ testMode: true });
-
-      expect(client.isTestMode()).toBe(true);
-    });
-
-    it("should get account number", async () => {
-      const client = await getClient();
-
-      expect(client.getAccountNumber()).toBe("12345678");
+    const [url, options] = mockFetch.mock.calls[0] as [URL, RequestInit];
+    expect(url.toString()).toBe("https://api-beta.quickfile.co.uk/account/me");
+    expect(options.headers).toMatchObject({
+      Authorization: "Bearer evergreen-token",
+      Accept: "application/json",
     });
   });
 
-  describe("setTestMode", () => {
-    it("should toggle test mode on", async () => {
-      const client = await getClient();
-
-      client.setTestMode(true);
-
-      expect(client.isTestMode()).toBe(true);
+  it("encodes query values and repeated array parameters", async () => {
+    mockFetch.mockResolvedValue(response(200, { data: [] }));
+    const client = new QuickFileApiClient({ account: "planning" });
+    await client.request("/clients", {
+      query: { company_name: "A & B", types: ["current", "reserve"] },
     });
+    const [url] = mockFetch.mock.calls[0] as [URL];
+    expect(url.searchParams.get("company_name")).toBe("A & B");
+    expect(url.searchParams.getAll("types")).toEqual(["current", "reserve"]);
+  });
 
-    it("should toggle test mode off", async () => {
-      const { QuickFileApiClient } = await import("../../src/api/client");
-      const client = new QuickFileApiClient({ testMode: true });
+  it("sends JSON bodies with the correct content type", async () => {
+    mockFetch.mockResolvedValue(response(200, { id: 42 }));
+    const client = new QuickFileApiClient({ account: "planning" });
+    await client.request("/clients", {
+      method: "POST",
+      body: { company_name: "Example" },
+    });
+    const [, options] = mockFetch.mock.calls[0] as [URL, RequestInit];
+    expect(options.headers).toMatchObject({ "Content-Type": "application/json" });
+    expect(options.body).toBe(JSON.stringify({ company_name: "Example" }));
+  });
 
-      client.setTestMode(false);
+  it("does not set JSON content type for multipart forms", async () => {
+    mockFetch.mockResolvedValue(response(200, { id: 7 }));
+    const client = new QuickFileApiClient({ account: "planning" });
+    const form = new FormData();
+    form.append("notes", "test");
+    await client.request("/documents/general", { method: "POST", form });
+    const [, options] = mockFetch.mock.calls[0] as [URL, RequestInit];
+    expect(options.body).toBe(form);
+    expect(options.headers).not.toHaveProperty("Content-Type");
+  });
 
-      expect(client.isTestMode()).toBe(false);
+  it("handles 204 no-content responses", async () => {
+    mockFetch.mockResolvedValue(response(204));
+    const client = new QuickFileApiClient({ account: "planning" });
+    await expect(
+      client.request("/clients/42", { method: "DELETE" }),
+    ).resolves.toEqual({});
+  });
+
+  it("classifies authentication and rate-limit failures", async () => {
+    const client = new QuickFileApiClient({ account: "planning" });
+    mockFetch.mockResolvedValueOnce(response(401));
+    await expect(client.request("/account/me")).rejects.toMatchObject({
+      code: "INVALID_AUTH",
+    });
+    mockFetch.mockResolvedValueOnce(response(429));
+    await expect(client.request("/account/me")).rejects.toMatchObject({
+      code: "RATE_LIMITED",
     });
   });
 
-  describe("request", () => {
-    it("should make successful API request", async () => {
-      const mockResponse = {
-        Client_Search: {
-          Header: { MessageType: "Response", SubmissionNumber: "test-123" },
-          Body: { Clients: [{ ClientID: 1, CompanyName: "Test Corp" }] },
-        },
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const client = await getClient();
-      const result = await client.request("Client_Search", {
-        CompanyName: "Test",
-      });
-
-      expect(result).toEqual({
-        Clients: [{ ClientID: 1, CompanyName: "Test Corp" }],
-      });
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+  it("rejects legacy method names", async () => {
+    const client = new QuickFileApiClient({ account: "planning" });
+    await expect(client.request("Client_Search")).rejects.toMatchObject({
+      code: "LEGACY_UNSUPPORTED",
     });
-
-    it("should throw on HTTP error response", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        statusText: "Internal Server Error",
-      });
-
-      const client = await getClient();
-
-      await expect(client.request("Client_Search", {})).rejects.toThrow(
-        QuickFileApiError,
-      );
-
-      // Need to mock again for the second assertion
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        statusText: "Internal Server Error",
-      });
-
-      await expect(client.request("Client_Search", {})).rejects.toThrow(
-        "HTTP 500",
-      );
-    });
-
-    it("should normalize 401 to INVALID_AUTH error code", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        statusText: "Unauthorized",
-        json: () => Promise.resolve({}),
-      });
-
-      const client = await getClient();
-
-      await expect(client.request("Client_Search", {})).rejects.toMatchObject({
-        code: "INVALID_AUTH",
-      });
-    });
-
-    it("should normalize 403 to INVALID_AUTH error code", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 403,
-        statusText: "Forbidden",
-        json: () => Promise.resolve({}),
-      });
-
-      const client = await getClient();
-
-      await expect(client.request("Client_Search", {})).rejects.toMatchObject({
-        code: "INVALID_AUTH",
-      });
-    });
-
-    it("should filter empty strings from qfErrors array", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        statusText: "Bad Request",
-        json: () =>
-          Promise.resolve({ Errors: { Error: ["", "Real error", "  "] } }),
-      });
-
-      const client = await getClient();
-
-      await expect(client.request("Client_Search", {})).rejects.toMatchObject({
-        message: "Real error",
-      });
-    });
-
-    it("should throw on API error response", async () => {
-      const mockResponse = {
-        Errors: [
-          { ErrorCode: "AUTH_FAILED", ErrorMessage: "Invalid credentials" },
-        ],
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const client = await getClient();
-
-      await expect(client.request("Client_Search", {})).rejects.toThrow(
-        "Invalid credentials",
-      );
-    });
-
-    it("should combine multiple API errors", async () => {
-      const mockResponse = {
-        Errors: [
-          { ErrorCode: "ERROR_1", ErrorMessage: "First error" },
-          { ErrorCode: "ERROR_2", ErrorMessage: "Second error" },
-        ],
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const client = await getClient();
-
-      await expect(client.request("Client_Search", {})).rejects.toThrow(
-        "First error; Second error",
-      );
-    });
-
-    it("should throw on timeout", async () => {
-      // Create a client with a very short timeout
-      const { QuickFileApiClient } = await import("../../src/api/client");
-      const client = new QuickFileApiClient({ timeout: 1 });
-
-      // Mock a slow response - use AbortController signal handling
-      mockFetch.mockImplementationOnce(
-        (_, options: { signal?: AbortSignal }) =>
-          new Promise((resolve, reject) => {
-            const timeoutId = setTimeout(resolve, 100);
-            if (options?.signal) {
-              options.signal.addEventListener("abort", () => {
-                clearTimeout(timeoutId);
-                const abortError = new Error("Aborted");
-                abortError.name = "AbortError";
-                reject(abortError);
-              });
-            }
-          }),
-      );
-
-      await expect(client.request("Client_Search", {})).rejects.toMatchObject({
-        code: "TIMEOUT",
-      });
-    });
-
-    it("should throw on network error", async () => {
-      mockFetch.mockRejectedValueOnce(new Error("Network failure"));
-
-      const client = await getClient();
-
-      await expect(client.request("Client_Search", {})).rejects.toMatchObject({
-        code: "NETWORK_ERROR",
-      });
-    });
-
-    it("should throw on invalid response structure", async () => {
-      const mockResponse = {
-        // Missing method key and Body
-        SomeOtherKey: [],
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const client = await getClient();
-
-      await expect(client.request("Client_Search", {})).rejects.toMatchObject({
-        code: "PARSE_ERROR",
-      });
-    });
-
-    it("should build correct URL for simple method names", async () => {
-      const mockResponse = {
-        Client_Search: {
-          Header: { MessageType: "Response", SubmissionNumber: "test" },
-          Body: { Clients: [] },
-        },
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const client = await getClient();
-      await client.request("Client_Search", {});
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.quickfile.co.uk/1_2/client/search",
-        expect.any(Object),
-      );
-    });
-
-    it("should build correct URL for compound method names", async () => {
-      const mockResponse = {
-        System_GetAccountDetails: {
-          Header: { MessageType: "Response", SubmissionNumber: "test" },
-          Body: {},
-        },
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const client = await getClient();
-      await client.request("System_GetAccountDetails", {});
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        "https://api.quickfile.co.uk/1_2/system/getaccountdetails",
-        expect.any(Object),
-      );
-    });
-
-    it("should send correct headers", async () => {
-      const mockResponse = {
-        Client_Search: {
-          Header: { MessageType: "Response", SubmissionNumber: "test" },
-          Body: {},
-        },
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const client = await getClient();
-      await client.request("Client_Search", {});
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        }),
-      );
-    });
-
-    it("should handle response with alternative key structure", async () => {
-      // Some responses might have a different structure
-      const mockResponse = {
-        AnotherMethod_Response: {
-          Header: { MessageType: "Response", SubmissionNumber: "test" },
-          Body: { data: "test" },
-        },
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const client = await getClient();
-      const result = await client.request("SomeMethod_Call", {});
-
-      expect(result).toEqual({ data: "test" });
-    });
-  });
-});
-
-describe("getApiClient", () => {
-  beforeEach(() => {
-    // Reset module to clear singleton
-    jest.resetModules();
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("should return same instance on multiple calls", async () => {
-    const { getApiClient } = await import("../../src/api/client");
-
-    const client1 = getApiClient();
-    const client2 = getApiClient();
-
-    expect(client1).toBe(client2);
+  it("rejects protocol-relative paths before adding bearer authorization", async () => {
+    const client = new QuickFileApiClient({ account: "planning" });
+    await expect(client.request("//example.invalid/account/me")).rejects.toMatchObject({
+      code: "INVALID_PATH",
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("should create new instance when options provided", async () => {
-    const { getApiClient } = await import("../../src/api/client");
-
-    // First call creates default instance
-    getApiClient();
-    // Passing options creates new instance with those options
-    const clientWithOptions = getApiClient({ testMode: true });
-
-    // New options should create a new instance
-    expect(clientWithOptions.isTestMode()).toBe(true);
+  it("returns one cached client per account", () => {
+    expect(getApiClient("evergreen")).toBe(getApiClient("evergreen"));
+    expect(getApiClient("evergreen")).not.toBe(getApiClient("planning"));
   });
 });

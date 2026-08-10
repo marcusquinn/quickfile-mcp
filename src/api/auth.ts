@@ -1,203 +1,123 @@
 /**
- * QuickFile API Authentication
- * Implements MD5 hash-based authentication as per QuickFile API docs
- * https://api.quickfile.co.uk/#4
+ * QuickFile REST API bearer-token authentication.
  *
- * SECURITY NOTE: This module uses MD5 hashing for API authentication.
- * MD5 is cryptographically weak and would not be recommended for new systems.
- * However, this is REQUIRED by the QuickFile API specification and cannot
- * be changed without QuickFile updating their authentication mechanism.
- *
- * The authentication flow:
- * 1. Generate a unique submission number for each request
- * 2. Create MD5 hash of: AccountNumber + APIKey + SubmissionNumber
- * 3. Include the hash in the request header for server-side verification
- *
- * The API key itself is never transmitted directly - only the hash is sent.
+ * Tokens are supplied through environment variables so a secret manager can
+ * inject them into the MCP process without writing plaintext credential files.
+ * Multi-account variables use QUICKFILE_<ACCOUNT>_API_KEY. The
+ * QUICKFILE_<ACCOUNT>_API_TOKEN and QUICKFILE_<ACCOUNT>_BEARER_TOKEN aliases are
+ * also accepted, with BEARER_TOKEN taking precedence.
  */
 
-import { createHash } from "node:crypto";
-import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
-import { homedir } from "node:os";
-import type {
-  QuickFileCredentials,
-  QuickFileHeader,
-} from "../types/quickfile.js";
+import type { QuickFileCredentials } from "../types/quickfile.js";
 
-// Credential cache (file read once per process)
-let _cachedCredentials: QuickFileCredentials | null = null;
+const TOKEN_SUFFIXES = ["BEARER_TOKEN", "API_TOKEN", "API_KEY"] as const;
+const GENERIC_ACCOUNT = "default";
+const credentialsCache = new Map<string, QuickFileCredentials>();
 
-// Credential storage location following project pattern
-const CREDENTIALS_PATH = join(
-  homedir(),
-  ".config",
-  ".quickfile-mcp",
-  "credentials.json",
-);
-
-// Submission number counter (auto-increments per session)
-let submissionCounter = 0;
-
-/**
- * Validate that all three required credential fields are present.
- * Uses an array check to keep cyclomatic complexity minimal.
- */
-function validateRequiredFields(credentials: QuickFileCredentials): void {
-  const present = [
-    credentials.accountNumber,
-    credentials.apiKey,
-    credentials.applicationId,
-  ];
-  if (present.some((v) => !v)) {
+function normalizeAccount(account: string): string {
+  const normalized = account.trim().toUpperCase().replace(/-/g, "_");
+  if (!normalized || !/^[A-Z0-9_]+$/.test(normalized)) {
     throw new Error(
-      "Missing required credential fields: accountNumber, apiKey, applicationId",
+      "QuickFile account must contain only letters, numbers, underscores, or hyphens",
     );
   }
+  return normalized;
 }
 
-/**
- * Validate the optional businessProfile block when it is present.
- * Extracted to reduce cyclomatic complexity of loadCredentials.
- */
-function validateBusinessProfile(credentials: QuickFileCredentials): void {
-  const bp = credentials.businessProfile;
-  if (bp === undefined) {
-    return;
+function tokenVariableCandidates(account: string): string[] {
+  const normalized = normalizeAccount(account);
+  if (normalized === GENERIC_ACCOUNT.toUpperCase()) {
+    return TOKEN_SUFFIXES.map((suffix) => `QUICKFILE_${suffix}`);
   }
-  if (typeof bp !== "object" || bp === null || Array.isArray(bp)) {
-    throw new Error(
-      "Invalid businessProfile in credentials file: must be an object",
-    );
-  }
-  if (typeof bp.vatRegistered !== "boolean") {
-    throw new Error(
-      "Invalid businessProfile in credentials file: vatRegistered must be true or false",
-    );
-  }
-}
-
-/**
- * Load credentials from secure storage.
- * Reads the file once per process and caches the result.
- * Pass `forceReload = true` in tests to bypass the cache.
- */
-export function loadCredentials(forceReload = false): QuickFileCredentials {
-  if (_cachedCredentials && !forceReload) {
-    return _cachedCredentials;
-  }
-
-  if (!existsSync(CREDENTIALS_PATH)) {
-    throw new Error(
-      `QuickFile credentials not found at ${CREDENTIALS_PATH}\n` +
-        "Please create the file with: accountNumber, apiKey, applicationId",
-    );
-  }
-
-  try {
-    const content = readFileSync(CREDENTIALS_PATH, "utf-8");
-    const credentials = JSON.parse(content) as QuickFileCredentials;
-    validateRequiredFields(credentials);
-    validateBusinessProfile(credentials);
-    _cachedCredentials = credentials;
-    return credentials;
-  } catch (error) {
-    if (error instanceof SyntaxError) {
-      throw new Error(`Invalid JSON in credentials file: ${CREDENTIALS_PATH}`);
-    }
-    throw error;
-  }
-}
-
-/**
- * Clear the credentials cache.
- * Intended for tests only — not for production use.
- * @internal
- */
-export function _clearCredentialsCache(): void {
-  _cachedCredentials = null;
-}
-
-/**
- * Generate a unique submission number
- * Format: Timestamp + Counter (ensures uniqueness)
- */
-export function generateSubmissionNumber(): string {
-  submissionCounter++;
-  const timestamp = Date.now().toString(36);
-  const counter = submissionCounter.toString().padStart(4, "0");
-  return `${timestamp}${counter}`;
-}
-
-/**
- * Generate MD5 hash for authentication
- * Formula: MD5(AccountNumber + APIKey + SubmissionNumber)
- *
- * NOTE: MD5 is used here because it is REQUIRED by the QuickFile API.
- * This is an API constraint, not a design choice. See module documentation.
- */
-export function generateMD5Hash(
-  accountNumber: string,
-  apiKey: string,
-  submissionNumber: string,
-): string {
-  const input = `${accountNumber}${apiKey}${submissionNumber}`;
-  return createHash("md5").update(input).digest("hex"); // NOSONAR - MD5 required by QuickFile API specification
-}
-
-/**
- * Create authentication header for API requests
- */
-export function createAuthHeader(
-  credentials: QuickFileCredentials,
-  testMode = false,
-): QuickFileHeader {
-  const submissionNumber = generateSubmissionNumber();
-  const md5Value = generateMD5Hash(
-    credentials.accountNumber,
-    credentials.apiKey,
-    submissionNumber,
+  return TOKEN_SUFFIXES.map(
+    (suffix) => `QUICKFILE_${normalized}_${suffix}`,
   );
-
-  const header: QuickFileHeader = {
-    MessageType: "Request",
-    SubmissionNumber: submissionNumber,
-    Authentication: {
-      AccNumber: credentials.accountNumber,
-      MD5Value: md5Value,
-      ApplicationID: credentials.applicationId,
-    },
-  };
-
-  if (testMode) {
-    header.TestMode = true;
-  }
-
-  return header;
 }
 
-/**
- * Validate credentials by checking format (does not call API)
- */
+function readBusinessProfile(
+  normalizedAccount: string,
+): QuickFileCredentials["businessProfile"] {
+  const variable =
+    normalizedAccount === GENERIC_ACCOUNT.toUpperCase()
+      ? "QUICKFILE_VAT_REGISTERED"
+      : `QUICKFILE_${normalizedAccount}_VAT_REGISTERED`;
+  const raw = process.env[variable];
+  if (raw === undefined) {
+    return undefined;
+  }
+  if (raw !== "true" && raw !== "false") {
+    throw new Error(`${variable} must be true or false`);
+  }
+  return { vatRegistered: raw === "true" };
+}
+
+/** Return configured account aliases without exposing token values. */
+export function listConfiguredAccounts(
+  environment: NodeJS.ProcessEnv = process.env,
+): string[] {
+  const accounts = new Set<string>();
+
+  for (const variable of Object.keys(environment)) {
+    for (const suffix of TOKEN_SUFFIXES) {
+      const marker = `QUICKFILE_`;
+      const ending = `_${suffix}`;
+      if (variable.startsWith(marker) && variable.endsWith(ending)) {
+        const account = variable.slice(marker.length, -ending.length);
+        if (account && environment[variable]) {
+          accounts.add(account.toLowerCase());
+        }
+      }
+    }
+  }
+
+  if (TOKEN_SUFFIXES.some((suffix) => environment[`QUICKFILE_${suffix}`])) {
+    accounts.add(GENERIC_ACCOUNT);
+  }
+
+  return [...accounts].sort();
+}
+
+/** Load one account's bearer token from the process environment. */
+export function loadCredentials(
+  account: string,
+  forceReload = false,
+): QuickFileCredentials {
+  const normalized = normalizeAccount(account);
+  const cacheKey = normalized.toLowerCase();
+  const cached = credentialsCache.get(cacheKey);
+  if (cached && !forceReload) {
+    return cached;
+  }
+
+  const variable = tokenVariableCandidates(account).find(
+    (candidate) => process.env[candidate],
+  );
+  if (!variable) {
+    throw new Error(
+      `QuickFile bearer token not found for account "${account}". Expected QUICKFILE_${normalized}_API_KEY`,
+    );
+  }
+
+  const credentials: QuickFileCredentials = {
+    account: cacheKey,
+    bearerToken: process.env[variable] as string,
+    businessProfile: readBusinessProfile(normalized),
+  };
+  credentialsCache.set(cacheKey, credentials);
+  return credentials;
+}
+
+/** Validate only presence; QuickFile personal tokens have no stable public shape. */
 export function validateCredentialsFormat(
   credentials: QuickFileCredentials,
 ): boolean {
-  // Account number should be numeric
-  if (!/^\d+$/.test(credentials.accountNumber)) {
-    return false;
-  }
+  return (
+    /^[a-z0-9_]+$/.test(credentials.account) &&
+    credentials.bearerToken.trim().length > 0
+  );
+}
 
-  // API key should be in format XXXX-XXXX-XXXX (may vary)
-  if (!credentials.apiKey || credentials.apiKey.length < 10) {
-    return false;
-  }
-
-  // Application ID should be UUID format
-  const uuidRegex =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(credentials.applicationId)) {
-    return false;
-  }
-
-  return true;
+/** Clear cached environment lookups. Intended for tests. */
+export function _clearCredentialsCache(): void {
+  credentialsCache.clear();
 }

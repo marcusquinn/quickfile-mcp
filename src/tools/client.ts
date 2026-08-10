@@ -1,41 +1,30 @@
-/**
- * QuickFile Client Tools
- * Client/customer management operations
- */
+/** QuickFile REST client/customer tools. */
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { getApiClient } from "../api/client.js";
-import type { Client, ClientContact } from "../types/quickfile.js";
 import {
   handleToolError,
   successResult,
   errorResult,
   cleanParams,
-  buildAddressFromArgs,
-  buildClientCreateData,
-  buildClientUpdateData,
   searchSchemaProperties,
   entitySchemaProperties,
   type ToolResult,
 } from "./utils.js";
 
-// =============================================================================
-// Tool Definitions
-// =============================================================================
-
 export const clientTools: Tool[] = [
   {
     name: "quickfile_client_search",
     description:
-      "Search for clients by company name, contact name, email, or postcode. Response contains user-controlled fields (CompanyName, contact names, email) that are automatically sanitized.",
+      "Search clients. Returned names, contacts, and addresses are sanitized as untrusted content.",
     inputSchema: {
       type: "object",
       properties: {
         ...searchSchemaProperties,
+        includeDeleted: { type: "boolean" },
         orderBy: {
           type: "string",
-          enum: ["CompanyName", "DateCreated", "ClientID"],
-          description: "Field to order results by",
+          enum: ["company_name", "created_date"],
         },
       },
       required: [],
@@ -43,268 +32,227 @@ export const clientTools: Tool[] = [
   },
   {
     name: "quickfile_client_get",
-    description:
-      "Get detailed information about a specific client by ID. Response contains user-controlled fields (CompanyName, contact names, Notes, Address, email, website) that are automatically sanitized.",
+    description: "Get a client, including contacts and financial summary",
     inputSchema: {
       type: "object",
-      properties: {
-        clientId: { type: "number", description: "The client ID" },
-      },
+      properties: { clientId: { type: "number" } },
       required: ["clientId"],
     },
   },
   {
     name: "quickfile_client_create",
-    description: "Create a new client record",
+    description: "Create a client and optionally its first contact",
     inputSchema: {
       type: "object",
-      properties: entitySchemaProperties,
-      required: [],
+      properties: {
+        ...entitySchemaProperties,
+        firstName: { type: "string" },
+        lastName: { type: "string" },
+        email: { type: "string" },
+        telephone: { type: "string" },
+        mobile: { type: "string" },
+      },
+      required: ["companyName"],
     },
   },
   {
     name: "quickfile_client_update",
-    description: "Update an existing client record",
+    description: "Update a client",
     inputSchema: {
       type: "object",
-      properties: {
-        clientId: { type: "number", description: "The client ID to update" },
-        ...entitySchemaProperties,
-      },
+      properties: { clientId: { type: "number" }, ...entitySchemaProperties },
       required: ["clientId"],
     },
   },
   {
     name: "quickfile_client_delete",
-    description: "Delete a client record (use with caution)",
+    description: "Delete a client (destructive; confirmation required)",
     inputSchema: {
       type: "object",
-      properties: {
-        clientId: { type: "number", description: "The client ID to delete" },
-      },
+      properties: { clientId: { type: "number" } },
       required: ["clientId"],
     },
   },
   {
     name: "quickfile_client_insert_contacts",
-    description: "Add a new contact to an existing client",
+    description: "Add a contact to a client",
     inputSchema: {
       type: "object",
       properties: {
-        clientId: { type: "number", description: "The client ID" },
-        firstName: { type: "string", description: "Contact first name" },
-        lastName: { type: "string", description: "Contact last name" },
-        email: { type: "string", description: "Contact email" },
-        telephone: { type: "string", description: "Contact telephone" },
-        mobile: { type: "string", description: "Contact mobile" },
-        isPrimary: {
-          type: "boolean",
-          description: "Set as primary contact",
-          default: false,
-        },
+        clientId: { type: "number" },
+        firstName: { type: "string" },
+        lastName: { type: "string" },
+        email: { type: "string" },
+        telephone: { type: "string" },
+        mobile: { type: "string" },
+        isPrimary: { type: "boolean", default: false },
       },
-      required: ["clientId", "firstName", "lastName"],
+      required: ["clientId", "firstName", "lastName", "email"],
     },
   },
   {
     name: "quickfile_client_login_url",
-    description:
-      "Get a passwordless login URL for a client to view their invoices",
+    description: "Generate a time-limited client dashboard login URL",
     inputSchema: {
       type: "object",
-      properties: {
-        clientId: { type: "number", description: "The client ID" },
-      },
+      properties: { clientId: { type: "number" } },
       required: ["clientId"],
     },
   },
 ];
 
-// =============================================================================
-// Tool Handlers
-// =============================================================================
-
-interface ClientSearchResponse {
-  RecordsetCount: number;
-  ReturnCount: number;
-  Record: Array<{
-    ClientID: number;
-    ClientCreatedDate: string;
-    CompanyName: string;
-    Status: string;
-    PrimaryContact?: {
-      FirstName?: string;
-      Surname?: string;
-      Telephone?: string;
-      Email?: string;
-    };
-    AccountBalance?: string;
-  }>;
+interface PagingResponse<T> {
+  count: number;
+  data: T[];
 }
 
-interface ClientGetResponse {
-  ClientDetails: Client;
+interface EntityResponse {
+  id: number;
 }
 
-interface ClientCreateResponse {
-  ClientID: number;
+interface LoginResponse {
+  redirect_url: string;
 }
 
-interface ClientLoginResponse {
-  LoginURL: string;
-}
-
-interface ContactInsertResponse {
-  ContactID: number;
-}
-
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-function buildSearchParams(
+function clientBody(
   args: Record<string, unknown>,
+  includeDefaults: boolean,
 ): Record<string, unknown> {
-  const searchParams: Record<string, unknown> = {
-    ReturnCount: (args.returnCount as number) ?? 25,
-    Offset: (args.offset as number) ?? 0,
-    OrderResultsBy: (args.orderBy as string) ?? "CompanyName",
-    OrderDirection: (args.orderDirection as string) ?? "ASC",
-  };
-
-  if (args.companyName) {
-    searchParams.CompanyName = args.companyName;
-  }
-  if (args.firstName) {
-    searchParams.FirstName = args.firstName;
-  }
-  if (args.lastName) {
-    searchParams.Surname = args.lastName;
-  }
-  if (args.email) {
-    searchParams.Email = args.email;
-  }
-  if (args.telephone) {
-    searchParams.Telephone = args.telephone;
-  }
-
-  return searchParams;
+  return cleanParams({
+    company_name: args.companyName,
+    company_number: args.companyRegNo,
+    address_line1: args.address1,
+    address_line2: args.address2,
+    address_line3: args.county,
+    town: args.town,
+    country_iso: normalizeCountryIso(args.countryIso ?? args.country),
+    post_code: args.postcode,
+    vat_number: args.vatNumber,
+    default_currency: args.currency ?? (includeDefaults ? "GBP" : undefined),
+    default_term: args.termDays ?? (includeDefaults ? 30 : undefined),
+  });
 }
 
-// =============================================================================
-// Tool Handler
-// =============================================================================
+function normalizeCountryIso(value: unknown): string | undefined {
+  if (value === undefined || value === "") {
+    return undefined;
+  }
+  const normalized = String(value).trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(normalized)) {
+    throw new Error("countryIso must be an ISO 3166-1 alpha-2 code");
+  }
+  return normalized;
+}
+
+function contactBody(args: Record<string, unknown>): Record<string, unknown> {
+  return cleanParams({
+    first_name: args.firstName,
+    surname: args.lastName,
+    email: args.email,
+    telephone1: args.telephone,
+    telephone2: args.mobile,
+    is_default: args.isPrimary ?? false,
+  });
+}
+
+function hasContactInput(args: Record<string, unknown>): boolean {
+  return ["firstName", "lastName", "email", "telephone", "mobile"].some(
+    (field) => args[field] !== undefined,
+  );
+}
 
 export async function handleClientTool(
   toolName: string,
   args: Record<string, unknown>,
 ): Promise<ToolResult> {
-  const apiClient = getApiClient();
-
+  const client = getApiClient(args.account as string);
   try {
     switch (toolName) {
       case "quickfile_client_search": {
-        const searchParams = buildSearchParams(args);
-        const response = await apiClient.request<
-          { SearchParameters: typeof searchParams },
-          ClientSearchResponse
-        >("Client_Search", { SearchParameters: searchParams });
-        const clients = response.Record || [];
+        const response = await client.request<PagingResponse<unknown>>("/clients", {
+          query: cleanParams({
+            company_name: args.companyName,
+            first_name: args.firstName,
+            surname: args.lastName,
+            email: args.email,
+            telephone: args.telephone,
+            include_deleted: args.includeDeleted,
+            order_column: args.orderBy ?? "company_name",
+            order_direction: String(args.orderDirection ?? "ASC").toLowerCase(),
+            offset: args.offset ?? 0,
+            limit: args.returnCount ?? 25,
+          }),
+        });
         return successResult({
-          totalRecords: response.RecordsetCount,
-          returnedCount: response.ReturnCount,
-          clients: clients,
+          totalRecords: response.count,
+          count: response.data.length,
+          clients: response.data,
         });
       }
-
-      case "quickfile_client_get": {
-        const response = await apiClient.request<
-          { ClientID: number },
-          ClientGetResponse
-        >("Client_Get", { ClientID: args.clientId as number });
-        return successResult(response.ClientDetails);
-      }
-
+      case "quickfile_client_get":
+        return successResult(
+          await client.request(`/clients/${args.clientId}`, {
+            query: { contacts: true, financials: true },
+          }),
+        );
       case "quickfile_client_create": {
-        const address = buildAddressFromArgs(args);
-        const clientData = buildClientCreateData(args, address);
-        const cleanData = cleanParams(clientData);
-        const response = await apiClient.request<
-          { ClientData: typeof cleanData },
-          ClientCreateResponse
-        >("Client_Create", { ClientData: cleanData });
+        if (
+          hasContactInput(args) &&
+          (!args.firstName || !args.lastName || !args.email)
+        ) {
+          return errorResult(
+            "firstName, lastName, and email are all required when creating a client contact",
+          );
+        }
+        const created = await client.request<EntityResponse>("/clients", {
+          method: "POST",
+          body: clientBody(args, true),
+        });
+        let contactId: number | undefined;
+        if (hasContactInput(args)) {
+          const contact = await client.request<EntityResponse>(
+            `/clients/${created.id}/contacts`,
+            { method: "POST", body: contactBody(args) },
+          );
+          contactId = contact.id;
+        }
+        return successResult({ success: true, clientId: created.id, contactId });
+      }
+      case "quickfile_client_update":
         return successResult({
           success: true,
-          clientId: response.ClientID,
-          message: `Client created successfully with ID ${response.ClientID}`,
+          client: await client.request(`/clients/${args.clientId}`, {
+            method: "PUT",
+            body: clientBody(args, false),
+          }),
         });
-      }
-
-      case "quickfile_client_update": {
-        const clientId = args.clientId as number;
-        const address = buildAddressFromArgs(args);
-        const entityData = buildClientUpdateData(args, address);
-        const updateData = { ClientID: clientId, ...entityData };
-        const cleanData = cleanParams(updateData);
-        await apiClient.request<
-          { ClientData: typeof cleanData },
-          Record<string, never>
-        >("Client_Update", { ClientData: cleanData });
-        return successResult({
-          success: true,
-          clientId,
-          message: `Client #${clientId} updated successfully`,
-        });
-      }
-
-      case "quickfile_client_delete": {
-        const clientId = args.clientId as number;
-        await apiClient.request<{ ClientID: number }, Record<string, never>>(
-          "Client_Delete",
-          { ClientID: clientId },
+      case "quickfile_client_delete":
+        await client.request(`/clients/${args.clientId}`, { method: "DELETE" });
+        return successResult({ success: true, clientId: args.clientId });
+      case "quickfile_client_insert_contacts": {
+        const contact = await client.request<EntityResponse>(
+          `/clients/${args.clientId}/contacts`,
+          { method: "POST", body: contactBody(args) },
         );
         return successResult({
           success: true,
-          clientId,
-          message: `Client #${clientId} deleted successfully`,
+          clientId: args.clientId,
+          contactId: contact.id,
         });
       }
-
-      case "quickfile_client_insert_contacts": {
-        const contact: ClientContact = {
-          FirstName: args.firstName as string,
-          LastName: args.lastName as string,
-          Email: args.email as string | undefined,
-          Telephone: args.telephone as string | undefined,
-          Mobile: args.mobile as string | undefined,
-          IsPrimary: (args.isPrimary as boolean) ?? false,
-        };
-        const response = await apiClient.request<
-          { ClientID: number; Contact: ClientContact },
-          ContactInsertResponse
-        >("Client_InsertContacts", {
-          ClientID: args.clientId as number,
-          Contact: contact,
-        });
-        return successResult({
-          success: true,
-          contactId: response.ContactID,
-          message: `Contact added to client #${args.clientId}`,
-        });
-      }
-
       case "quickfile_client_login_url": {
-        const response = await apiClient.request<
-          { ClientID: number },
-          ClientLoginResponse
-        >("Client_LogIn", { ClientID: args.clientId as number });
+        const response = await client.request<LoginResponse>(
+          `/clients/${args.clientId}/login`,
+          {
+            method: "POST",
+            body: { landing_page: { dashboard: true } },
+          },
+        );
         return successResult({
           clientId: args.clientId,
-          loginUrl: response.LoginURL,
-          message: "Passwordless login URL generated (valid for limited time)",
+          loginUrl: response.redirect_url,
         });
       }
-
       default:
         return errorResult(`Unknown client tool: ${toolName}`);
     }

@@ -1,111 +1,51 @@
-/**
- * QuickFile Supplier Tools
- * Supplier management operations
- */
+/** QuickFile REST supplier tools. */
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { getApiClient } from "../api/client.js";
-import type {
-  SupplierCreateResponse,
-  SupplierGetResponse,
-  SupplierSearchParams,
-  SupplierSearchResponse,
-  SupplierUpdateResponse,
-} from "../types/quickfile.js";
 import {
-  handleToolError,
-  successResult,
-  errorResult,
   cleanParams,
-  buildSupplierCreateData,
-  buildSupplierUpdateData,
+  errorResult,
+  handleToolError,
+  logger,
+  successResult,
   supplierEntitySchemaProperties,
   type ToolResult,
 } from "./utils.js";
 
-// =============================================================================
-// Tool Definitions
-// =============================================================================
-
 export const supplierTools: Tool[] = [
   {
     name: "quickfile_supplier_search",
-    description:
-      "Search for suppliers by company name, contact first/last name, contact email, telephone, supplier reference, or postcode. Response contains user-controlled fields that are automatically sanitized.",
+    description: "Search suppliers",
     inputSchema: {
       type: "object",
       properties: {
-        companyName: {
-          type: "string",
-          description: "Search by company name (partial match)",
-        },
-        firstName: {
-          type: "string",
-          description: "Search by contact first name",
-        },
-        lastName: {
-          type: "string",
-          description: "Search by contact surname",
-        },
-        email: {
-          type: "string",
-          description: "Search by contact email address",
-        },
-        telephone: {
-          type: "string",
-          description: "Search by contact telephone number",
-        },
-        supplierReference: {
-          type: "string",
-          description: "Search by supplier reference",
-        },
-        postcode: {
-          type: "string",
-          description: "Search by postcode",
-        },
-        showDeleted: {
-          type: "boolean",
-          description: "Include deleted suppliers in results",
-        },
-        returnCount: {
-          type: "number",
-          description: "Number of results (default: 25)",
-          default: 25,
-        },
-        offset: {
-          type: "number",
-          description: "Offset for pagination",
-          default: 0,
-        },
-        orderBy: {
-          type: "string",
-          enum: ["CompanyName", "DateCreated", "SupplierID"],
-          description: "Field to order by",
-        },
-        orderDirection: {
-          type: "string",
-          enum: ["ASC", "DESC"],
-          description: "Order direction",
-        },
+        companyName: { type: "string" },
+        firstName: { type: "string" },
+        lastName: { type: "string" },
+        email: { type: "string" },
+        telephone: { type: "string" },
+        supplierReference: { type: "string" },
+        showDeleted: { type: "boolean" },
+        returnCount: { type: "number", default: 25 },
+        offset: { type: "number", default: 0 },
+        orderBy: { type: "string" },
+        orderDirection: { type: "string", enum: ["ASC", "DESC"] },
       },
       required: [],
     },
   },
   {
     name: "quickfile_supplier_get",
-    description:
-      "Get detailed information about a specific supplier. Response contains user-controlled fields (CompanyName, Notes, Address, contact names) that are automatically sanitized.",
+    description: "Get a supplier",
     inputSchema: {
       type: "object",
-      properties: {
-        supplierId: { type: "number", description: "The supplier ID" },
-      },
+      properties: { supplierId: { type: "number" } },
       required: ["supplierId"],
     },
   },
   {
     name: "quickfile_supplier_create",
-    description: "Create a new supplier record",
+    description: "Create a supplier",
     inputSchema: {
       type: "object",
       properties: supplierEntitySchemaProperties,
@@ -114,179 +54,153 @@ export const supplierTools: Tool[] = [
   },
   {
     name: "quickfile_supplier_update",
-    description: "Update an existing supplier record",
+    description: "Update a supplier",
     inputSchema: {
       type: "object",
       properties: {
-        supplierId: { type: "number", description: "The supplier ID" },
-        ...supplierEntitySchemaProperties,
+        supplierId: { type: "number" },
+        companyName: supplierEntitySchemaProperties.companyName,
+        companyNumber: supplierEntitySchemaProperties.companyNumber,
+        supplierReference: supplierEntitySchemaProperties.supplierReference,
+        website: supplierEntitySchemaProperties.website,
+        address1: supplierEntitySchemaProperties.address1,
+        address2: supplierEntitySchemaProperties.address2,
+        address3: supplierEntitySchemaProperties.address3,
+        town: supplierEntitySchemaProperties.town,
+        postcode: supplierEntitySchemaProperties.postcode,
+        countryIso: supplierEntitySchemaProperties.countryIso,
+        country: supplierEntitySchemaProperties.country,
+        vatNumber: supplierEntitySchemaProperties.vatNumber,
+        currency: supplierEntitySchemaProperties.currency,
+        termDays: supplierEntitySchemaProperties.termDays,
+        defaultVatRate: supplierEntitySchemaProperties.defaultVatRate,
+        defaultNominalCode: supplierEntitySchemaProperties.defaultNominalCode,
       },
       required: ["supplierId"],
     },
   },
   {
     name: "quickfile_supplier_delete",
-    description: "Delete a supplier record (use with caution)",
+    description: "Delete a supplier (destructive; confirmation required)",
     inputSchema: {
       type: "object",
-      properties: {
-        supplierId: {
-          type: "number",
-          description: "The supplier ID to delete",
-        },
-      },
+      properties: { supplierId: { type: "number" } },
       required: ["supplierId"],
     },
   },
 ];
 
-// =============================================================================
-// Tool Handlers
-// =============================================================================
-
-interface QuickFileRequester {
-  request<TRequest, TResponse>(
-    methodName: string,
-    body: TRequest,
-  ): Promise<TResponse>;
+interface PagingResponse<T> {
+  count: number;
+  data: T[];
 }
 
-function buildSupplierSearchParams(
-  args: Record<string, unknown>,
-): Partial<SupplierSearchParams> {
-  return cleanParams({
-    OrderResultsBy:
-      (args.orderBy as SupplierSearchParams["OrderResultsBy"]) ??
-      "CompanyName",
-    OrderDirection:
-      (args.orderDirection as SupplierSearchParams["OrderDirection"]) ?? "ASC",
-    ReturnCount: (args.returnCount as number) ?? 25,
-    Offset: (args.offset as number) ?? 0,
-    CompanyName: args.companyName as string | undefined,
-    ContactFirstName: args.firstName as string | undefined,
-    ContactSurname: args.lastName as string | undefined,
-    ContactEmail: args.email as string | undefined,
-    ContactTel: args.telephone as string | undefined,
-    SupplierReference: args.supplierReference as string | undefined,
-    Postcode: args.postcode as string | undefined,
-    ShowDeleted: args.showDeleted as boolean | undefined,
-  });
+interface SupplierResponse {
+  id: number;
 }
 
-async function handleSupplierSearch(
-  apiClient: QuickFileRequester,
-  args: Record<string, unknown>,
-): Promise<ToolResult> {
-  const cleaned = buildSupplierSearchParams(args);
-  const response = await apiClient.request<
-    { SearchParameters: typeof cleaned },
-    SupplierSearchResponse
-  >("Supplier_Search", { SearchParameters: cleaned });
-  const record = response.Record;
-  const suppliers = Array.isArray(record) ? record : record ? [record] : [];
-  return successResult({
-    totalRecords: response.RecordsetCount,
-    count: suppliers.length,
-    suppliers,
-  });
-}
-
-async function handleSupplierGet(
-  apiClient: QuickFileRequester,
-  args: Record<string, unknown>,
-): Promise<ToolResult> {
-  const response = await apiClient.request<
-    { SupplierID: number },
-    SupplierGetResponse
-  >("Supplier_Get", { SupplierID: args.supplierId as number });
-  return successResult(response.SupplierDetails);
-}
-
-async function handleSupplierCreate(
-  apiClient: QuickFileRequester,
-  args: Record<string, unknown>,
-): Promise<ToolResult> {
-  const supplierData = buildSupplierCreateData(args);
-  const cleanData = cleanParams(supplierData);
-  const response = await apiClient.request<
-    { SupplierDetails: typeof cleanData },
-    SupplierCreateResponse
-  >("Supplier_Create", { SupplierDetails: cleanData });
-  return successResult({
-    success: true,
-    supplierId: response.SupplierID,
-    message: `Supplier created successfully with ID ${response.SupplierID}`,
-  });
-}
-
-async function handleSupplierUpdate(
-  apiClient: QuickFileRequester,
-  args: Record<string, unknown>,
-): Promise<ToolResult> {
-  const supplierId = args.supplierId as number;
-  const supplierData = buildSupplierUpdateData(args);
-  const updateData = { SupplierID: supplierId, ...supplierData };
-  const cleanData = cleanParams(updateData);
-  await apiClient.request<
-    { SupplierDetails: typeof cleanData },
-    SupplierUpdateResponse
-  >("Supplier_Update", { SupplierDetails: cleanData });
-  return successResult({
-    success: true,
-    supplierId,
-    message: `Supplier #${supplierId} updated successfully`,
-  });
-}
-
-async function handleSupplierDelete(
-  apiClient: QuickFileRequester,
-  args: Record<string, unknown>,
-): Promise<ToolResult> {
-  await apiClient.request<{ SupplierID: number }, Record<string, never>>(
-    "Supplier_Delete",
-    { SupplierID: args.supplierId as number },
-  );
-  return successResult({
-    success: true,
-    supplierId: args.supplierId,
-    message: `Supplier #${args.supplierId} deleted successfully`,
-  });
-}
-
-function getSupplierHandler(toolName: string) {
-  switch (toolName) {
-    case "quickfile_supplier_search":
-      return handleSupplierSearch;
-    case "quickfile_supplier_get":
-      return handleSupplierGet;
-    case "quickfile_supplier_create":
-      return handleSupplierCreate;
-    case "quickfile_supplier_update":
-      return handleSupplierUpdate;
-    case "quickfile_supplier_delete":
-      return handleSupplierDelete;
-    default:
-      return undefined;
+function countryIso(args: Record<string, unknown>): string | undefined {
+  const raw = args.countryIso ?? args.country;
+  if (!raw) {
+    return undefined;
   }
+  const normalized = String(raw).toUpperCase();
+  if (/^[A-Z]{2}$/.test(normalized)) {
+    return normalized;
+  }
+  logger.warn("Ignored unrecognised country code", { country: normalized });
+  return undefined;
 }
 
-// =============================================================================
-// Tool Handler
-// =============================================================================
+function supplierBody(
+  args: Record<string, unknown>,
+  includeContact: boolean,
+): Record<string, unknown> {
+  return cleanParams({
+    company_name: args.companyName,
+    contact_first_name: includeContact ? args.firstName : undefined,
+    contact_surname: includeContact ? args.lastName : undefined,
+    contact_telephone: includeContact ? args.telephone : undefined,
+    contact_email: includeContact ? args.email : undefined,
+    company_number: args.companyNumber,
+    supplier_reference: args.supplierReference,
+    address_line1: args.address1,
+    address_line2: args.address2,
+    address_line3: args.address3,
+    town: args.town,
+    country_iso: countryIso(args),
+    post_code: args.postcode,
+    website: args.website,
+    vat_number: args.vatNumber,
+    default_currency: args.currency,
+    default_term: args.termDays,
+    default_vatrate: args.defaultVatRate,
+    default_nominalcode: args.defaultNominalCode,
+  });
+}
 
 export async function handleSupplierTool(
   toolName: string,
   args: Record<string, unknown>,
 ): Promise<ToolResult> {
-  const handler = getSupplierHandler(toolName);
-
-  if (!handler) {
+  if (!supplierTools.some((tool) => tool.name === toolName)) {
     return errorResult(`Unknown supplier tool: ${toolName}`);
   }
-
   try {
-    const apiClient = getApiClient();
-    return await handler(apiClient, args);
+    const client = getApiClient(args.account as string);
+    switch (toolName) {
+      case "quickfile_supplier_search": {
+        const response = await client.request<PagingResponse<unknown>>(
+          "/suppliers",
+          {
+            query: cleanParams({
+              company_name: args.companyName,
+              first_name: args.firstName,
+              surname: args.lastName,
+              email: args.email,
+              telephone: args.telephone,
+              supplier_reference: args.supplierReference,
+              include_deleted: args.showDeleted,
+              order_column: args.orderBy ?? "company_name",
+              order_direction: String(
+                args.orderDirection ?? "ASC",
+              ).toLowerCase(),
+              offset: args.offset ?? 0,
+              limit: args.returnCount ?? 25,
+            }),
+          },
+        );
+        return successResult({
+          totalRecords: response.count,
+          count: response.data.length,
+          suppliers: response.data,
+        });
+      }
+      case "quickfile_supplier_get":
+        return successResult(await client.request(`/suppliers/${args.supplierId}`));
+      case "quickfile_supplier_create": {
+        const response = await client.request<SupplierResponse>("/suppliers", {
+          method: "POST",
+          body: supplierBody(args, true),
+        });
+        return successResult({ success: true, supplierId: response.id });
+      }
+      case "quickfile_supplier_update":
+        return successResult({
+          success: true,
+          supplier: await client.request(`/suppliers/${args.supplierId}`, {
+            method: "PUT",
+            body: supplierBody(args, false),
+          }),
+        });
+      case "quickfile_supplier_delete":
+        await client.request(`/suppliers/${args.supplierId}`, {
+          method: "DELETE",
+        });
+        return successResult({ success: true, supplierId: args.supplierId });
+      default:
+        return errorResult(`Unknown supplier tool: ${toolName}`);
+    }
   } catch (error) {
     return handleToolError(error);
   }
