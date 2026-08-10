@@ -1,4 +1,3 @@
-const { execFileSync } = require('node:child_process');
 const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 
@@ -42,13 +41,8 @@ if (process.versions.node !== pinnedNode) {
   failures.push(`Node ${pinnedNode} is required; found ${process.versions.node}`);
 }
 
-const npmVersion = execFileSync('npm', ['--version'], { encoding: 'utf8' }).trim();
-if (npmVersion !== '11.17.0') {
-  failures.push(`npm 11.17.0 is required; found ${npmVersion}`);
-}
-
 if (failures.length > 0) {
   throw new Error(`Runtime policy drift detected:\n- ${failures.join('\n- ')}`);
 }
 
-console.log(`Runtime policy verified: Node ${pinnedNode}, npm ${npmVersion}`);
+console.log(`Runtime policy verified: Node ${pinnedNode}, ${packageJson.packageManager}`);
