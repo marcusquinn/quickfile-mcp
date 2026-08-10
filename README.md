@@ -20,11 +20,16 @@ QuickFile REST API documentation: https://api-beta.quickfile.co.uk/api-docs/
 ```bash
 git clone https://github.com/marcusquinn/quickfile-mcp.git
 cd quickfile-mcp
-npm install
+nvm install
+nvm use
+corepack enable
+npm ci
 npm run build
 ```
 
-Requires Node.js 18 or newer.
+Requires the exact Node.js version in [`.nvmrc`](.nvmrc) (currently 24.19.0)
+and npm 11.17.0. The repository declares npm through `packageManager`; use
+Corepack to select it before installing dependencies.
 
 ## Authentication
 
@@ -56,11 +61,12 @@ aidevops secret set QUICKFILE_BUSINESS_API_KEY
 aidevops secret set QUICKFILE_PERSONAL_API_KEY
 ```
 
-Launch the MCP while injecting only the required tokens:
+Build once, then launch the compiled MCP while injecting only the required
+tokens:
 
 ```bash
 aidevops secret QUICKFILE_BUSINESS_API_KEY QUICKFILE_PERSONAL_API_KEY -- \
-  node /absolute/path/to/quickfile-mcp/dist/index.js
+  npm start
 ```
 
 Optional VAT posture can be set per account:
@@ -79,7 +85,7 @@ Configure the client to run the secret-manager command rather than embedding
 tokens in JSON. Generic command shape:
 
 ```text
-aidevops secret <TOKEN_NAME> [<TOKEN_NAME>...] -- node /absolute/path/to/dist/index.js
+aidevops secret <TOKEN_NAME> [<TOKEN_NAME>...] -- npm start
 ```
 
 Run `./setup.sh client` for runtime-specific guidance. Restart the MCP client
@@ -125,7 +131,13 @@ tools are not exposed.
 
 ## Development
 
+Use `npm run dev` only during active source development: it starts a persistent
+`tsx watch` process. Long-lived MCP clients must use `npm start` after
+`npm run build` so they run the compiled output without a watcher.
+
 ```bash
+nvm use
+npm run check:runtime
 npm run typecheck
 npm run lint -- --max-warnings=0
 npm test -- --runInBand
