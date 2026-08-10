@@ -1,7 +1,7 @@
 /**
  * QuickFile API Types
- * Based on QuickFile API v1.2 documentation
- * https://api.quickfile.co.uk/
+ * Domain types used by the QuickFile beta REST API integration.
+ * https://api-beta.quickfile.co.uk/api-docs/
  */
 
 // =============================================================================
@@ -11,17 +11,7 @@
 /**
  * Optional install-time business profile for default VAT behaviour.
  *
- * Extend the credentials file at ~/.config/.quickfile-mcp/credentials.json
- * with this block to configure default VAT handling for single-tenant installs:
- *
- * ```json
- * {
- *   "accountNumber": "…",
- *   "apiKey": "…",
- *   "applicationId": "…",
- *   "businessProfile": { "vatRegistered": false }
- * }
- * ```
+ * Configure with QUICKFILE_<ACCOUNT>_VAT_REGISTERED=true|false.
  *
  * Behaviour when present:
  * - vatRegistered: false — vatPercentage must NOT be supplied on line items
@@ -38,57 +28,10 @@ export interface BusinessProfile {
 }
 
 export interface QuickFileCredentials {
-  accountNumber: string;
-  apiKey: string;
-  applicationId: string;
+  account: string;
+  bearerToken: string;
   /** Optional install-time business profile for default VAT behaviour. */
   businessProfile?: BusinessProfile;
-}
-
-export interface QuickFileConfig {
-  credentials: QuickFileCredentials;
-  testMode?: boolean;
-  apiVersion?: string;
-}
-
-// =============================================================================
-// API Request/Response Structure
-// =============================================================================
-
-export interface QuickFileHeader {
-  MessageType: 'Request' | 'Response';
-  SubmissionNumber: string;
-  Authentication: {
-    AccNumber: string;
-    MD5Value: string;
-    ApplicationID: string;
-  };
-  TestMode?: boolean;
-}
-
-export interface QuickFileRequest<T = unknown> {
-  payload: {
-    Header: QuickFileHeader;
-    Body: T;
-  };
-}
-
-export interface QuickFileResponseMethod<T = unknown> {
-  Header: {
-    MessageType: 'Response';
-    SubmissionNumber: string;
-  };
-  Body: T;
-}
-
-export interface QuickFileResponse<T = unknown> {
-  [methodName: string]: QuickFileResponseMethod<T> | QuickFileError[] | undefined;
-  Errors?: QuickFileError[];
-}
-
-export interface QuickFileError {
-  ErrorCode: string;
-  ErrorMessage: string;
 }
 
 export interface SearchResponse<T> {

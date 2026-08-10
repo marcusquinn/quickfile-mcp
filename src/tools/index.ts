@@ -4,6 +4,7 @@
  */
 
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
+import { listConfiguredAccounts } from "../api/auth.js";
 
 // Import tool definitions
 import { systemTools, handleSystemTool } from "./system.js";
@@ -29,7 +30,7 @@ export {
 } from "./utils.js";
 
 // Aggregate all tools
-export const allTools: Tool[] = [
+const baseTools: Tool[] = [
   ...systemTools,
   ...clientTools,
   ...invoiceTools,
@@ -39,6 +40,34 @@ export const allTools: Tool[] = [
   ...reportTools,
   ...documentTools,
 ];
+
+function addAccountSelector(tool: Tool): Tool {
+  const configuredAccounts = listConfiguredAccounts();
+  return {
+    ...tool,
+    description: `${tool.description} Requires an explicit QuickFile account alias.`,
+    inputSchema: {
+      ...tool.inputSchema,
+      properties: {
+        account: {
+          type: "string",
+          ...(configuredAccounts.length > 0
+            ? { enum: configuredAccounts }
+            : {}),
+          description:
+            "Configured QuickFile account alias (for example evergreen or planning)",
+        },
+        ...(tool.inputSchema.properties ?? {}),
+      },
+      required: [
+        "account",
+        ...((tool.inputSchema.required as string[] | undefined) ?? []),
+      ],
+    },
+  };
+}
+
+export const allTools: Tool[] = baseTools.map(addAccountSelector);
 
 /**
  * Route tool calls to appropriate handler

@@ -1,77 +1,70 @@
-/**
- * Unit tests for client tool wire shapes.
- */
-
-import { handleClientTool } from "../../src/tools/client";
 import { getApiClient } from "../../src/api/client";
+import { handleClientTool } from "../../src/tools/client";
 
 jest.mock("../../src/api/client", () => ({
   getApiClient: jest.fn(),
-  QuickFileApiError: class QuickFileApiError extends Error {
-    constructor(
-      message: string,
-      public code: string,
-    ) {
-      super(message);
-      this.name = "QuickFileApiError";
-    }
-  },
+  QuickFileApiError: class QuickFileApiError extends Error {},
 }));
 
-describe("Client tools", () => {
-  const mockRequest = jest.fn();
+describe("REST client tools", () => {
+  const request = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (getApiClient as jest.Mock).mockReturnValue({ request: mockRequest });
+    (getApiClient as jest.Mock).mockReturnValue({ request });
   });
 
-  it("keeps client create on ClientData with nested Address and flat defaults", async () => {
-    mockRequest.mockResolvedValueOnce({ ClientID: 123 });
+  it("maps search fields to REST query parameters", async () => {
+    request.mockResolvedValue({ count: 1, data: [{ id: 12 }] });
+    await handleClientTool("quickfile_client_search", {
+      account: "evergreen",
+      companyName: "Acme",
+      returnCount: 10,
+    });
+    expect(getApiClient).toHaveBeenCalledWith("evergreen");
+    expect(request).toHaveBeenCalledWith("/clients", {
+      query: expect.objectContaining({
+        company_name: "Acme",
+        limit: 10,
+        order_column: "company_name",
+      }),
+    });
+  });
 
+  it("creates a client and optional contact through separate REST endpoints", async () => {
+    request.mockResolvedValueOnce({ id: 123 }).mockResolvedValueOnce({ id: 456 });
     await handleClientTool("quickfile_client_create", {
+      account: "evergreen",
       companyName: "Acme Widgets Ltd",
       firstName: "Ada",
       lastName: "Lovelace",
       email: "ada@example.com",
-      address1: "1 Example Street",
-      town: "Market Drayton",
-      country: "United Kingdom",
     });
-
-    const payload = mockRequest.mock.calls[0][1];
-    expect(mockRequest).toHaveBeenCalledWith(
-      "Client_Create",
-      expect.any(Object),
-    );
-    expect(payload.ClientData).toMatchObject({
-      CompanyName: "Acme Widgets Ltd",
-      FirstName: "Ada",
-      LastName: "Lovelace",
-      Email: "ada@example.com",
-      Currency: "GBP",
-      TermDays: 30,
+    expect(request).toHaveBeenNthCalledWith(1, "/clients", {
+      method: "POST",
+      body: expect.objectContaining({
+        company_name: "Acme Widgets Ltd",
+        default_currency: "GBP",
+        default_term: 30,
+      }),
     });
-    expect(payload.ClientData.Address).toEqual({
-      Address1: "1 Example Street",
-      Town: "Market Drayton",
-      Country: "United Kingdom",
+    expect(request).toHaveBeenNthCalledWith(2, "/clients/123/contacts", {
+      method: "POST",
+      body: expect.objectContaining({
+        first_name: "Ada",
+        surname: "Lovelace",
+        email: "ada@example.com",
+      }),
     });
   });
 
-  it("keeps client update as a partial ClientData payload", async () => {
-    mockRequest.mockResolvedValueOnce({});
-
-    await handleClientTool("quickfile_client_update", {
-      clientId: 456,
-      email: "new@example.com",
+  it("does not create a partial contact", async () => {
+    const result = await handleClientTool("quickfile_client_create", {
+      account: "evergreen",
+      companyName: "Acme",
+      firstName: "Ada",
     });
-
-    expect(mockRequest).toHaveBeenCalledWith("Client_Update", {
-      ClientData: {
-        ClientID: 456,
-        Email: "new@example.com",
-      },
-    });
+    expect(result.isError).toBe(true);
+    expect(request).not.toHaveBeenCalled();
   });
 });

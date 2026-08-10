@@ -12,7 +12,7 @@
  * - Financial reporting (P&L, Balance Sheet, VAT, Ageing)
  * - System operations (account details, events, notes)
  *
- * @see https://api.quickfile.co.uk/
+ * @see https://api-beta.quickfile.co.uk/api-docs/
  * @author Marcus Quinn
  * @license MIT
  */
@@ -25,7 +25,11 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 import { allTools, handleToolCall } from "./tools/index.js";
-import { loadCredentials, validateCredentialsFormat } from "./api/auth.js";
+import {
+  listConfiguredAccounts,
+  loadCredentials,
+  validateCredentialsFormat,
+} from "./api/auth.js";
 
 // Server metadata
 const SERVER_NAME = "quickfile-mcp";
@@ -35,37 +39,29 @@ const SERVER_VERSION = "1.0.0";
  * Initialize and run the MCP server
  */
 async function main(): Promise<void> {
-  // Validate credentials on startup
+  // Validate configured account aliases on startup without exposing tokens.
   try {
-    const credentials = loadCredentials();
-    if (!validateCredentialsFormat(credentials)) {
-      console.error(
-        "Warning: Credential format validation failed. API calls may fail.",
+    const accounts = listConfiguredAccounts();
+    if (accounts.length === 0) {
+      throw new Error(
+        "No QuickFile bearer tokens found. Set QUICKFILE_<ACCOUNT>_API_KEY.",
       );
+    }
+    for (const account of accounts) {
+      const credentials = loadCredentials(account);
+      if (!validateCredentialsFormat(credentials)) {
+        throw new Error(`Credential validation failed for account ${account}`);
+      }
     }
     console.error(
-      `QuickFile MCP Server starting for account ${credentials.accountNumber}`,
+      `QuickFile MCP Server starting for accounts: ${accounts.join(", ")}`,
     );
-
-    // Log active business profile so it surfaces in transcript output
-    const bp = credentials.businessProfile;
-    if (bp) {
-      console.error(
-        `businessProfile: { vatRegistered: ${bp.vatRegistered} }`,
-      );
-    } else {
-      console.error(
-        "businessProfile: not configured — vatPercentage must be supplied per line item",
-      );
-    }
   } catch (error) {
     console.error(
       "Failed to load credentials:",
       error instanceof Error ? error.message : error,
     );
-    console.error(
-      "Please ensure credentials are configured at ~/.config/.quickfile-mcp/credentials.json",
-    );
+    console.error("Inject bearer tokens through the process environment.");
     process.exit(1);
   }
 
