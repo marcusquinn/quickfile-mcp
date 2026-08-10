@@ -1,0 +1,33 @@
+name: Runtime Policy
+
+on:
+  pull_request:
+    paths:
+      - ".nvmrc"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/check-runtime-policy.cjs"
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  verify-runtime-policy:
+    name: Verify Runtime Policy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check runtime policy
+        run: npm run check:runtime

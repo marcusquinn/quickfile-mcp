@@ -25,5 +25,7 @@ module.exports = {
     // Handle .js extensions in imports (ESM style)
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
+  // Keep local test runs predictable without limiting CI to a fixed core count.
+  maxWorkers: process.env.CI ? '50%' : 2,
   verbose: true,
 };

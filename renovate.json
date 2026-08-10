@@ -1,0 +1,11 @@
+{
+  "extends": ["config:recommended"],
+  "packageRules": [
+    {
+      "description": "Keep the exact Active LTS patch in .nvmrc current.",
+      "matchManagers": ["nvm"],
+      "matchPackageNames": ["node"],
+      "groupName": "Node.js runtime"
+    }
+  ]
+}
