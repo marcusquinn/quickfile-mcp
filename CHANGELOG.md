@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-08-10
+
 ### Added
 
 - Explicit multi-account routing through a required `account` argument on every
@@ -21,9 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bearer tokens injected as `QUICKFILE_<ACCOUNT>_API_KEY` variables.
 - Removed legacy-only note creation and estimate lifecycle tools that are absent
   from the current REST OpenAPI specification.
+- Adopted the repository's exact Node.js 24 LTS and npm 11 runtime policy while
+  raising the MCP SDK dependency floor.
 
 ### Security
 
+- Raised the MCP SDK dependency floor and refreshed its transitive dependency
+  tree to resolve all production `npm audit` findings.
 - Removed plaintext credential-file setup and documented least-privilege secret
   manager injection.
 - Restricted debug request logging to HTTP methods, paths, and account aliases;
