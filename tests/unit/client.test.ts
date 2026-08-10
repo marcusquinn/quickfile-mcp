@@ -122,6 +122,14 @@ describe("QuickFileApiClient", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
+  it("rejects protocol-relative paths before adding bearer authorization", async () => {
+    const client = new QuickFileApiClient({ account: "planning" });
+    await expect(client.request("//example.invalid/account/me")).rejects.toMatchObject({
+      code: "INVALID_PATH",
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it("returns one cached client per account", () => {
     expect(getApiClient("evergreen")).toBe(getApiClient("evergreen"));
     expect(getApiClient("evergreen")).not.toBe(getApiClient("planning"));

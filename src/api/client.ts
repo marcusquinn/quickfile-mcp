@@ -85,6 +85,12 @@ export class QuickFileApiClient {
     }
 
     const url = new URL(path, API_BASE_URL);
+    if (url.origin !== API_BASE_URL) {
+      throw new QuickFileApiError(
+        "QuickFile REST path must remain on the configured API origin",
+        "INVALID_PATH",
+      );
+    }
     appendQuery(url, options.query ?? {});
     const headers: Record<string, string> = {
       Accept: "application/json",

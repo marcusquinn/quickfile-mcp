@@ -21,6 +21,10 @@ interface CollectionResponse {
 
 describe("QuickFile REST API integration", () => {
   const accounts = listConfiguredAccounts();
+  const accountCases = accounts.map((account, index) => ({
+    account,
+    position: index + 1,
+  }));
 
   beforeAll(() => {
     if (accounts.length === 0) {
@@ -30,7 +34,7 @@ describe("QuickFile REST API integration", () => {
     }
   });
 
-  it.each(accounts)("authenticates account alias %s", async (account) => {
+  it.each(accountCases)("authenticates configured account $position", async ({ account }) => {
     const credentials = loadCredentials(account);
     expect(validateCredentialsFormat(credentials)).toBe(true);
     const client = new QuickFileApiClient({ account });
@@ -39,7 +43,7 @@ describe("QuickFile REST API integration", () => {
     expect(details).toHaveProperty("BusinessName");
   });
 
-  it.each(accounts)("performs read-only collection requests for %s", async (account) => {
+  it.each(accountCases)("performs read-only collection requests for account $position", async ({ account }) => {
     const client = new QuickFileApiClient({ account });
     const paths = [
       "/clients?limit=1",
