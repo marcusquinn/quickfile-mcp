@@ -171,16 +171,6 @@ export const AgeingReportSchema = z.object({
 });
 
 // =============================================================================
-// System Schemas
-// =============================================================================
-
-export const CreateNoteSchema = z.object({
-  entityType: z.enum(['INVOICE', 'PURCHASE', 'CLIENT', 'SUPPLIER']),
-  entityId: z.number().int().positive('Entity ID must be a positive integer'),
-  noteText: z.string().min(1, 'Note text is required'),
-});
-
-// =============================================================================
 // Validation Helper
 // =============================================================================
 

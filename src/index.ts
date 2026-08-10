@@ -10,7 +10,7 @@
  * - Supplier management
  * - Bank account and transaction operations
  * - Financial reporting (P&L, Balance Sheet, VAT, Ageing)
- * - System operations (account details, events, notes)
+ * - System operations (account details and events)
  *
  * @see https://api-beta.quickfile.co.uk/api-docs/
  * @author Marcus Quinn
@@ -33,7 +33,7 @@ import {
 
 // Server metadata
 const SERVER_NAME = "quickfile-mcp";
-const SERVER_VERSION = "1.0.0";
+const SERVER_VERSION = "2.0.0";
 
 /**
  * Initialize and run the MCP server

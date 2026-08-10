@@ -1,5 +1,5 @@
 import { getApiClient } from "../../src/api/client";
-import { handleClientTool } from "../../src/tools/client";
+import { clientTools, handleClientTool } from "../../src/tools/client";
 
 jest.mock("../../src/api/client", () => ({
   getApiClient: jest.fn(),
@@ -19,16 +19,37 @@ describe("REST client tools", () => {
     await handleClientTool("quickfile_client_search", {
       account: "evergreen",
       companyName: "Acme",
+      firstName: "Ada",
+      telephone: "01234",
       returnCount: 10,
     });
     expect(getApiClient).toHaveBeenCalledWith("evergreen");
     expect(request).toHaveBeenCalledWith("/clients", {
       query: expect.objectContaining({
         company_name: "Acme",
+        first_name: "Ada",
+        telephone: "01234",
         limit: 10,
         order_column: "company_name",
       }),
     });
+  });
+
+  it("advertises only REST-supported search and update fields", () => {
+    const search = clientTools.find(
+      (tool) => tool.name === "quickfile_client_search",
+    );
+    const update = clientTools.find(
+      (tool) => tool.name === "quickfile_client_update",
+    );
+    expect(search?.inputSchema.properties).toMatchObject({
+      firstName: { type: "string" },
+      lastName: { type: "string" },
+      telephone: { type: "string" },
+    });
+    expect(search?.inputSchema.properties).not.toHaveProperty("contactName");
+    expect(update?.inputSchema.properties).not.toHaveProperty("firstName");
+    expect(update?.inputSchema.properties).not.toHaveProperty("email");
   });
 
   it("creates a client and optional contact through separate REST endpoints", async () => {
@@ -63,6 +84,28 @@ describe("REST client tools", () => {
       account: "evergreen",
       companyName: "Acme",
       firstName: "Ada",
+    });
+    expect(result.isError).toBe(true);
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it("normalizes ISO country codes and rejects country names", async () => {
+    request.mockResolvedValue({ id: 123 });
+    await handleClientTool("quickfile_client_create", {
+      account: "evergreen",
+      companyName: "Acme",
+      countryIso: "gb",
+    });
+    expect(request).toHaveBeenCalledWith("/clients", {
+      method: "POST",
+      body: expect.objectContaining({ country_iso: "GB" }),
+    });
+
+    request.mockClear();
+    const result = await handleClientTool("quickfile_client_create", {
+      account: "evergreen",
+      companyName: "Acme",
+      country: "United Kingdom",
     });
     expect(result.isError).toBe(true);
     expect(request).not.toHaveBeenCalled();

@@ -55,7 +55,7 @@ function addAccountSelector(tool: Tool): Tool {
             ? { enum: configuredAccounts }
             : {}),
           description:
-            "Configured QuickFile account alias (for example evergreen or planning)",
+            "Configured QuickFile account alias (for example business or personal)",
         },
         ...(tool.inputSchema.properties ?? {}),
       },
@@ -86,11 +86,8 @@ export async function handleToolCall(
     return handleClientTool(toolName, args);
   }
 
-  // Invoice and estimate tools
-  if (
-    toolName.startsWith("quickfile_invoice_") ||
-    toolName.startsWith("quickfile_estimate_")
-  ) {
+  // Invoice tools (invoice creation also supports estimate and credit types)
+  if (toolName.startsWith("quickfile_invoice_")) {
     return handleInvoiceTool(toolName, args);
   }
 
@@ -124,7 +121,7 @@ export async function handleToolCall(
     content: [
       {
         type: "text",
-        text: `Unknown tool: ${toolName}. Available prefixes: quickfile_system_, quickfile_client_, quickfile_invoice_, quickfile_estimate_, quickfile_purchase_, quickfile_supplier_, quickfile_bank_, quickfile_report_, quickfile_document_`,
+        text: `Unknown tool: ${toolName}. Available prefixes: quickfile_system_, quickfile_client_, quickfile_invoice_, quickfile_purchase_, quickfile_supplier_, quickfile_bank_, quickfile_report_, quickfile_document_`,
       },
     ],
     isError: true,

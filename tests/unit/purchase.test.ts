@@ -53,6 +53,44 @@ describe("REST purchase tools", () => {
     });
   });
 
+  it("uses the published REST purchase mutation schema", async () => {
+    request.mockResolvedValue({ id: 321, gross_total: 24 });
+    await handlePurchaseTool("quickfile_purchase_create", {
+      account: "brandlight",
+      supplierId: 42,
+      issueDate: "2026-08-10",
+      supplierRef: "SUP-10",
+      lines: [
+        {
+          description: "Hosting",
+          unitCost: 10,
+          quantity: 2,
+          nominalCode: "5000",
+          vatPercentage: 20,
+        },
+      ],
+    });
+    expect(request).toHaveBeenCalledWith("/purchases", {
+      method: "POST",
+      body: {
+        supplier_id: 42,
+        receipt_date: "2026-08-10",
+        currency: "GBP",
+        suppplier_reference: "SUP-10",
+        term_days: 30,
+        item_lines: [
+          {
+            nominal_code: 5000,
+            description: "Hosting",
+            sub_total: 20,
+            vat_rate: 20,
+            vat_amount: 4,
+          },
+        ],
+      },
+    });
+  });
+
   it("keeps destructive delete inputs explicit", () => {
     const tool = purchaseTools.find(
       (candidate) => candidate.name === "quickfile_purchase_delete",

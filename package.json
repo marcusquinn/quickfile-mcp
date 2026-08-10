@@ -1,7 +1,7 @@
 {
   "name": "quickfile-mcp",
   "version": "2.0.0",
-  "description": "MCP server for QuickFile UK accounting software - invoices, clients, purchases, banking, and reports",
+  "description": "Multi-account MCP server for the QuickFile beta REST API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

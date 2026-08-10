@@ -24,7 +24,7 @@ export const clientTools: Tool[] = [
         includeDeleted: { type: "boolean" },
         orderBy: {
           type: "string",
-          enum: ["company_name", "created_date", "id"],
+          enum: ["company_name", "created_date"],
         },
       },
       required: [],
@@ -44,7 +44,14 @@ export const clientTools: Tool[] = [
     description: "Create a client and optionally its first contact",
     inputSchema: {
       type: "object",
-      properties: entitySchemaProperties,
+      properties: {
+        ...entitySchemaProperties,
+        firstName: { type: "string" },
+        lastName: { type: "string" },
+        email: { type: "string" },
+        telephone: { type: "string" },
+        mobile: { type: "string" },
+      },
       required: ["companyName"],
     },
   },
@@ -118,12 +125,23 @@ function clientBody(
     address_line2: args.address2,
     address_line3: args.county,
     town: args.town,
-    country_iso: args.country,
+    country_iso: normalizeCountryIso(args.countryIso ?? args.country),
     post_code: args.postcode,
     vat_number: args.vatNumber,
     default_currency: args.currency ?? (includeDefaults ? "GBP" : undefined),
     default_term: args.termDays ?? (includeDefaults ? 30 : undefined),
   });
+}
+
+function normalizeCountryIso(value: unknown): string | undefined {
+  if (value === undefined || value === "") {
+    return undefined;
+  }
+  const normalized = String(value).trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(normalized)) {
+    throw new Error("countryIso must be an ISO 3166-1 alpha-2 code");
+  }
+  return normalized;
 }
 
 function contactBody(args: Record<string, unknown>): Record<string, unknown> {

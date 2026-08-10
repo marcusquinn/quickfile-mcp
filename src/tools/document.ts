@@ -89,7 +89,8 @@ export async function handleDocumentTool(
         }
         form.append(
           "capture_date",
-          (args.captureDate as string | undefined) ?? new Date().toISOString(),
+          (args.captureDate as string | undefined) ??
+            new Date().toISOString().slice(0, 10),
         );
         form.append("receipt_name", args.fileName as string);
         return successResult(

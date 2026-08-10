@@ -29,8 +29,6 @@ import {
   ProfitLossSchema,
   AgeingReportSchema,
   BalanceSheetSchema,
-  // System schemas
-  CreateNoteSchema,
   // Helpers
   validateArgs,
   validateArgsSafe,
@@ -439,49 +437,6 @@ describe("Report Schemas", () => {
         reportType: "BOTH",
       });
       expect(result.success).toBe(false);
-    });
-  });
-});
-
-describe("System Schemas", () => {
-  describe("CreateNoteSchema", () => {
-    it("should accept valid note", () => {
-      const result = CreateNoteSchema.safeParse({
-        entityType: "INVOICE",
-        entityId: 123,
-        noteText: "This is a note",
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it("should reject empty note text", () => {
-      const result = CreateNoteSchema.safeParse({
-        entityType: "CLIENT",
-        entityId: 123,
-        noteText: "",
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it("should reject invalid entity type", () => {
-      const result = CreateNoteSchema.safeParse({
-        entityType: "BANK",
-        entityId: 123,
-        noteText: "Note",
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it("should accept all valid entity types", () => {
-      const types = ["INVOICE", "PURCHASE", "CLIENT", "SUPPLIER"];
-      types.forEach((type) => {
-        const result = CreateNoteSchema.safeParse({
-          entityType: type,
-          entityId: 1,
-          noteText: "Test",
-        });
-        expect(result.success).toBe(true);
-      });
     });
   });
 });

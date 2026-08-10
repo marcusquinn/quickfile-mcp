@@ -5,13 +5,6 @@
 
 import { QuickFileApiError } from "../api/client.js";
 import { sanitizeOutput } from "../sanitize.js";
-import type {
-  SupplierAddressFields,
-  SupplierBaseData,
-  SupplierCreateData,
-  SupplierPreferences,
-  SupplierUpdateData,
-} from "../types/quickfile.js";
 
 // Re-export validation helpers and schemas
 export { validateArgs, validateArgsSafe } from "./schemas.js";
@@ -167,11 +160,7 @@ export function cleanParams<T extends object>(params: T): Partial<T> {
 // Shared Line Item Mapping
 // =============================================================================
 
-import type {
-  ClientAddress,
-  InvoiceLineTax,
-  BusinessProfile,
-} from "../types/quickfile.js";
+import type { BusinessProfile } from "../types/quickfile.js";
 
 /**
  * Raw line item input from tool arguments (shared between invoice and purchase)
@@ -186,7 +175,7 @@ export interface LineItemInput {
 
 /**
  * Resolve the effective VAT percentage for a line item, applying the optional
- * install-time businessProfile rules from credentials.json.
+ * account-specific QUICKFILE_<ACCOUNT>_VAT_REGISTERED rules.
  *
  * Decision table:
  * ┌──────────────────────────┬──────────────────────┬──────────────────────────────────────────────┐
@@ -211,7 +200,7 @@ export function resolveVatPercentage(
         `vatPercentage is required when no businessProfile is configured ` +
           `(rates vary: 20 standard, 5 reduced, 0 zero-rated/exempt — ` +
           `specify the rate explicitly for each line item, ` +
-          `or configure businessProfile in ~/.config/.quickfile-mcp/credentials.json).`,
+          `or configure QUICKFILE_<ACCOUNT>_VAT_REGISTERED).`,
       );
     }
     return vatPercentage;
@@ -224,7 +213,7 @@ export function resolveVatPercentage(
         `Configuration contradiction (vatRegistered=false in businessProfile): ` +
           `vatPercentage=${vatPercentage} was provided but this install is configured as not VAT-registered. ` +
           `Remove vatPercentage from line items — it is implicitly 0 for non-VAT-registered installs. ` +
-          `See businessProfile in ~/.config/.quickfile-mcp/credentials.json.`,
+          `See QUICKFILE_<ACCOUNT>_VAT_REGISTERED.`,
       );
     }
     // Implicit 0% for non-VAT-registered
@@ -238,53 +227,11 @@ export function resolveVatPercentage(
       `vatPercentage is required when businessProfile.vatRegistered=true ` +
         `(VAT rates vary: standard 20%, reduced 5%, zero 0%, exempt — ` +
         `specify the rate explicitly for each line item). ` +
-        `See businessProfile in ~/.config/.quickfile-mcp/credentials.json.`,
+        `See QUICKFILE_<ACCOUNT>_VAT_REGISTERED.`,
     );
   }
 
   return vatPercentage;
-}
-
-/**
- * Map raw line item inputs to QuickFile API line format.
- * Shared between invoice and purchase create operations.
- *
- * @param lines - Raw line items from tool arguments
- * @param options - Optional overrides:
- *   - `includeItemId` — add ItemID:0 (required by Invoice_Create wire schema)
- *   - `businessProfile` — install-time VAT profile (see resolveVatPercentage)
- */
-export function mapLineItems<
-  T extends {
-    ItemDescription: string;
-    UnitCost: number;
-    Qty: number;
-    NominalCode?: string;
-    Tax1?: InvoiceLineTax;
-  },
->(
-  lines: LineItemInput[],
-  options: { includeItemId?: boolean; businessProfile?: BusinessProfile } = {},
-): T[] {
-  return lines.map((line) => {
-    const mapped: Record<string, unknown> = {
-      ItemDescription: line.description,
-      UnitCost: line.unitCost,
-      Qty: line.quantity,
-      NominalCode: line.nominalCode,
-      Tax1: {
-        TaxName: "VAT",
-        TaxPercentage: resolveVatPercentage(
-          line.vatPercentage,
-          options.businessProfile,
-        ),
-      },
-    };
-    if (options.includeItemId) {
-      mapped.ItemID = 0;
-    }
-    return mapped as T;
-  });
 }
 
 // =============================================================================
@@ -320,17 +267,21 @@ export const searchSchemaProperties = {
     type: "string" as const,
     description: "Search by company name (partial match)",
   },
-  contactName: {
+  firstName: {
     type: "string" as const,
-    description: "Search by contact name",
+    description: "Search by contact first name",
+  },
+  lastName: {
+    type: "string" as const,
+    description: "Search by contact surname",
   },
   email: {
     type: "string" as const,
     description: "Search by email address",
   },
-  postcode: {
+  telephone: {
     type: "string" as const,
-    description: "Search by postcode",
+    description: "Search by telephone number",
   },
   ...paginationSchemaProperties,
 };
@@ -370,7 +321,7 @@ export const lineItemSchemaProperties = {
     type: "number" as const,
     description:
       "VAT percentage (0-100). Provide a per-line value (20 standard, 5 reduced, " +
-      "0 zero-rated/exempt) — or configure businessProfile in credentials.json " +
+      "0 zero-rated/exempt) — or configure QUICKFILE_<ACCOUNT>_VAT_REGISTERED " +
       "to declare your install's VAT posture once. Omit when " +
       "businessProfile.vatRegistered=false; required otherwise. The call fails " +
       "with a clear error if neither is provided (no silent default).",
@@ -384,34 +335,6 @@ export const entitySchemaProperties = {
   companyName: {
     type: "string" as const,
     description: "Company or organisation name",
-  },
-  title: {
-    type: "string" as const,
-    description: "Contact title (Mr, Mrs, etc.)",
-  },
-  firstName: {
-    type: "string" as const,
-    description: "Contact first name",
-  },
-  lastName: {
-    type: "string" as const,
-    description: "Contact last name",
-  },
-  email: {
-    type: "string" as const,
-    description: "Email address",
-  },
-  telephone: {
-    type: "string" as const,
-    description: "Telephone number",
-  },
-  mobile: {
-    type: "string" as const,
-    description: "Mobile number",
-  },
-  website: {
-    type: "string" as const,
-    description: "Website URL",
   },
   address1: {
     type: "string" as const,
@@ -433,9 +356,13 @@ export const entitySchemaProperties = {
     type: "string" as const,
     description: "Postcode",
   },
+  countryIso: {
+    type: "string" as const,
+    description: "ISO 3166-1 alpha-2 country code (for example GB)",
+  },
   country: {
     type: "string" as const,
-    description: "Country",
+    description: "Deprecated alias for countryIso; must be an ISO alpha-2 code",
   },
   vatNumber: {
     type: "string" as const,
@@ -454,10 +381,6 @@ export const entitySchemaProperties = {
     type: "number" as const,
     description: "Payment terms in days",
     default: 30,
-  },
-  notes: {
-    type: "string" as const,
-    description: "Internal notes",
   },
 };
 
@@ -532,10 +455,6 @@ export const supplierEntitySchemaProperties = {
     type: "string" as const,
     description: "VAT registration number",
   },
-  vatExempt: {
-    type: "boolean" as const,
-    description: "Whether the supplier is VAT-exempt",
-  },
   currency: {
     type: "string" as const,
     description: "Default currency (e.g. GBP)",
@@ -555,213 +474,3 @@ export const supplierEntitySchemaProperties = {
     description: "Default nominal code",
   },
 };
-
-// =============================================================================
-// Entity Builders (Client / Supplier)
-// =============================================================================
-
-/**
- * Common entity data structure for clients and suppliers
- */
-export interface EntityData {
-  CompanyName?: string;
-  Title?: string;
-  FirstName?: string;
-  LastName?: string;
-  Email?: string;
-  Telephone?: string;
-  Mobile?: string;
-  Website?: string;
-  VatNumber?: string;
-  CompanyRegNo?: string;
-  Currency?: string;
-  TermDays?: number;
-  Notes?: string;
-  Address?: ClientAddress;
-}
-
-/**
- * Build address object from tool arguments
- * Shared between client and supplier tools
- */
-export function buildAddressFromArgs(
-  args: Record<string, unknown>,
-): ClientAddress {
-  const address: ClientAddress = {};
-  if (args.address1) {
-    address.Address1 = args.address1 as string;
-  }
-  if (args.address2) {
-    address.Address2 = args.address2 as string;
-  }
-  if (args.town) {
-    address.Town = args.town as string;
-  }
-  if (args.county) {
-    address.County = args.county as string;
-  }
-  if (args.postcode) {
-    address.Postcode = args.postcode as string;
-  }
-  if (args.country) {
-    address.Country = args.country as string;
-  }
-  return address;
-}
-
-/**
- * Extract common entity fields from tool arguments.
- * Shared mapping used by both create and update operations.
- */
-function extractClientFields(
-  args: Record<string, unknown>,
-  address: ClientAddress,
-): EntityData {
-  return {
-    CompanyName: args.companyName as string | undefined,
-    Title: args.title as string | undefined,
-    FirstName: args.firstName as string | undefined,
-    LastName: args.lastName as string | undefined,
-    Email: args.email as string | undefined,
-    Telephone: args.telephone as string | undefined,
-    Mobile: args.mobile as string | undefined,
-    Website: args.website as string | undefined,
-    VatNumber: args.vatNumber as string | undefined,
-    CompanyRegNo: args.companyRegNo as string | undefined,
-    Currency: args.currency as string | undefined,
-    TermDays: args.termDays as number | undefined,
-    Notes: args.notes as string | undefined,
-    Address: Object.keys(address).length > 0 ? address : undefined,
-  };
-}
-
-/**
- * Build entity data from tool arguments (for create operations).
- * Applies defaults for Currency and TermDays when not provided.
- */
-export function buildClientCreateData(
-  args: Record<string, unknown>,
-  address: ClientAddress,
-  defaults: { currency?: string; termDays?: number } = {},
-): EntityData {
-  const { currency = "GBP", termDays = 30 } = defaults;
-  const data = extractClientFields(args, address);
-  data.Currency = data.Currency ?? currency;
-  data.TermDays = data.TermDays ?? termDays;
-  return data;
-}
-
-/**
- * Build entity update data (preserves undefined for partial updates)
- */
-export function buildClientUpdateData(
-  args: Record<string, unknown>,
-  address: ClientAddress,
-): EntityData {
-  return extractClientFields(args, address);
-}
-
-const VALID_ISO_ALPHA2_CODES = new Set([
-  "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR", "AS", "AT", "AU", "AW", "AX", "AZ",
-  "BA", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BL", "BM", "BN", "BO", "BQ", "BR", "BS", "BT", "BV", "BW", "BY", "BZ",
-  "CA", "CC", "CD", "CF", "CG", "CH", "CI", "CK", "CL", "CM", "CN", "CO", "CR", "CU", "CV", "CW", "CX", "CY", "CZ",
-  "DE", "DJ", "DK", "DM", "DO", "DZ", "EC", "EE", "EG", "EH", "ER", "ES", "ET", "FI", "FJ", "FK", "FM", "FO", "FR",
-  "GA", "GB", "GD", "GE", "GF", "GG", "GH", "GI", "GL", "GM", "GN", "GP", "GQ", "GR", "GS", "GT", "GU", "GW", "GY",
-  "HK", "HM", "HN", "HR", "HT", "HU", "ID", "IE", "IL", "IM", "IN", "IO", "IQ", "IR", "IS", "IT",
-  "JE", "JM", "JO", "JP", "KE", "KG", "KH", "KI", "KM", "KN", "KP", "KR", "KW", "KY", "KZ", "LA", "LB", "LC", "LI", "LK", "LR", "LS", "LT", "LU", "LV", "LY",
-  "MA", "MC", "MD", "ME", "MF", "MG", "MH", "MK", "ML", "MM", "MN", "MO", "MP", "MQ", "MR", "MS", "MT", "MU", "MV", "MW", "MX", "MY", "MZ",
-  "NA", "NC", "NE", "NF", "NG", "NI", "NL", "NO", "NP", "NR", "NU", "NZ", "OM", "PA", "PE", "PF", "PG", "PH", "PK", "PL", "PM", "PN", "PR", "PS", "PT", "PW", "PY",
-  "QA", "RE", "RO", "RS", "RU", "RW", "SA", "SB", "SC", "SD", "SE", "SG", "SH", "SI", "SJ", "SK", "SL", "SM", "SN", "SO", "SR", "SS", "ST", "SV", "SX", "SY", "SZ",
-  "TC", "TD", "TF", "TG", "TH", "TJ", "TK", "TL", "TM", "TN", "TO", "TR", "TT", "TV", "TW", "TZ", "UA", "UG", "UM", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI", "VN", "VU",
-  "WF", "WS", "YE", "YT", "ZA", "ZM", "ZW",
-]);
-
-export function buildSupplierAddressFields(
-  args: Record<string, unknown>,
-): SupplierAddressFields {
-  const fields = Object.fromEntries(
-    [
-      ["AddressLine1", args.address1],
-      ["AddressLine2", args.address2],
-      ["AddressLine3", args.address3],
-      ["Town", args.town],
-      ["Postcode", args.postcode],
-    ].filter(([, value]) => value !== undefined),
-  ) as SupplierAddressFields;
-
-  const rawCountry =
-    typeof args.countryIso === "string"
-      ? args.countryIso
-      : typeof args.country === "string"
-        ? args.country
-        : undefined;
-
-  const country = rawCountry?.trim().toUpperCase();
-  // QuickFile expects ISO-3166-1 alpha-2 values; ignore unrecognised input
-  // instead of throwing so supplier creation can still use other valid fields.
-  if (country) {
-    if (VALID_ISO_ALPHA2_CODES.has(country)) {
-      fields.CountryISO = country;
-    } else {
-      logger.warn("Ignored unrecognised country code", { country });
-    }
-  }
-
-  return fields;
-}
-
-function buildSupplierPreferences(
-  args: Record<string, unknown>,
-): SupplierPreferences | undefined {
-  const preferences = Object.fromEntries(
-    [
-      ["DefaultCurrency", args.currency],
-      ["DefaultTerm", args.termDays],
-      ["DefaultVatRate", args.defaultVatRate],
-      ["DefaultNominalCode", args.defaultNominalCode],
-    ].filter(([, value]) => value !== undefined),
-  ) as SupplierPreferences;
-  return Object.keys(preferences).length > 0 ? preferences : undefined;
-}
-
-function buildSupplierBaseData(args: Record<string, unknown>): SupplierBaseData {
-  return {
-    CompanyName: args.companyName as string | undefined,
-    CompanyNumber: args.companyNumber as string | undefined,
-    SupplierReference: args.supplierReference as string | undefined,
-    ContactFirstName: args.firstName as string | undefined,
-    ContactTel: args.telephone as string | undefined,
-    ContactEmail: args.email as string | undefined,
-    Website: args.website as string | undefined,
-    VatNumber: args.vatNumber as string | undefined,
-    VatExempt: args.vatExempt as boolean | undefined,
-    Preferences: buildSupplierPreferences(args),
-    ...buildSupplierAddressFields(args),
-  };
-}
-
-export function buildSupplierCreateData(
-  args: Record<string, unknown>,
-  defaults: { currency?: string; termDays?: number } = {},
-): SupplierCreateData {
-  const { currency = "GBP", termDays = 30 } = defaults;
-  const data = buildSupplierBaseData({
-    ...args,
-    currency: args.currency ?? currency,
-    termDays: args.termDays ?? termDays,
-  });
-  return {
-    ...data,
-    ContactSurname: args.lastName as string | undefined,
-  };
-}
-
-export function buildSupplierUpdateData(
-  args: Record<string, unknown>,
-): SupplierUpdateData {
-  const data = buildSupplierBaseData(args);
-  return {
-    ...data,
-    ContactSurName: args.lastName as string | undefined,
-  };
-}

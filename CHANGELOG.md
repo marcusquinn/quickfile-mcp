@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Explicit multi-account routing through a required `account` argument on every
+  MCP tool.
+- Read-only live integration coverage for each securely injected account token.
+
+### Changed
+
+- Migrated all supported tools from the legacy v1.2 API to the QuickFile beta
+  REST API.
+- Replaced account-number, MD5, and Application ID authentication with personal
+  bearer tokens injected as `QUICKFILE_<ACCOUNT>_API_KEY` variables.
+- Removed legacy-only note creation and estimate lifecycle tools that are absent
+  from the current REST OpenAPI specification.
+
+### Security
+
+- Removed plaintext credential-file setup and documented least-privilege secret
+  manager injection.
+- Restricted debug request logging to HTTP methods, paths, and account aliases;
+  authorization headers, query values, bodies, and responses remain hidden.
+
 ## [2.0.0] - 2026-05-01
 
 ### Changed
