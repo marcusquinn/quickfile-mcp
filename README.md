@@ -19,6 +19,23 @@ QuickFile REST API documentation: https://api-beta.quickfile.co.uk/api-docs/
 
 ## Install
 
+QuickFile MCP requires Node.js 24. Install the published package globally for
+long-lived MCP clients and direct CLI use:
+
+```bash
+npm install --global quickfile-mcp
+quickfile --help
+```
+
+Run the MCP server without a global installation when needed:
+
+```bash
+npx --yes quickfile-mcp
+```
+
+For source development, clone the repository and use its pinned Node.js and npm
+versions:
+
 ```bash
 git clone https://github.com/marcusquinn/quickfile-mcp.git
 cd quickfile-mcp
@@ -26,12 +43,13 @@ nvm install
 nvm use
 corepack enable
 npm ci
+npm run hooks:install
 npm run build
 ```
 
-Requires the exact Node.js version in [`.nvmrc`](.nvmrc) (currently 24.19.0)
-and npm 11.17.0. The repository declares npm through `packageManager`; use
-Corepack to select it before installing dependencies.
+Source development requires the exact Node.js version in [`.nvmrc`](.nvmrc)
+(currently 24.19.0) and npm 11.17.0. The repository declares npm through
+`packageManager`; use Corepack to select it before installing dependencies.
 
 ## Authentication
 
@@ -62,12 +80,11 @@ aidevops secret set QUICKFILE_BUSINESS_API_KEY
 aidevops secret set QUICKFILE_PERSONAL_API_KEY
 ```
 
-Build once, then launch the compiled MCP while injecting only the required
-tokens:
+Launch the installed MCP while injecting only the required tokens:
 
 ```bash
 aidevops secret QUICKFILE_BUSINESS_API_KEY QUICKFILE_PERSONAL_API_KEY -- \
-  npm start
+  quickfile-mcp
 ```
 
 Optional VAT posture can be set per account:
@@ -86,11 +103,12 @@ Configure the client to run the secret-manager command rather than embedding
 tokens in JSON. Generic command shape:
 
 ```text
-aidevops secret <TOKEN_NAME> [<TOKEN_NAME>...] -- npm start
+aidevops secret <TOKEN_NAME> [<TOKEN_NAME>...] -- quickfile-mcp
 ```
 
-Run `./setup.sh client` for runtime-specific guidance. Restart the MCP client
-after changing its process environment or secret injection command.
+Source installations can use `npm start` instead. Run `./setup.sh client` from
+a source checkout for runtime-specific guidance. Restart the MCP client after
+changing its process environment or secret injection command.
 
 ## Account selection
 
@@ -120,20 +138,20 @@ over an MCP transport. Output is JSON except for help and version text.
 
 ```bash
 # Discover configured aliases and operations without exposing token values
-npm run cli -- accounts
-npm run cli -- tools
-npm run cli -- describe quickfile_invoice_search
-npm run cli -- describe quickfile_rest_journal_search
+quickfile accounts
+quickfile tools
+quickfile describe quickfile_invoice_search
+quickfile describe quickfile_rest_journal_search
 
 # Execute a read-only operation
-npm run cli -- call quickfile_system_get_account --account business
+quickfile call quickfile_system_get_account --account business
 
 # Pass operation fields as one JSON object
-npm run cli -- call quickfile_invoice_search --account business \
+quickfile call quickfile_invoice_search --account business \
   --input '{"status":"PAID","returnCount":10}'
 
 # Use exact REST field names for any published v2 operation
-npm run cli -- call quickfile_rest_ledger_search --account business \
+quickfile call quickfile_rest_ledger_search --account business \
   --input '{"query":{"nominal_code":4000,"limit":10}}'
 ```
 
@@ -146,7 +164,8 @@ The same guard applies to MCP: mutating tool schemas require `confirmed: true`.
 Both interfaces validate required fields, primitive types, enumerations, and
 unknown fields before loading credentials or calling QuickFile.
 
-After package installation the commands are `quickfile` and `quickfile-mcp`.
+Source checkouts can replace `quickfile` with `npm run cli --`. The installed
+commands are `quickfile` and `quickfile-mcp`.
 
 ## Tool groups
 
