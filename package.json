@@ -4,6 +4,9 @@
   "description": "Multi-account MCP server and CLI for the QuickFile beta REST API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "bin": {
     "quickfile-mcp": "dist/index.js",
     "quickfile": "dist/cli.js"
@@ -25,11 +28,11 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "secretlint": "secretlint \"**/*\"",
     "secretlint:fix": "secretlint \"**/*\" --fix",
-    "setup": "npm install && npm run build",
+    "setup": "npm install && npm run hooks:install && npm run build",
+    "hooks:install": "husky",
     "typecheck": "tsc --noEmit",
     "check:runtime": "node scripts/check-runtime-policy.cjs",
-    "precommit": "npm run secretlint && npm run typecheck",
-    "prepare": "husky"
+    "precommit": "npm run secretlint && npm run typecheck"
   },
   "keywords": [
     "mcp",
@@ -50,6 +53,9 @@
     "url": "https://github.com/marcusquinn/quickfile-mcp/issues"
   },
   "homepage": "https://github.com/marcusquinn/quickfile-mcp#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=24.0.0 <25.0.0"
   },
