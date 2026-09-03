@@ -1,17 +1,19 @@
-# QuickFile MCP Server
+# QuickFile MCP Server and CLI
 
-Model Context Protocol server for QuickFile UK accounting, using the beta REST
-API with personal bearer tokens and explicit multi-account selection.
+Model Context Protocol server and command-line client for QuickFile UK
+accounting, using the beta REST API with personal bearer tokens and explicit
+multi-account selection.
 
 ## Features
 
-- 37 tools for accounts, clients, invoices, purchases, suppliers, banking,
-  reports, and document uploads
+- 112 tools: 37 curated operations plus exact coverage of all 75 operations in
+  QuickFile's published REST v2 schema
 - QuickFile beta REST API bearer-token authentication
 - Multiple QuickFile entities in one MCP process
 - Required `account` argument on every tool to prevent cross-entity mistakes
 - Environment-only token loading for secret-manager injection
 - Sanitization of user-controlled accounting data before MCP output
+- JSON CLI over the same validated and sanitized operations as MCP
 
 QuickFile REST API documentation: https://api-beta.quickfile.co.uk/api-docs/
 
@@ -33,9 +35,8 @@ Corepack to select it before installing dependencies.
 
 ## Authentication
 
-Generate a **personal bearer token** in QuickFile under:
-
-`Account Settings → Third Party Integration → API`
+Generate a **personal bearer token** from the **Developer Dashboard**, available
+from the top-right menu in the QuickFile account.
 
 Grant only the endpoint groups the account needs. Personal REST tokens do not
 use the legacy account-number, MD5, or Application ID authentication fields.
@@ -111,23 +112,83 @@ List unpaid invoices for the personal QuickFile account.
 The server refuses startup when no bearer-token variables are present and
 refuses tool calls for unknown aliases.
 
+## Command-line interface
+
+The `quickfile` CLI exposes the same tool registry and handlers as the MCP
+server. It is useful for scripts and AI agents that prefer a composable command
+over an MCP transport. Output is JSON except for help and version text.
+
+```bash
+# Discover configured aliases and operations without exposing token values
+npm run cli -- accounts
+npm run cli -- tools
+npm run cli -- describe quickfile_invoice_search
+npm run cli -- describe quickfile_rest_journal_search
+
+# Execute a read-only operation
+npm run cli -- call quickfile_system_get_account --account business
+
+# Pass operation fields as one JSON object
+npm run cli -- call quickfile_invoice_search --account business \
+  --input '{"status":"PAID","returnCount":10}'
+
+# Use exact REST field names for any published v2 operation
+npm run cli -- call quickfile_rest_ledger_search --account business \
+  --input '{"query":{"nominal_code":4000,"limit":10}}'
+```
+
+Create, update, send, upload, login-URL generation, and delete operations fail
+unless `--confirm` is supplied. Only add it after the intended account, payload,
+and effect have been confirmed. Keep bearer tokens in `QUICKFILE_*` environment
+variables; never include them in CLI arguments.
+
+The same guard applies to MCP: mutating tool schemas require `confirmed: true`.
+Both interfaces validate required fields, primitive types, enumerations, and
+unknown fields before loading credentials or calling QuickFile.
+
+After package installation the commands are `quickfile` and `quickfile-mcp`.
+
 ## Tool groups
 
-| Group | Tools |
-|---|---|
-| System | Account details, event log |
-| Clients | Search, get, create, update, delete, contacts, login URL |
-| Invoices | Search, get, create, delete, send, PDF URL |
-| Purchases | Search, get, create, delete |
-| Suppliers | Search, get, create, update, delete |
-| Banking | Accounts, balances, transactions, account creation |
-| Reports | P&L, balance sheet, VAT, ageing, chart, subscriptions |
-| Documents | Receipt and sales-attachment uploads |
+| Group         | Tools                                                                                                                                                                 |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| System        | Account details, event log                                                                                                                                            |
+| Clients       | Search, get, create, update, delete, contacts, login URL                                                                                                              |
+| Invoices      | Search, get, create, delete, send, PDF URL                                                                                                                            |
+| Purchases     | Search, get, create, delete                                                                                                                                           |
+| Suppliers     | Search, get, create, update, delete                                                                                                                                   |
+| Banking       | Accounts, balances, transactions, account creation                                                                                                                    |
+| Reports       | P&L, balance sheet, VAT, ageing, chart, subscriptions                                                                                                                 |
+| Documents     | Receipt and sales-attachment uploads                                                                                                                                  |
+| Exact REST v2 | All 75 published operations, including payments, inventory, journals, ledgers, projects, purchase orders, contacts, recurring templates, and general document uploads |
 
 Invoice creation supports invoice, estimate, and credit document types. The
 REST beta API does not currently advertise the legacy create-note,
 estimate-accept/decline, or estimate-conversion endpoints, so those legacy-only
 tools are not exposed.
+
+## Legacy API deprecation
+
+QuickFile has announced that its legacy XML/JSON API will stop accepting
+requests on 1 June 2027. Version 3.0.0 and later of this project already use the
+replacement REST API exclusively. Installations upgrading from version 2 or
+earlier must replace legacy account-number, MD5, and Application ID credentials
+with personal bearer tokens and grant the required REST endpoint groups.
+
+## QuickFile's hosted MCP server
+
+QuickFile also provides an official hosted MCP server documented at
+<https://support.quickfile.co.uk/t/public-mcp-server/65504>. It is the simplest
+choice for temporary, read-only access and uses a seven-day key in its connector
+URL.
+
+This project remains useful when an integration needs explicit multi-account
+routing, persistent secret-manager injection, local CLI access, or confirmed
+write operations. Exact `quickfile_rest_*` tools expose every operation in the
+current REST v2 schema, including journals, ledgers, inventory, payments,
+projects, purchase orders, contacts, and recurring invoice templates. Their
+arguments follow the published snake_case schema under `pathParams`, `query`,
+`body`, or `formData`; use `describe` to inspect an operation before calling it.
 
 ## Development
 
@@ -138,11 +199,19 @@ Use `npm run dev` only during active source development: it starts a persistent
 ```bash
 nvm use
 npm run check:runtime
+npm run check:rest
+npm run generate:rest
 npm run typecheck
 npm run lint -- --max-warnings=0
 npm test -- --runInBand
 npm run build
 ```
+
+`npm run check:rest` compares the reviewed
+`src/generated/rest-operations.json` snapshot with the live published REST v2
+schema. If it reports drift, run `npm run generate:rest`, then review the
+operation count, request fields, confirmation classification, and wire-shape
+tests before committing.
 
 Read-only live verification accepts one or more injected account tokens:
 

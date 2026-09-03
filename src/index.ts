@@ -30,10 +30,7 @@ import {
   loadCredentials,
   validateCredentialsFormat,
 } from "./api/auth.js";
-
-// Server metadata
-const SERVER_NAME = "quickfile-mcp";
-const SERVER_VERSION = "2.0.0";
+import { SERVER_NAME, SERVER_VERSION } from "./metadata.js";
 
 /**
  * Initialize and run the MCP server

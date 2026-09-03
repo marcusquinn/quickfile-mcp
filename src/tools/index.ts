@@ -15,9 +15,16 @@ import { supplierTools, handleSupplierTool } from "./supplier.js";
 import { bankTools, handleBankTool } from "./bank.js";
 import { reportTools, handleReportTool } from "./report.js";
 import { documentTools, handleDocumentTool } from "./document.js";
+import {
+  handleRestTool,
+  isRestDestructiveTool,
+  isRestReadOnlyTool,
+  restTools,
+} from "./rest.js";
 
-// Import ToolResult for local use, then re-export
-import type { ToolResult } from "./utils.js";
+// Import local utilities, then re-export the public utility surface.
+import { errorResult, type ToolResult } from "./utils.js";
+import { validateToolInput, type JsonInputSchema } from "./validation.js";
 
 // Re-export utility types and functions using export...from syntax
 export type { ToolResult } from "./utils.js";
@@ -39,13 +46,62 @@ const baseTools: Tool[] = [
   ...bankTools,
   ...reportTools,
   ...documentTools,
+  ...restTools,
 ];
+
+const readOnlyTools = new Set([
+  "quickfile_system_get_account",
+  "quickfile_system_search_events",
+  "quickfile_client_search",
+  "quickfile_client_get",
+  "quickfile_invoice_search",
+  "quickfile_invoice_get",
+  "quickfile_invoice_get_pdf",
+  "quickfile_purchase_search",
+  "quickfile_purchase_get",
+  "quickfile_supplier_search",
+  "quickfile_supplier_get",
+  "quickfile_bank_get_accounts",
+  "quickfile_bank_get_balances",
+  "quickfile_bank_search",
+  "quickfile_report_profit_loss",
+  "quickfile_report_balance_sheet",
+  "quickfile_report_vat_obligations",
+  "quickfile_report_ageing",
+  "quickfile_report_chart_of_accounts",
+  "quickfile_report_subscriptions",
+]);
+
+const destructiveTools = new Set([
+  "quickfile_client_delete",
+  "quickfile_invoice_delete",
+  "quickfile_purchase_delete",
+  "quickfile_supplier_delete",
+]);
+
+export function requiresConfirmation(toolName: string): boolean {
+  return !readOnlyTools.has(toolName) && !isRestReadOnlyTool(toolName);
+}
 
 function addAccountSelector(tool: Tool): Tool {
   const configuredAccounts = listConfiguredAccounts();
+  const mutating = requiresConfirmation(tool.name);
   return {
     ...tool,
-    description: `${tool.description} Requires an explicit QuickFile account alias.`,
+    description:
+      `${tool.description}` +
+      (mutating && !tool.description?.includes("confirmation required")
+        ? " Changes QuickFile data; confirmation is required."
+        : "") +
+      " Requires an explicit QuickFile account alias.",
+    annotations: {
+      ...tool.annotations,
+      readOnlyHint: !mutating,
+      destructiveHint:
+        destructiveTools.has(tool.name) || isRestDestructiveTool(tool.name),
+      idempotentHint: !mutating,
+      openWorldHint: true,
+    },
     inputSchema: {
       ...tool.inputSchema,
       properties: {
@@ -57,12 +113,24 @@ function addAccountSelector(tool: Tool): Tool {
           description:
             "Configured QuickFile account alias (for example business or personal)",
         },
+        ...(mutating
+          ? {
+              confirmed: {
+                type: "boolean" as const,
+                const: true,
+                description:
+                  "Set true only after the user confirms the account, payload, and effect",
+              },
+            }
+          : {}),
         ...(tool.inputSchema.properties ?? {}),
       },
       required: [
         "account",
+        ...(mutating ? ["confirmed"] : []),
         ...((tool.inputSchema.required as string[] | undefined) ?? []),
       ],
+      additionalProperties: false,
     },
   };
 }
@@ -76,56 +144,75 @@ export async function handleToolCall(
   toolName: string,
   args: Record<string, unknown>,
 ): Promise<ToolResult> {
+  const tool = allTools.find((candidate) => candidate.name === toolName);
+  if (!tool) {
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Unknown tool: ${toolName}. Available prefixes: quickfile_system_, quickfile_client_, quickfile_invoice_, quickfile_purchase_, quickfile_supplier_, quickfile_bank_, quickfile_report_, quickfile_document_`,
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  const validationError = validateToolInput(
+    args,
+    tool.inputSchema as JsonInputSchema,
+  );
+  if (validationError) {
+    return errorResult(`Validation error: ${validationError}`);
+  }
+
+  const handlerArgs = { ...args };
+  delete handlerArgs.confirmed;
+
+  if (toolName.startsWith("quickfile_rest_")) {
+    return handleRestTool(toolName, handlerArgs);
+  }
+
   // System tools
   if (toolName.startsWith("quickfile_system_")) {
-    return handleSystemTool(toolName, args);
+    return handleSystemTool(toolName, handlerArgs);
   }
 
   // Client tools
   if (toolName.startsWith("quickfile_client_")) {
-    return handleClientTool(toolName, args);
+    return handleClientTool(toolName, handlerArgs);
   }
 
   // Invoice tools (invoice creation also supports estimate and credit types)
   if (toolName.startsWith("quickfile_invoice_")) {
-    return handleInvoiceTool(toolName, args);
+    return handleInvoiceTool(toolName, handlerArgs);
   }
 
   // Purchase tools
   if (toolName.startsWith("quickfile_purchase_")) {
-    return handlePurchaseTool(toolName, args);
+    return handlePurchaseTool(toolName, handlerArgs);
   }
 
   // Supplier tools
   if (toolName.startsWith("quickfile_supplier_")) {
-    return handleSupplierTool(toolName, args);
+    return handleSupplierTool(toolName, handlerArgs);
   }
 
   // Bank tools
   if (toolName.startsWith("quickfile_bank_")) {
-    return handleBankTool(toolName, args);
+    return handleBankTool(toolName, handlerArgs);
   }
 
   // Report tools
   if (toolName.startsWith("quickfile_report_")) {
-    return handleReportTool(toolName, args);
+    return handleReportTool(toolName, handlerArgs);
   }
 
   // Document tools
   if (toolName.startsWith("quickfile_document_")) {
-    return handleDocumentTool(toolName, args);
+    return handleDocumentTool(toolName, handlerArgs);
   }
 
-  // Unknown tool
-  return {
-    content: [
-      {
-        type: "text",
-        text: `Unknown tool: ${toolName}. Available prefixes: quickfile_system_, quickfile_client_, quickfile_invoice_, quickfile_purchase_, quickfile_supplier_, quickfile_bank_, quickfile_report_, quickfile_document_`,
-      },
-    ],
-    isError: true,
-  };
+  return errorResult(`No handler is registered for tool: ${toolName}`);
 }
 
 // Re-export individual handlers for direct use if needed
@@ -146,4 +233,6 @@ export {
   handleReportTool,
   documentTools,
   handleDocumentTool,
+  restTools,
+  handleRestTool,
 };

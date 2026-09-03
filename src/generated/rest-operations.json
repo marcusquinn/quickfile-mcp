@@ -1,0 +1,4880 @@
+{
+  "source": "https://api-beta.quickfile.co.uk/api-docs/v2",
+  "schemaVersion": "v2",
+  "operationCount": 75,
+  "operationsSha256": "967207b0eabce945d2b73926fd2fe173245f52b74e34c641ee26578111fe1cf1",
+  "operations": [
+    {
+      "name": "quickfile_rest_account_me",
+      "operationId": "Account_Me",
+      "group": "Account",
+      "summary": "Get the business details for the connected user, e.g. business name, type, address, year end date, vat status and account size statistics.",
+      "method": "GET",
+      "path": "/account/me",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_bank_accounts",
+      "operationId": "Bank_Accounts",
+      "group": "Bank",
+      "summary": "Returns a list of bank accounts with optional nominal code and type filtering",
+      "method": "GET",
+      "path": "/bank_accounts",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "nominal_code": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Nominal code"
+              },
+              "types": {
+                "type": "array",
+                "description": "List of account types to be returned. E.g. current, petty, buildingsoc, loan, merchant, equity, creditcard, reserve",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "include_hidden": {
+                "type": "boolean",
+                "description": "Show hidden bank accounts. Default is false."
+              },
+              "include_consents": {
+                "type": "boolean",
+                "description": "Show Open Banking consents. Default is false."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_bank_balances",
+      "operationId": "Bank_Balances",
+      "group": "Bank",
+      "summary": "Returns a bank balance",
+      "method": "GET",
+      "path": "/bank_accounts/{id}/balance",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Bank account id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_bank_banks",
+      "operationId": "Bank_Banks",
+      "group": "Bank",
+      "summary": "Returns a list of supported banks",
+      "method": "GET",
+      "path": "/banks",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_bank_create_account",
+      "operationId": "Bank_CreateAccount",
+      "group": "Bank",
+      "summary": "Create a new bank account",
+      "method": "POST",
+      "path": "/bank_accounts",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "bank_name_id",
+              "type",
+              "name"
+            ],
+            "properties": {
+              "bank_name_id": {
+                "type": "integer",
+                "format": "int32",
+                "description": "The bank name ID. Each banking provider (e.g. Barclays) has a corresponding ID. Use /banks endpoint to get list of accepted values"
+              },
+              "type": {
+                "type": "string",
+                "description": "Account type. E.g. current, petty, buildingsoc, loan, merchant, creditcard, reserve"
+              },
+              "name": {
+                "type": "string",
+                "description": "A name for this bank account"
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3,
+                "description": "Currency Code (Default is GBP). Specifiy an alternative currency only if you have enabled multi-currency accounting."
+              },
+              "account_number": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 10,
+                "pattern": "^$|^\\d{3,10}$",
+                "description": "A bank account number if applicable"
+              },
+              "sort_code": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 8,
+                "pattern": "^$|^\\d{2}-\\d{2}-\\d{2}$",
+                "description": "A sort code if applicable"
+              },
+              "opening_balance": {
+                "type": "object",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "The date the opening balance should be committed"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "format": "double",
+                    "description": "Opening balance amount"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "dashboard_pinned": {
+                "type": "boolean",
+                "description": "Show the account balance on the dashboard for this account. Default is false."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_bank_create_transaction",
+      "operationId": "Bank_CreateTransaction",
+      "group": "Bank",
+      "summary": "Create untagged bank transactions",
+      "method": "POST",
+      "path": "/bank_accounts/{id}/transactions",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Bank account id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "required": [
+              "date",
+              "reference",
+              "amount"
+            ],
+            "properties": {
+              "date": {
+                "type": "string",
+                "description": "Date of the transaction (YYYY-MM-DD)."
+              },
+              "reference": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 100,
+                "description": "Reference for the transaction."
+              },
+              "notes": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 240,
+                "description": "Optional transaction notes"
+              },
+              "amount": {
+                "type": "number",
+                "format": "double",
+                "description": "For \"money out\" transactions enter as a negative value."
+              },
+              "duplicate_check": {
+                "type": "boolean",
+                "description": "Set to true by default. Automatically skips where a item is found with a matching date, reference and amount."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_bank_search",
+      "operationId": "Bank_Search",
+      "group": "Bank",
+      "summary": "Query bank account transactions by date range, nominal code, reference or amount",
+      "method": "GET",
+      "path": "/bank_accounts/{id}/transactions",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Bank account id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "order_column": {
+                "type": "string",
+                "description": "Which columns should be used for ordering the record set. E.g. date, amount."
+              },
+              "order_direction": {
+                "type": "string",
+                "description": "Order direction. Ascending (asc) or Descending (desc)."
+              },
+              "reference": {
+                "type": "string",
+                "description": "Search by whole or partial reference"
+              },
+              "notes": {
+                "type": "string",
+                "description": "Search by whole or partial notes."
+              },
+              "date_from": {
+                "type": "string",
+                "description": "From date"
+              },
+              "date_to": {
+                "type": "string",
+                "description": "To date"
+              },
+              "amount_from": {
+                "type": "number",
+                "format": "double",
+                "description": "Amount range from (use - prefix for debits)"
+              },
+              "amount_to": {
+                "type": "number",
+                "format": "double",
+                "description": "Amount range to (use - prefix for debits)"
+              },
+              "type": {
+                "type": "string",
+                "description": "Type of transaction, e.g. (credit) or (debit). Leave absent for both."
+              },
+              "tag_status": {
+                "type": "string",
+                "description": "Tag status of the bank transaction, e.g. tagged or untagged"
+              },
+              "offset": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 1000000,
+                "description": "Page offset. Zero (0) would show results from the beginning of the record set. Offset can be used for paging functions."
+              },
+              "limit": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "How many records would you like the API to return."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_contact_create",
+      "operationId": "Client_ContactCreate",
+      "group": "Client",
+      "summary": "Create a new client contact record",
+      "method": "POST",
+      "path": "/clients/{id}/contacts",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Client id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "required": [
+              "first_name",
+              "surname",
+              "email"
+            ],
+            "properties": {
+              "first_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 50,
+                "description": "Fist name"
+              },
+              "surname": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 50,
+                "description": "Surname"
+              },
+              "is_default": {
+                "type": "boolean",
+                "description": "Telephone1"
+              },
+              "telephone1": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 20,
+                "description": "Telephone1"
+              },
+              "telephone2": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 20,
+                "description": "Telephone2"
+              },
+              "email": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100,
+                "description": "Email"
+              },
+              "password": {
+                "type": "string",
+                "minLength": 6,
+                "maxLength": 30,
+                "description": "Password"
+              },
+              "job_title": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 150,
+                "description": "Job Title"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_contact_delete",
+      "operationId": "Client_ContactDelete",
+      "group": "Client",
+      "summary": "Delete a client contact record",
+      "method": "DELETE",
+      "path": "/clients/{id}/contacts/{contactId}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Client id"
+              },
+              "contactId": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Client contact id"
+              }
+            },
+            "required": [
+              "id",
+              "contactId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_contact_get",
+      "operationId": "Client_ContactGet",
+      "group": "Client",
+      "summary": "Retrieve client contact data",
+      "method": "GET",
+      "path": "/clients/{id}/contacts",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Client id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_contact_update",
+      "operationId": "Client_ContactUpdate",
+      "group": "Client",
+      "summary": "Update an existing client contact record",
+      "method": "PUT",
+      "path": "/clients/{id}/contacts/{contactId}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Client id"
+              },
+              "contactId": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Client contact id"
+              }
+            },
+            "required": [
+              "id",
+              "contactId"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "first_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 50,
+                "description": "Fist name"
+              },
+              "surname": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 50,
+                "description": "Surname"
+              },
+              "is_default": {
+                "type": "boolean",
+                "description": "Telephone1"
+              },
+              "telephone1": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 20,
+                "description": "Telephone1"
+              },
+              "telephone2": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 20,
+                "description": "Telephone2"
+              },
+              "email": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100,
+                "description": "Email"
+              },
+              "password": {
+                "type": "string",
+                "minLength": 6,
+                "maxLength": 30,
+                "description": "Password"
+              },
+              "job_title": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 150,
+                "description": "Job Title"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_create",
+      "operationId": "Client_Create",
+      "group": "Client",
+      "summary": "Create a new client record",
+      "method": "POST",
+      "path": "/clients",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "company_name"
+            ],
+            "properties": {
+              "company_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100,
+                "description": "Company name"
+              },
+              "company_number": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 10,
+                "description": "Company number"
+              },
+              "account_reference": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 30,
+                "description": "Your own account identifier (Optional)"
+              },
+              "address_line1": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75,
+                "description": "Address line1"
+              },
+              "address_line2": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75,
+                "description": "Address line2"
+              },
+              "address_line3": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75,
+                "description": "Address line3"
+              },
+              "town": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75,
+                "description": "Town"
+              },
+              "country_iso": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 2,
+                "description": "Country iso"
+              },
+              "post_code": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 15,
+                "description": "Post code"
+              },
+              "vat_number": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 20,
+                "description": "Vat number"
+              },
+              "go_cardless_mandate": {
+                "type": "string",
+                "minLength": 6,
+                "maxLength": 15,
+                "description": "Optional GoCardless Direct Debit mandate ID"
+              },
+              "allow_attach_pdf": {
+                "type": "boolean",
+                "description": "Set this to allow invoices/statements and estimates to be attached to emails in PDF format"
+              },
+              "default_send_method": {
+                "type": "string",
+                "description": "What default send method would you like to use for outbound invoices? E.g. email, snailmail"
+              },
+              "default_currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3,
+                "description": "If not supply will revert to account default."
+              },
+              "default_term": {
+                "type": "integer",
+                "format": "int32",
+                "description": "If not supply will revert to account default."
+              },
+              "trading_style": {
+                "type": "integer",
+                "format": "int32",
+                "description": "The Trading Style ID where multiple trading styles are defined on the account. To locate the ID click to edit the trading style within the web application."
+              },
+              "payment_restrictions": {
+                "type": "array",
+                "description": "A list of restricted payment processors for this client. E.g. paypal, gocardless, paymentsense, bitpay, stripe, worldpay, sagepay",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_delete",
+      "operationId": "Client_Delete",
+      "group": "Client",
+      "summary": "Delete a client record",
+      "method": "DELETE",
+      "path": "/clients/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Client id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_get",
+      "operationId": "Client_Get",
+      "group": "Client",
+      "summary": "Retrieve client and contact data",
+      "method": "GET",
+      "path": "/clients/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Client id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "contacts": {
+                "type": "boolean",
+                "description": "Returns a list of client contacts associated with this particular client record."
+              },
+              "financials": {
+                "type": "boolean",
+                "description": "Returns credits on account and balance info."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_login",
+      "operationId": "Client_Login",
+      "group": "Client",
+      "summary": "Generate a secure tokenised login URL for a client",
+      "method": "POST",
+      "path": "/clients/{id}/login",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "landing_page": {
+                "type": "object",
+                "properties": {
+                  "dashboard": {
+                    "type": "boolean",
+                    "description": "Redirect the client to the client area dashboard."
+                  },
+                  "invoice_id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Redirect the client directly to a specific invoice preview page."
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_new_dd_collection",
+      "operationId": "Client_NewDDCollection",
+      "group": "Client",
+      "summary": "Initiate a new Direct Debit collection request",
+      "method": "POST",
+      "path": "/clients/{id}/new-direct-debit",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "invoice": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "format": "int64"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "format": "double"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "account": {
+                "type": "object",
+                "required": [
+                  "payment_name",
+                  "amount"
+                ],
+                "properties": {
+                  "payment_name": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "format": "double"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "charge_at_date": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_payment_delete",
+      "operationId": "ClientPayment_Delete",
+      "group": "Client payment",
+      "summary": "Delete a payment record",
+      "method": "DELETE",
+      "path": "/client_payments/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_payment_get",
+      "operationId": "ClientPayment_Get",
+      "group": "Client payment",
+      "summary": "Retrieve a payment record",
+      "method": "GET",
+      "path": "/client_payments/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_payment_post",
+      "operationId": "ClientPayment_Post",
+      "group": "Client payment",
+      "summary": "Create a new payment record",
+      "method": "POST",
+      "path": "/client_payments",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "type",
+              "date",
+              "client_id",
+              "amount",
+              "currency"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "payment/credit - Payments are attributed to an invoice. Credits are used for holding funds on a client or supplier account."
+              },
+              "date": {
+                "type": "string",
+                "description": "Date the payment was made."
+              },
+              "invoice_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Provide an invoice ID if type is payment."
+              },
+              "client_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Client ID for which the payment will be linked to."
+              },
+              "amount": {
+                "type": "number",
+                "format": "double",
+                "description": "Total amount of payment."
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3,
+                "description": "Payment currency."
+              },
+              "nominal_code": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Missing bank nominal code."
+              },
+              "apply_credit": {
+                "type": "boolean",
+                "description": "When set to true we will first try to pay the invoice from available credit on the client account."
+              },
+              "send_confirmation": {
+                "type": "boolean",
+                "description": "When set to true we will send an email notification to the client."
+              },
+              "notes": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100,
+                "description": "Additional notes relating to this payment."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_payment_search",
+      "operationId": "ClientPayment_Search",
+      "group": "Client payment",
+      "summary": "Search for a payment based on specific search parameters",
+      "method": "GET",
+      "path": "/client_payments",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "order_column": {
+                "type": "string",
+                "description": "Which columns should be used for ordering the record set. E.g. amount, pay_date."
+              },
+              "order_direction": {
+                "type": "string",
+                "description": "Order direction. Ascending (asc) or Descending (desc)."
+              },
+              "include_deleted": {
+                "type": "boolean",
+                "description": "Show previously deleted payments. Default is false."
+              },
+              "client_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Show all payments for a given Client ID."
+              },
+              "client_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100,
+                "description": "Whole or part of client company name."
+              },
+              "type": {
+                "type": "string",
+                "description": "allocated/unallocated."
+              },
+              "date_from": {
+                "type": "string",
+                "description": "Payment date range from"
+              },
+              "date_to": {
+                "type": "string",
+                "description": "Payment date range to"
+              },
+              "amount_from": {
+                "type": "number",
+                "format": "double",
+                "description": "Amount range from"
+              },
+              "amount_to": {
+                "type": "number",
+                "format": "double",
+                "description": "Amount range to"
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3,
+                "description": "Currency ISO code must be 3 characters long."
+              },
+              "offset": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 1000000,
+                "description": "Page offset. Zero (0) would show results from the beginning of the record set. Offset can be used for paging functions."
+              },
+              "limit": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "How many records would you like the API to return."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_search",
+      "operationId": "Client_Search",
+      "group": "Client",
+      "summary": "Retrieve client records based on a set of search parameters",
+      "method": "GET",
+      "path": "/clients",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "order_column": {
+                "type": "string",
+                "description": "Which columns should be used for ordering the record set. E.g. created_date, company_name."
+              },
+              "order_direction": {
+                "type": "string",
+                "description": "Order direction. Ascending (asc) or Descending (desc)."
+              },
+              "include_deleted": {
+                "type": "boolean",
+                "description": "Show previously deleted clients. Default is false."
+              },
+              "company_name": {
+                "type": "string",
+                "description": "Search by partial company name."
+              },
+              "first_name": {
+                "type": "string",
+                "description": "Search by first name."
+              },
+              "surname": {
+                "type": "string",
+                "description": "Search by surname."
+              },
+              "email": {
+                "type": "string",
+                "description": "Search by email."
+              },
+              "account_reference": {
+                "type": "string",
+                "description": "Search by client account reference."
+              },
+              "telephone": {
+                "type": "string",
+                "description": "Search by telephone."
+              },
+              "include_total_invoiced": {
+                "type": "boolean",
+                "description": "Returns the total amount invoiced for each client."
+              },
+              "include_total_paid": {
+                "type": "boolean",
+                "description": "Returns the total payments received for each client."
+              },
+              "include_total_credits": {
+                "type": "boolean",
+                "description": "Returns the total of prepayments held on account for each client."
+              },
+              "offset": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 1000000,
+                "description": "Page offset. Zero (0) would show results from the beginning of the record set. Offset can be used for paging functions."
+              },
+              "limit": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "How many records would you like the API to return."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_trading_styles",
+      "operationId": "Client_TradingStyles",
+      "group": "Client",
+      "summary": "Retrieve client trading styles",
+      "method": "GET",
+      "path": "/clients/styles",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_client_update",
+      "operationId": "Client_Update",
+      "group": "Client",
+      "summary": "Update an existing client record",
+      "method": "PUT",
+      "path": "/clients/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Client id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "company_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100,
+                "description": "Company name"
+              },
+              "company_number": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 10,
+                "description": "Company number"
+              },
+              "account_reference": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 30,
+                "description": "Your own account identifier (Optional)"
+              },
+              "address_line1": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75,
+                "description": "Address line1"
+              },
+              "address_line2": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75,
+                "description": "Address line2"
+              },
+              "address_line3": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75,
+                "description": "Address line3"
+              },
+              "town": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75,
+                "description": "Town"
+              },
+              "country_iso": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 2,
+                "description": "Country iso"
+              },
+              "post_code": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 15,
+                "description": "Post code"
+              },
+              "vat_number": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 20,
+                "description": "Vat number"
+              },
+              "go_cardless_mandate": {
+                "type": "string",
+                "minLength": 6,
+                "maxLength": 15,
+                "description": "Optional GoCardless Direct Debit mandate ID"
+              },
+              "allow_attach_pdf": {
+                "type": "boolean",
+                "description": "Set this to allow invoices/statements and estimates to be attached to emails in PDF format"
+              },
+              "default_send_method": {
+                "type": "string",
+                "description": "What default send method would you like to use for outbound invoices? E.g. email, snailmail"
+              },
+              "default_currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3,
+                "description": "If not supply will revert to account default."
+              },
+              "default_term": {
+                "type": "integer",
+                "format": "int32",
+                "description": "If not supply will revert to account default."
+              },
+              "trading_style": {
+                "type": "integer",
+                "format": "int32",
+                "description": "The Trading Style ID where multiple trading styles are defined on the account. To locate the ID click to edit the trading style within the web application."
+              },
+              "payment_restrictions": {
+                "type": "array",
+                "description": "A list of restricted payment processors for this client. E.g. paypal, gocardless, paymentsense, bitpay, stripe, worldpay, sagepay",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_document_upload_general",
+      "operationId": "Document_UploadGeneral",
+      "group": "Document",
+      "summary": "Upload a document to the Document Management area",
+      "method": "POST",
+      "path": "/documents/general",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "formData": {
+            "type": "object",
+            "properties": {
+              "file": {
+                "type": "object",
+                "description": "Receipt image",
+                "properties": {
+                  "fileName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "fileData": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Base64-encoded file content"
+                  },
+                  "mimeType": {
+                    "type": "string",
+                    "description": "Media type; defaults to application/octet-stream"
+                  }
+                },
+                "required": [
+                  "fileName",
+                  "fileData"
+                ],
+                "additionalProperties": false
+              },
+              "collection_name": {
+                "type": "string",
+                "description": "The Doc Management folder to which the file will be uploaded."
+              }
+            },
+            "required": [
+              "file"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "formData"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_document_upload_receipt",
+      "operationId": "Document_UploadReceipt",
+      "group": "Document",
+      "summary": "Upload a receipt to the Receipt Hub",
+      "method": "POST",
+      "path": "/documents/receipt",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "formData": {
+            "type": "object",
+            "properties": {
+              "file": {
+                "type": "object",
+                "description": "Receipt image",
+                "properties": {
+                  "fileName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "fileData": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Base64-encoded file content"
+                  },
+                  "mimeType": {
+                    "type": "string",
+                    "description": "Media type; defaults to application/octet-stream"
+                  }
+                },
+                "required": [
+                  "fileName",
+                  "fileData"
+                ],
+                "additionalProperties": false
+              },
+              "purchase_id": {
+                "type": "integer",
+                "description": "If supplied the document will be attached to the supplied purchase ID. When absent the document will appear in the Receipt Hub untagged."
+              },
+              "capture_date": {
+                "type": "string",
+                "description": "A date time object representing when the receipt image was captured. Expected format: yyyy-MM-dd"
+              },
+              "receipt_name": {
+                "type": "string",
+                "description": "Optional name value assigned to the receipt for easy identification while untagged."
+              }
+            },
+            "required": [
+              "file",
+              "capture_date"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "formData"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_document_upload_sales",
+      "operationId": "Document_UploadSales",
+      "group": "Document",
+      "summary": "Upload a file attachment to a sales invoice",
+      "method": "POST",
+      "path": "/documents/sales",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "formData": {
+            "type": "object",
+            "properties": {
+              "file": {
+                "type": "object",
+                "description": "Receipt image",
+                "properties": {
+                  "fileName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "fileData": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Base64-encoded file content"
+                  },
+                  "mimeType": {
+                    "type": "string",
+                    "description": "Media type; defaults to application/octet-stream"
+                  }
+                },
+                "required": [
+                  "fileName",
+                  "fileData"
+                ],
+                "additionalProperties": false
+              },
+              "invoice_id": {
+                "type": "integer",
+                "description": "The associated ID for the sales invoice you would like to attach to."
+              },
+              "notes": {
+                "type": "string",
+                "description": "Optional notes."
+              }
+            },
+            "required": [
+              "file",
+              "invoice_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "formData"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_inventory_delete",
+      "operationId": "Inventory_Delete",
+      "group": "Inventory",
+      "summary": "Delete an existing inventory item",
+      "method": "DELETE",
+      "path": "/inventory/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_inventory_get",
+      "operationId": "Inventory_Get",
+      "group": "Inventory",
+      "summary": "Get an inventory item by id",
+      "method": "GET",
+      "path": "/inventory/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_inventory_post",
+      "operationId": "Inventory_Post",
+      "group": "Inventory",
+      "summary": "Create a new inventory item",
+      "method": "POST",
+      "path": "/inventory",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "item_name",
+              "unit_cost",
+              "item_type"
+            ],
+            "properties": {
+              "item_id": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "item_name": {
+                "type": "string"
+              },
+              "item_description": {
+                "type": "string"
+              },
+              "unit_cost": {
+                "type": "number",
+                "format": "double"
+              },
+              "item_type": {
+                "type": "string"
+              },
+              "vat_rate": {
+                "type": "number",
+                "format": "double"
+              },
+              "nominal_code": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "qty": {
+                "type": "number",
+                "format": "double"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_inventory_search",
+      "operationId": "Inventory_Search",
+      "group": "Inventory",
+      "summary": "Search for an inventory item",
+      "method": "GET",
+      "path": "/inventory",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "order_column": {
+                "type": "string"
+              },
+              "order_direction": {
+                "type": "string"
+              },
+              "include_deleted": {
+                "type": "boolean"
+              },
+              "item_name": {
+                "type": "string"
+              },
+              "item_description": {
+                "type": "string"
+              },
+              "item_type": {
+                "type": "string"
+              },
+              "offset": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 1000000,
+                "description": "Page offset. Zero (0) would show results from the beginning of the record set. Offset can be used for paging functions."
+              },
+              "limit": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "How many records would you like the API to return."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_invoice_delete",
+      "operationId": "Invoice_Delete",
+      "group": "Invoice",
+      "summary": "Delete an invoice, estimate or recurring invoice template",
+      "method": "DELETE",
+      "path": "/invoices/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Invoice id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "delete_associated_payments": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_invoice_get",
+      "operationId": "Invoice_Get",
+      "group": "Invoice",
+      "summary": "Retrieve a single invoice, estimate or recurring invoice template",
+      "method": "GET",
+      "path": "/invoices/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Invoice id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_invoice_get_pdf",
+      "operationId": "Invoice_GetPdf",
+      "group": "Invoice",
+      "summary": "Retrieve a URL to for an invoice or estimate PDF document",
+      "method": "GET",
+      "path": "/invoices/{id}/get-pdf",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Invoice id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_invoice_post",
+      "operationId": "Invoice_Post",
+      "group": "Invoice",
+      "summary": "Create a new invoice, estimate or recurring invoice template",
+      "method": "POST",
+      "path": "/invoices",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "type",
+              "client_id",
+              "currency"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Type of document. E.g. invoice, estimate, recurring."
+              },
+              "client_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Unique Client ID."
+              },
+              "client_contact_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100,
+                "description": "Contact name to appear on the invoice. Omit node to apply default contact for the client."
+              },
+              "client_address": {
+                "type": "string",
+                "description": "Supply a different client address to overide the default. Omit node to apply default address on file."
+              },
+              "client_country": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 2,
+                "description": "Client ISO 3166 Country Code. 2 characters long."
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3,
+                "description": "Currency ISO code must be 3 characters long."
+              },
+              "discount_percentage": {
+                "type": "number",
+                "format": "double",
+                "description": "Optional discount percentage applied to invoice total."
+              },
+              "term_days": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Number of days permitted to pay the invoice."
+              },
+              "language": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 2,
+                "description": "ISO 639-1 language code. Maximum 2 characters long."
+              },
+              "description": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 35,
+                "description": "A brief description of the invoice raised. If not supplied will assume the description of the first invoice item/task. Between 2-35 characters long."
+              },
+              "payment_term_notes": {
+                "type": "string",
+                "description": "Additional invoice terms"
+              },
+              "notes": {
+                "type": "string",
+                "description": "Additional notes to appear on invoice."
+              },
+              "ec_vat_exempt": {
+                "type": "boolean",
+                "description": "Legacy pre-Brexit EC VAT flag. Do not use."
+              },
+              "invoice_number": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 20,
+                "description": "If invoice number is not supplied the system will auto-increment. Between 1 and 20 characters long"
+              },
+              "issue_date": {
+                "type": "string"
+              },
+              "purchase_reference": {
+                "type": "string"
+              },
+              "vat_codes": {
+                "type": "array",
+                "description": "Possible codes: exempt (VAT Exempt), oos (VAT Out of Scope), cisrc (CIS Reverse Charge), nisogs (EU supply of goods), niserv (EU supply of services).",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "tags": {
+                "type": "array",
+                "description": "Provide up to 5 additional project tags",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "item_lines": {
+                "type": "array",
+                "description": "Use for products and services priced using the quantity and unit cost model.",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "description",
+                    "unit_cost",
+                    "qty"
+                  ],
+                  "properties": {
+                    "item_id": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "item_name": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 25,
+                      "description": "Item Name (Short). Max 25 characters"
+                    },
+                    "description": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 5000,
+                      "description": "Item Description (Long). Max 5000 characters"
+                    },
+                    "nominal_code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Nominal Code. Between 1 and 9999"
+                    },
+                    "vat_rate": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "The VAT rate to be applied. For non-VAT Reg suppliers use 0.00"
+                    },
+                    "vat_amount": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Overrides the VAT Rate for specific VAT amounts. If missing will be calculated from the rate."
+                    },
+                    "unit_cost": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "qty": {
+                      "type": "number",
+                      "format": "double"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "task_lines": {
+                "type": "array",
+                "description": "Use for itemising elements charged on an hourly rate at a fixed amount per hour.",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "item_name",
+                    "description",
+                    "hourly_rate",
+                    "hours"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "item_name": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 25,
+                      "description": "Item Name (Short). Max 25 characters"
+                    },
+                    "description": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 1000,
+                      "description": "Item Description (Long). Max 1000 characters"
+                    },
+                    "nominal_code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Nominal Code. Between 1 and 9999"
+                    },
+                    "hourly_rate": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "hours": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Number of hours"
+                    },
+                    "vat_rate": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "vat_amount": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Optional tax element to be levied on the item. Between 1 and 7 characters long"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "recurring": {
+                "type": "object",
+                "required": [
+                  "interval",
+                  "frequency",
+                  "start_date"
+                ],
+                "properties": {
+                  "interval": {
+                    "type": "string"
+                  },
+                  "frequency": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "start_date": {
+                    "type": "string"
+                  },
+                  "pro_rata_days": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "dd_auto_bill": {
+                    "type": "boolean"
+                  },
+                  "dd_delay": {
+                    "type": "integer",
+                    "format": "int32",
+                    "minimum": 0,
+                    "maximum": 60,
+                    "description": "Specify the number of days delay you would like to add before initiating a Direct Debit collection. Between 0 and 60"
+                  },
+                  "send_by_email": {
+                    "type": "boolean"
+                  },
+                  "send_by_post": {
+                    "type": "boolean"
+                  },
+                  "auto_activate": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_invoice_put",
+      "operationId": "Invoice_Put",
+      "group": "Invoice",
+      "summary": "Create a new invoice, estimate or recurring invoice template",
+      "method": "PUT",
+      "path": "/invoices/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Invoice id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "required": [
+              "type",
+              "client_id",
+              "currency"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Type of document. E.g. invoice, estimate, recurring."
+              },
+              "client_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Unique Client ID."
+              },
+              "client_contact_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100,
+                "description": "Contact name to appear on the invoice. Omit node to apply default contact for the client."
+              },
+              "client_address": {
+                "type": "string",
+                "description": "Supply a different client address to overide the default. Omit node to apply default address on file."
+              },
+              "client_country": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 2,
+                "description": "Client ISO 3166 Country Code. 2 characters long."
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3,
+                "description": "Currency ISO code must be 3 characters long."
+              },
+              "discount_percentage": {
+                "type": "number",
+                "format": "double",
+                "description": "Optional discount percentage applied to invoice total."
+              },
+              "term_days": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Number of days permitted to pay the invoice."
+              },
+              "language": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 2,
+                "description": "ISO 639-1 language code. Maximum 2 characters long."
+              },
+              "description": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 35,
+                "description": "A brief description of the invoice raised. If not supplied will assume the description of the first invoice item/task. Between 2-35 characters long."
+              },
+              "payment_term_notes": {
+                "type": "string",
+                "description": "Additional invoice terms"
+              },
+              "notes": {
+                "type": "string",
+                "description": "Additional notes to appear on invoice."
+              },
+              "ec_vat_exempt": {
+                "type": "boolean",
+                "description": "Legacy pre-Brexit EC VAT flag. Do not use."
+              },
+              "invoice_number": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 20,
+                "description": "If invoice number is not supplied the system will auto-increment. Between 1 and 20 characters long"
+              },
+              "issue_date": {
+                "type": "string"
+              },
+              "purchase_reference": {
+                "type": "string"
+              },
+              "vat_codes": {
+                "type": "array",
+                "description": "Possible codes: exempt (VAT Exempt), oos (VAT Out of Scope), cisrc (CIS Reverse Charge), nisogs (EU supply of goods), niserv (EU supply of services).",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "tags": {
+                "type": "array",
+                "description": "Provide up to 5 additional project tags",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "item_lines": {
+                "type": "array",
+                "description": "Use for products and services priced using the quantity and unit cost model.",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "description",
+                    "unit_cost",
+                    "qty"
+                  ],
+                  "properties": {
+                    "item_id": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "item_name": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 25,
+                      "description": "Item Name (Short). Max 25 characters"
+                    },
+                    "description": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 5000,
+                      "description": "Item Description (Long). Max 5000 characters"
+                    },
+                    "nominal_code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Nominal Code. Between 1 and 9999"
+                    },
+                    "vat_rate": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "The VAT rate to be applied. For non-VAT Reg suppliers use 0.00"
+                    },
+                    "vat_amount": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Overrides the VAT Rate for specific VAT amounts. If missing will be calculated from the rate."
+                    },
+                    "unit_cost": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "qty": {
+                      "type": "number",
+                      "format": "double"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "task_lines": {
+                "type": "array",
+                "description": "Use for itemising elements charged on an hourly rate at a fixed amount per hour.",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "item_name",
+                    "description",
+                    "hourly_rate",
+                    "hours"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "int32"
+                    },
+                    "item_name": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 25,
+                      "description": "Item Name (Short). Max 25 characters"
+                    },
+                    "description": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 1000,
+                      "description": "Item Description (Long). Max 1000 characters"
+                    },
+                    "nominal_code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Nominal Code. Between 1 and 9999"
+                    },
+                    "hourly_rate": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "hours": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Number of hours"
+                    },
+                    "vat_rate": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "vat_amount": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Optional tax element to be levied on the item. Between 1 and 7 characters long"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "recurring": {
+                "type": "object",
+                "required": [
+                  "interval",
+                  "frequency",
+                  "start_date"
+                ],
+                "properties": {
+                  "interval": {
+                    "type": "string"
+                  },
+                  "frequency": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "start_date": {
+                    "type": "string"
+                  },
+                  "pro_rata_days": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "dd_auto_bill": {
+                    "type": "boolean"
+                  },
+                  "dd_delay": {
+                    "type": "integer",
+                    "format": "int32",
+                    "minimum": 0,
+                    "maximum": 60,
+                    "description": "Specify the number of days delay you would like to add before initiating a Direct Debit collection. Between 0 and 60"
+                  },
+                  "send_by_email": {
+                    "type": "boolean"
+                  },
+                  "send_by_post": {
+                    "type": "boolean"
+                  },
+                  "auto_activate": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_invoice_search",
+      "operationId": "Invoice_Search",
+      "group": "Invoice",
+      "summary": "Search for invoices and estimates using a specific set of search parameters",
+      "method": "GET",
+      "path": "/invoices",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "order_column": {
+                "type": "string",
+                "description": "Which columns should be used for ordering the record set. E.g. invoice_number, issue_date, client_contact_name, gross_total."
+              },
+              "order_direction": {
+                "type": "string",
+                "description": "Order direction. Ascending (asc) or Descending (desc)."
+              },
+              "type": {
+                "type": "string",
+                "description": "Type of document to return. E.g. invoice, estimate, recurring."
+              },
+              "tag_name": {
+                "type": "string",
+                "description": "Project tag name"
+              },
+              "include_deleted": {
+                "type": "boolean",
+                "description": "Show previously deleted invoices. Default is false."
+              },
+              "client_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Client ID can be used to return all invoices for a given client."
+              },
+              "client_contact_name": {
+                "type": "string",
+                "description": "Whole or part of client company name."
+              },
+              "recurring_profile_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Search by recurring profile ID"
+              },
+              "invoice_number": {
+                "type": "string",
+                "description": "Search by invoice number"
+              },
+              "item_name": {
+                "type": "string",
+                "description": "Search by item name"
+              },
+              "item_desc": {
+                "type": "string",
+                "description": "Search by item description"
+              },
+              "date_from": {
+                "type": "string",
+                "format": "date",
+                "description": "Issued date range from (yyyy-mm-dd)"
+              },
+              "date_to": {
+                "type": "string",
+                "format": "date",
+                "description": "Issued date range to (yyyy-mm-dd)"
+              },
+              "amount_from": {
+                "type": "number",
+                "format": "double",
+                "description": "Amount range from"
+              },
+              "amount_to": {
+                "type": "number",
+                "format": "double",
+                "description": "Amount range to"
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3,
+                "description": "Currency ISO code must be 3 characters long."
+              },
+              "status": {
+                "type": "string",
+                "description": "Invoice status. E.g. draft, sent, disputed, paidpart, paidfull, active, unpaid, deleted, aged, paused, agreed, declined"
+              },
+              "purchase_ref": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 25,
+                "description": "Purchase Reference. Maximum 25 characters long."
+              },
+              "offset": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 1000000,
+                "description": "Page offset. Zero (0) would show results from the beginning of the record set. Offset can be used for paging functions."
+              },
+              "limit": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "How many records would you like the API to return."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_invoice_send",
+      "operationId": "Invoice_Send",
+      "group": "Invoice",
+      "summary": "Send an invoice, estimate or recurring invoice template",
+      "method": "POST",
+      "path": "/invoices/send",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "invoice_id"
+              ],
+              "properties": {
+                "invoice_id": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 1
+                },
+                "by_email": {
+                  "type": "boolean"
+                },
+                "by_snail_mail": {
+                  "type": "boolean"
+                },
+                "client_contact_id": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_journal_delete",
+      "operationId": "Journal_Delete",
+      "group": "Journal",
+      "summary": "Delete an existing journal entry",
+      "method": "DELETE",
+      "path": "/journals/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_journal_get",
+      "operationId": "Journal_Get",
+      "group": "Journal",
+      "summary": "Retreive an existing journal",
+      "method": "GET",
+      "path": "/journals/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_journal_post",
+      "operationId": "Journal_Post",
+      "group": "Journal",
+      "summary": "Create a new journal entry",
+      "method": "POST",
+      "path": "/journals",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "date",
+              "lines"
+            ],
+            "properties": {
+              "date": {
+                "type": "string",
+                "description": "The date of the journal."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100,
+                "description": "The name of the journal."
+              },
+              "is_currency_revaluation": {
+                "type": "boolean",
+                "description": "If set to true the journal will be treated as a revaluation journal and will not affect the foreign currency balance."
+              },
+              "lines": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "nominal_code",
+                    "description"
+                  ],
+                  "properties": {
+                    "nominal_code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Nominal Code"
+                    },
+                    "description": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 150,
+                      "description": "Item Description"
+                    },
+                    "notes": {
+                      "type": "string",
+                      "description": "Item Name"
+                    },
+                    "debit_amount": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Amount in currency to debit"
+                    },
+                    "credit_amount": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Amount in currency to credit"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_journal_search",
+      "operationId": "Journal_Search",
+      "group": "Journal",
+      "summary": "Search for a journal based on specific parameters",
+      "method": "GET",
+      "path": "/journals",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "date_from": {
+                "type": "string",
+                "description": "Issued date range from (yyyy-mm-dd)"
+              },
+              "date_to": {
+                "type": "string",
+                "description": "Issued date range to (yyyy-mm-dd)"
+              },
+              "offset": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 1000000,
+                "description": "Page offset. Zero (0) would show results from the beginning of the record set. Offset can be used for paging functions."
+              },
+              "limit": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "How many records would you like the API to return."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_ledger_nominals",
+      "operationId": "Ledger_Nominals",
+      "group": "Ledger",
+      "summary": "Returns information on a specified range of nominal ledgers from the chart of accounts",
+      "method": "GET",
+      "path": "/ledgers/nominals",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "nominal_code_start": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 1,
+                "maximum": 9999,
+                "description": "The nominal code range from where you would like to start. Default is 1."
+              },
+              "nominal_code_end": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 1,
+                "maximum": 9999,
+                "description": "The nominal code range to where you would like to end. Default is 9999"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_ledger_search",
+      "operationId": "Ledger_Search",
+      "group": "Ledger",
+      "summary": "Query a nominal ledger based on a specific date or amount range",
+      "method": "GET",
+      "path": "/ledgers",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "order_column": {
+                "type": "string",
+                "description": "Which columns should be used for ordering the record set. E.g. date, amount"
+              },
+              "order_direction": {
+                "type": "string",
+                "description": "Order direction. Ascending (asc) or Descending (desc)."
+              },
+              "nominal_code": {
+                "type": "integer",
+                "format": "int32",
+                "description": "The nominal code of the ledger you wish to query (must be between 1 and 9999)."
+              },
+              "description": {
+                "type": "string",
+                "description": "Search by whole or partial description."
+              },
+              "notes": {
+                "type": "string",
+                "description": "Search by whole or partial notes."
+              },
+              "date_from": {
+                "type": "string",
+                "description": "From date"
+              },
+              "date_to": {
+                "type": "string",
+                "description": "To date"
+              },
+              "amount_from": {
+                "type": "number",
+                "format": "double",
+                "description": "Amount range from (use - prefix for debits)"
+              },
+              "amount_to": {
+                "type": "number",
+                "format": "double",
+                "description": "Amount range to (use - prefix for debits)"
+              },
+              "offset": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 1000000,
+                "description": "Page offset. Zero (0) would show results from the beginning of the record set. Offset can be used for paging functions."
+              },
+              "limit": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "How many records would you like the API to return."
+              }
+            },
+            "required": [
+              "nominal_code"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_project_create",
+      "operationId": "Project_Create",
+      "group": "Project",
+      "summary": "Create and attach a project tag to a sales invoice, purchase invoice, estimate or purchase order",
+      "method": "POST",
+      "path": "/projects",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "reference_id",
+              "reference_type"
+            ],
+            "properties": {
+              "reference_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "ID of sales invoice, estimate, purchase invoice etc"
+              },
+              "reference_type": {
+                "type": "string",
+                "description": "Type of item the tag(s) will be attached to. Permitted values = invoice, estimate, recurring, purchase, purchase_order"
+              },
+              "tags": {
+                "type": "array",
+                "description": "Array of 1-5 tags",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_project_delete",
+      "operationId": "Project_Delete",
+      "group": "Project",
+      "summary": "Delete a project tag from a sales invoice, purchase invoice, estimate or purchase order",
+      "method": "DELETE",
+      "path": "/projects",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "reference_id",
+              "reference_type"
+            ],
+            "properties": {
+              "reference_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "ID of sales invoice, estimate, purchase invoice etc"
+              },
+              "reference_type": {
+                "type": "string",
+                "description": "Type of item the tag(s) will be attached to. Permitted values = invoice, estimate, recurring, purchase, purchase_order"
+              },
+              "tags": {
+                "type": "array",
+                "description": "Array of 1-5 tags",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_project_search",
+      "operationId": "Project_Search",
+      "group": "Project",
+      "summary": "Search for a project tag based on partial or complete string query",
+      "method": "GET",
+      "path": "/projects",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 1,
+                "maximum": 200,
+                "description": "How many records would you like the API to return (MAX 200)."
+              },
+              "tag": {
+                "type": "string",
+                "description": "Search by partial tag name."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_purchase_delete",
+      "operationId": "Purchase_Delete",
+      "group": "Purchase",
+      "summary": "Delete a purchase",
+      "method": "DELETE",
+      "path": "/purchases/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Purchase id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "delete_associated_payments": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_purchase_get",
+      "operationId": "Purchase_Get",
+      "group": "Purchase",
+      "summary": "Retrieve a single purchase",
+      "method": "GET",
+      "path": "/purchases/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Purchase id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_purchase_order_delete",
+      "operationId": "PurchaseOrder_Delete",
+      "group": "Purchase order",
+      "summary": "Delete a purchase order",
+      "method": "DELETE",
+      "path": "/purchase-orders/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Purchase order id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_purchase_order_get",
+      "operationId": "PurchaseOrder_Get",
+      "group": "Purchase order",
+      "summary": "Retrieve a single purchase",
+      "method": "GET",
+      "path": "/purchase-orders/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Purchase order id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_purchase_order_post_order",
+      "operationId": "PurchaseOrder_PostOrder",
+      "group": "Purchase order",
+      "summary": "Create a new purchase order",
+      "method": "POST",
+      "path": "/purchase-orders",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "supplier_id",
+              "receipt_date",
+              "currency"
+            ],
+            "properties": {
+              "supplier_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Supplier id"
+              },
+              "receipt_date": {
+                "type": "string",
+                "description": "Receipt date"
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3,
+                "description": "Currency ISO code. Maximum 3 characters long."
+              },
+              "description": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 35,
+                "description": "Description"
+              },
+              "vat_codes": {
+                "type": "array",
+                "description": "Possible codes: exempt (VAT Exempt), oos (VAT Out of Scope), cisrc (CIS Reverse Charge), nigoods (EU supply of goods), servrc, postgoods.",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "suppplier_reference": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 30,
+                "description": "Search by supplier reference"
+              },
+              "number": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 20,
+                "description": "Purchase order number"
+              },
+              "notes": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 1000,
+                "description": "General notes for the purchase order"
+              },
+              "item_lines": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "description",
+                    "sub_total",
+                    "vat_rate"
+                  ],
+                  "properties": {
+                    "quantity": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "nominal_code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Nominal Code. Between 1 and 9999"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "Item description"
+                    },
+                    "sub_total": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Item sub_total"
+                    },
+                    "vat_rate": {
+                      "type": "number",
+                      "format": "double",
+                      "minimum": 0,
+                      "maximum": 2147483647,
+                      "description": "The VAT rate to be applied. For non-VAT Reg suppliers use 0.00"
+                    },
+                    "vat_amount": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Overrides the VAT Rate for specific VAT amounts. If missing will be calculated from the rate."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "payment": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "amount"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Paid date"
+                  },
+                  "nominal_code": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "Nominal Code. Between 1200 and 1299"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "format": "double",
+                    "description": "Pay amount"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 100,
+                    "description": "Optional payment notes container."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "tags": {
+                "type": "array",
+                "description": "Provide up to 5 additional project tags",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_purchase_order_put_order",
+      "operationId": "PurchaseOrder_PutOrder",
+      "group": "Purchase order",
+      "summary": "Update a purchase order",
+      "method": "PUT",
+      "path": "/purchase-orders/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Purchase order id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "supplier_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Supplier id"
+              },
+              "receipt_date": {
+                "type": "string",
+                "description": "Receipt date"
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3,
+                "description": "Currency ISO code. Maximum 3 characters long."
+              },
+              "description": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 35,
+                "description": "Description"
+              },
+              "vat_codes": {
+                "type": "array",
+                "description": "Possible codes: exempt (VAT Exempt), oos (VAT Out of Scope), cisrc (CIS Reverse Charge), nigoods (EU supply of goods), servrc, postgoods.",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "suppplier_reference": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 30,
+                "description": "Search by supplier reference"
+              },
+              "number": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 20,
+                "description": "Purchase order number"
+              },
+              "notes": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 1000,
+                "description": "General notes for the purchase order"
+              },
+              "item_lines": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "description",
+                    "sub_total",
+                    "vat_rate"
+                  ],
+                  "properties": {
+                    "quantity": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "nominal_code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Nominal Code. Between 1 and 9999"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "Item description"
+                    },
+                    "sub_total": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Item sub_total"
+                    },
+                    "vat_rate": {
+                      "type": "number",
+                      "format": "double",
+                      "minimum": 0,
+                      "maximum": 2147483647,
+                      "description": "The VAT rate to be applied. For non-VAT Reg suppliers use 0.00"
+                    },
+                    "vat_amount": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Overrides the VAT Rate for specific VAT amounts. If missing will be calculated from the rate."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "payment": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "amount"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Paid date"
+                  },
+                  "nominal_code": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "Nominal Code. Between 1200 and 1299"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "format": "double",
+                    "description": "Pay amount"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 100,
+                    "description": "Optional payment notes container."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "tags": {
+                "type": "array",
+                "description": "Provide up to 5 additional project tags",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_purchase_post",
+      "operationId": "Purchase_Post",
+      "group": "Purchase",
+      "summary": "Create a new purchase",
+      "method": "POST",
+      "path": "/purchases",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "supplier_id",
+              "receipt_date",
+              "currency",
+              "item_lines"
+            ],
+            "properties": {
+              "supplier_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Supplier id"
+              },
+              "receipt_date": {
+                "type": "string",
+                "description": "Receipt date"
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3,
+                "description": "Currency ISO code. Maximum 3 characters long."
+              },
+              "description": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 35,
+                "description": "Description"
+              },
+              "vat_codes": {
+                "type": "array",
+                "description": "Possible codes: exempt (VAT Exempt), oos (VAT Out of Scope), cisrc (CIS Reverse Charge), nisogs (EU supply of goods), servrc, postgoods.",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "suppplier_reference": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 30,
+                "description": "Search by supplier reference"
+              },
+              "term_days": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Number of days permitted to pay the purchase."
+              },
+              "item_lines": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "description",
+                    "sub_total",
+                    "vat_rate"
+                  ],
+                  "properties": {
+                    "nominal_code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Nominal Code. Between 1 and 9999"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "Item description"
+                    },
+                    "sub_total": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Item sub_total"
+                    },
+                    "vat_rate": {
+                      "type": "number",
+                      "format": "double",
+                      "minimum": 0,
+                      "maximum": 2147483647,
+                      "description": "The VAT rate to be applied. For non-VAT Reg suppliers use 0.00"
+                    },
+                    "vat_amount": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Overrides the VAT Rate for specific VAT amounts. If missing will be calculated from the rate."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "payment": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "amount"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Paid date"
+                  },
+                  "nominal_code": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "Nominal Code. Between 1200 and 1299"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "format": "double",
+                    "description": "Pay amount"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 100,
+                    "description": "Optional payment notes container."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "tags": {
+                "type": "array",
+                "description": "Provide up to 5 additional project tags",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_purchase_put",
+      "operationId": "Purchase_Put",
+      "group": "Purchase",
+      "summary": "Update a purchase",
+      "method": "PUT",
+      "path": "/purchases/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Purchase id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "required": [
+              "item_lines"
+            ],
+            "properties": {
+              "supplier_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Supplier id"
+              },
+              "receipt_date": {
+                "type": "string",
+                "description": "Receipt date"
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3,
+                "description": "Currency ISO code. Maximum 3 characters long."
+              },
+              "description": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 35,
+                "description": "Description"
+              },
+              "vat_codes": {
+                "type": "array",
+                "description": "Possible codes: exempt (VAT Exempt), oos (VAT Out of Scope), cisrc (CIS Reverse Charge), nisogs (EU supply of goods), servrc, postgoods.",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "suppplier_reference": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 30,
+                "description": "Search by supplier reference"
+              },
+              "term_days": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Number of days permitted to pay the purchase."
+              },
+              "item_lines": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "description",
+                    "sub_total",
+                    "vat_rate"
+                  ],
+                  "properties": {
+                    "nominal_code": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "Nominal Code. Between 1 and 9999"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "Item description"
+                    },
+                    "sub_total": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Item sub_total"
+                    },
+                    "vat_rate": {
+                      "type": "number",
+                      "format": "double",
+                      "minimum": 0,
+                      "maximum": 2147483647,
+                      "description": "The VAT rate to be applied. For non-VAT Reg suppliers use 0.00"
+                    },
+                    "vat_amount": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "Overrides the VAT Rate for specific VAT amounts. If missing will be calculated from the rate."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "payment": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "amount"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "description": "Paid date"
+                  },
+                  "nominal_code": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "Nominal Code. Between 1200 and 1299"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "format": "double",
+                    "description": "Pay amount"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 100,
+                    "description": "Optional payment notes container."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "tags": {
+                "type": "array",
+                "description": "Provide up to 5 additional project tags",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_purchase_search",
+      "operationId": "Purchase_Search",
+      "group": "Purchase",
+      "summary": "Search for purchases using a specific set of search parameters",
+      "method": "GET",
+      "path": "/purchases",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "order_column": {
+                "type": "string",
+                "description": "Which columns should be used for ordering the record set. E.g. receipt_number, receipt_date, supplier, gross_total."
+              },
+              "order_direction": {
+                "type": "string",
+                "description": "Order direction. Ascending (asc) or Descending (desc)."
+              },
+              "include_deleted": {
+                "type": "boolean",
+                "description": "Show previously deleted invoices. Default is false."
+              },
+              "tag_name": {
+                "type": "string",
+                "description": "Project tag name"
+              },
+              "supplier_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100,
+                "description": "Search by supplier name"
+              },
+              "supplier_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Search by supplier id"
+              },
+              "supplier_reference": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 30,
+                "description": "Search by supplier reference"
+              },
+              "receipt_number": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 20,
+                "description": "Search by receipt number"
+              },
+              "item_desc": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 35,
+                "description": "Search by item description"
+              },
+              "date_from": {
+                "type": "string",
+                "description": "Issued date range from (yyyy-mm-dd)"
+              },
+              "date_to": {
+                "type": "string",
+                "description": "Issued date range to (yyyy-mm-dd)"
+              },
+              "amount_from": {
+                "type": "number",
+                "format": "double",
+                "description": "Amount range from"
+              },
+              "amount_to": {
+                "type": "number",
+                "format": "double",
+                "description": "Amount range to"
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3,
+                "description": "Currency ISO code. Maximum 3 characters long."
+              },
+              "status": {
+                "type": "string",
+                "description": "Invoice status. E.g. draft, sent, disputed, paidpart, paidfull, active, unpaid, deleted, aged, paused, agreed, declined"
+              },
+              "has_receipts": {
+                "type": "boolean",
+                "description": "set this to know purchases with or without receipts attached"
+              },
+              "offset": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 1000000,
+                "description": "Page offset. Zero (0) would show results from the beginning of the record set. Offset can be used for paging functions."
+              },
+              "limit": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "How many records would you like the API to return."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_reports_ageing",
+      "operationId": "Reports_Ageing",
+      "group": "Reports",
+      "summary": "Retreives a report of aged debtor or creditor invoices",
+      "method": "GET",
+      "path": "/reports/ageing",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Type of report (debtor/creditor)"
+              },
+              "offset": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 1000000,
+                "description": "Page offset. Zero (0) would show results from the beginning of the record set. Offset can be used for paging functions."
+              },
+              "limit": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "How many records would you like the API to return."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_reports_balance_sheet",
+      "operationId": "Reports_BalanceSheet",
+      "group": "Reports",
+      "summary": "Retreives a balance sheet report",
+      "method": "GET",
+      "path": "/reports/balance-sheet",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "date_to": {
+                "type": "string",
+                "format": "date",
+                "description": "To date. If excluded returns all transactions to the current date."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_reports_chart_of_accounts",
+      "operationId": "Reports_ChartOfAccounts",
+      "group": "Reports",
+      "summary": "Retreives a chart of nominal accounts",
+      "method": "GET",
+      "path": "/reports/chart-of-accounts",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "nominal_code_start": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 1,
+                "maximum": 9999,
+                "description": "The nominal code range from where you would like to start. Default is 1"
+              },
+              "nominal_code_end": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 1,
+                "maximum": 9999,
+                "description": "The nominal code range to where you would like to end. Default is 9999"
+              },
+              "date_from": {
+                "type": "string",
+                "format": "date",
+                "description": "From date. If excluded returns all transactions from beginning of time."
+              },
+              "date_to": {
+                "type": "string",
+                "format": "date",
+                "description": "To date. If excluded returns all transactions to the current date."
+              },
+              "exclude_zero_balance_ledgers": {
+                "type": "boolean",
+                "description": "Excludes any ledgers that hold a zero balance for the given date range. If excluded will assume to be true."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_reports_event_log",
+      "operationId": "Reports_EventLog",
+      "group": "Reports",
+      "summary": "Query the system event log",
+      "method": "GET",
+      "path": "/reports/eventlog",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "date_from": {
+                "type": "string",
+                "format": "date",
+                "description": "From date."
+              },
+              "date_to": {
+                "type": "string",
+                "format": "date",
+                "description": "To date."
+              },
+              "reference_type": {
+                "type": "string",
+                "description": "Reference type, \"client\", \"supplier\", \"invoice\", \"purchase\", \"purorder\", \"statement\", \"admin\", \"paypal\", \"backup\", \"vat\", \"psp\", \"mtd\", \"itsa\", \"recpur\", \"account\", \"journal\", \"letter\""
+              },
+              "reference_id": {
+                "type": "string",
+                "description": "Here you would supply the client_id, supplier_id, invoice_id or purchase_id depending on the reference_type"
+              },
+              "user_id": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "page_size": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "next_token": {
+                "type": "string",
+                "description": "Supply the next_token value from a previous response to retrieve the next page of results."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_reports_profit_and_loss",
+      "operationId": "Reports_ProfitAndLoss",
+      "group": "Reports",
+      "summary": "Retreives a profit and loss report",
+      "method": "GET",
+      "path": "/reports/profit-and-loss",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "date_from": {
+                "type": "string",
+                "format": "date",
+                "description": "From date. If excluded returns all transactions from beginning of time."
+              },
+              "date_to": {
+                "type": "string",
+                "format": "date",
+                "description": "To date. If excluded returns all transactions to the current date."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_reports_subscriptions",
+      "operationId": "Reports_Subscriptions",
+      "group": "Reports",
+      "summary": "Retreives a list of subscriptions",
+      "method": "GET",
+      "path": "/reports/subscriptions",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_reports_vat_obligations",
+      "operationId": "Reports_VatObligations",
+      "group": "Reports",
+      "summary": "Retreives a list of filed and open VAT returns",
+      "method": "GET",
+      "path": "/reports/vat-obligations",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "date_from": {
+                "type": "string",
+                "format": "date",
+                "description": "From date."
+              },
+              "date_to": {
+                "type": "string",
+                "format": "date",
+                "description": "To date."
+              },
+              "hmrc_account_id": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "hmrc_account_type": {
+                "type": "string",
+                "description": "Account Type (organisation, individual, agent)"
+              }
+            },
+            "required": [
+              "hmrc_account_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_supplier_contact_create",
+      "operationId": "Supplier_ContactCreate",
+      "group": "Supplier",
+      "summary": "Create a new supplier contact record",
+      "method": "POST",
+      "path": "/suppliers/{id}/contacts",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Supplier id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "required": [
+              "first_name",
+              "surname",
+              "email"
+            ],
+            "properties": {
+              "first_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 50
+              },
+              "surname": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 50
+              },
+              "telephone": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 20
+              },
+              "email": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100
+              },
+              "is_default": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_supplier_contact_delete",
+      "operationId": "Supplier_ContactDelete",
+      "group": "Supplier",
+      "summary": "Delete a supplier contact record",
+      "method": "DELETE",
+      "path": "/suppliers/{id}/contacts/{contactId}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Supplier id"
+              },
+              "contactId": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Supplier contact id"
+              }
+            },
+            "required": [
+              "id",
+              "contactId"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_supplier_contact_get",
+      "operationId": "Supplier_ContactGet",
+      "group": "Supplier",
+      "summary": "Retrieve supplier contact data",
+      "method": "GET",
+      "path": "/suppliers/{id}/contacts",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Supplier id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_supplier_contact_update",
+      "operationId": "Supplier_ContactUpdate",
+      "group": "Supplier",
+      "summary": "Update an existing supplier contact record",
+      "method": "PUT",
+      "path": "/suppliers/{id}/contacts/{contactId}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Supplier id"
+              },
+              "contactId": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Supplier contact id"
+              }
+            },
+            "required": [
+              "id",
+              "contactId"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "first_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 50
+              },
+              "surname": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 50
+              },
+              "telephone": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 20
+              },
+              "email": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100
+              },
+              "is_default": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_supplier_create",
+      "operationId": "Supplier_Create",
+      "group": "Supplier",
+      "summary": "Create a new supplier record",
+      "method": "POST",
+      "path": "/suppliers",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "company_name"
+            ],
+            "properties": {
+              "company_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100
+              },
+              "contact_first_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 50
+              },
+              "contact_surname": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 50
+              },
+              "contact_telephone": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 20
+              },
+              "contact_email": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100
+              },
+              "company_number": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 10
+              },
+              "supplier_reference": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 15
+              },
+              "address_line1": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75
+              },
+              "address_line2": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75
+              },
+              "address_line3": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75
+              },
+              "town": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75
+              },
+              "country_iso": {
+                "type": "string"
+              },
+              "post_code": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 15
+              },
+              "website": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 50
+              },
+              "vat_number": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 20
+              },
+              "default_currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3
+              },
+              "default_term": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "default_vatrate": {
+                "type": "number",
+                "format": "double"
+              },
+              "default_nominalcode": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 5000,
+                "maximum": 9997
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_supplier_delete",
+      "operationId": "Supplier_Delete",
+      "group": "Supplier",
+      "summary": "Delete a supplier record",
+      "method": "DELETE",
+      "path": "/suppliers/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Supplier id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_supplier_get",
+      "operationId": "Supplier_Get",
+      "group": "Supplier",
+      "summary": "Retrieve supplier and contact data",
+      "method": "GET",
+      "path": "/suppliers/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Supplier id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_supplier_payment_delete",
+      "operationId": "SupplierPayment_Delete",
+      "group": "Supplier payment",
+      "summary": "Delete a payment record",
+      "method": "DELETE",
+      "path": "/supplier_payments/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_supplier_payment_get",
+      "operationId": "SupplierPayment_Get",
+      "group": "Supplier payment",
+      "summary": "Retrieve a payment record",
+      "method": "GET",
+      "path": "/supplier_payments/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_supplier_payment_post",
+      "operationId": "SupplierPayment_Post",
+      "group": "Supplier payment",
+      "summary": "Create a new payment record",
+      "method": "POST",
+      "path": "/supplier_payments",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "object",
+            "required": [
+              "type",
+              "date",
+              "supplier_id",
+              "amount",
+              "currency",
+              "nominal_code"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "payment/credit - Payments are attributed to an invoice. Credits are used for holding funds on a client or supplier account."
+              },
+              "date": {
+                "type": "string",
+                "description": "Date the payment was made."
+              },
+              "purchase_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Provide an purchase ID if type is payment."
+              },
+              "supplier_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Supplier ID for which the payment will be linked to."
+              },
+              "amount": {
+                "type": "number",
+                "format": "double",
+                "description": "Total amount of payment."
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3,
+                "description": "Payment currency."
+              },
+              "nominal_code": {
+                "type": "integer",
+                "format": "int32",
+                "description": "Missing bank nominal code."
+              },
+              "apply_credit": {
+                "type": "boolean",
+                "description": "When set to true we will first try to pay the invoice from available credit on the client account."
+              },
+              "send_confirmation": {
+                "type": "boolean",
+                "description": "When set to true we will send an email notification to the client."
+              },
+              "notes": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100,
+                "description": "Additional notes relating to this payment."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_supplier_payment_search",
+      "operationId": "SupplierPayment_Search",
+      "group": "Supplier payment",
+      "summary": "Search for a payment based on specific search parameters",
+      "method": "GET",
+      "path": "/supplier_payments",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "order_column": {
+                "type": "string",
+                "description": "Which columns should be used for ordering the record set. E.g. amount, pay_date."
+              },
+              "order_direction": {
+                "type": "string",
+                "description": "Order direction. Ascending (asc) or Descending (desc)."
+              },
+              "include_deleted": {
+                "type": "boolean",
+                "description": "Show previously deleted payments. Default is false."
+              },
+              "supplier_id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Show all payments for a given Supplier ID."
+              },
+              "supplier_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100,
+                "description": "Whole or part of client supplier name."
+              },
+              "type": {
+                "type": "string",
+                "description": "allocated/unallocated."
+              },
+              "date_from": {
+                "type": "string",
+                "description": "Payment date range from"
+              },
+              "date_to": {
+                "type": "string",
+                "description": "Payment date range to"
+              },
+              "amount_from": {
+                "type": "number",
+                "format": "double",
+                "description": "Amount range from"
+              },
+              "amount_to": {
+                "type": "number",
+                "format": "double",
+                "description": "Amount range to"
+              },
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3,
+                "description": "Currency ISO code must be 3 characters long."
+              },
+              "offset": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 1000000,
+                "description": "Page offset. Zero (0) would show results from the beginning of the record set. Offset can be used for paging functions."
+              },
+              "limit": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "How many records would you like the API to return."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_supplier_search",
+      "operationId": "Supplier_Search",
+      "group": "Supplier",
+      "summary": "Retrieve supplier records based on a set of search parameters",
+      "method": "GET",
+      "path": "/suppliers",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "properties": {
+              "order_column": {
+                "type": "string",
+                "description": "Which columns should be used for ordering the record set. E.g. created_date, company_name."
+              },
+              "order_direction": {
+                "type": "string",
+                "description": "Order direction. Ascending (asc) or Descending (desc)."
+              },
+              "include_deleted": {
+                "type": "boolean",
+                "description": "Show previously deleted clients. Default is false."
+              },
+              "company_name": {
+                "type": "string",
+                "description": "Search by partial company name."
+              },
+              "first_name": {
+                "type": "string",
+                "description": "Search by first name."
+              },
+              "surname": {
+                "type": "string",
+                "description": "Search by surname."
+              },
+              "email": {
+                "type": "string",
+                "description": "Search by email."
+              },
+              "supplier_reference": {
+                "type": "string",
+                "description": "Search by supplier reference."
+              },
+              "telephone": {
+                "type": "string",
+                "description": "Search by telephone."
+              },
+              "include_total_invoiced": {
+                "type": "boolean",
+                "description": "Returns the total amount invoiced for each supplier."
+              },
+              "include_total_paid": {
+                "type": "boolean",
+                "description": "Returns the total payments received for each supplier."
+              },
+              "include_total_credits": {
+                "type": "boolean",
+                "description": "Returns the total of prepayments held on account for each supplier."
+              },
+              "offset": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 1000000,
+                "description": "Page offset. Zero (0) would show results from the beginning of the record set. Offset can be used for paging functions."
+              },
+              "limit": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "How many records would you like the API to return."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_supplier_update",
+      "operationId": "Supplier_Update",
+      "group": "Supplier",
+      "summary": "Update a supplier record",
+      "method": "PUT",
+      "path": "/suppliers/{id}",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Supplier id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "company_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 100
+              },
+              "company_number": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 10
+              },
+              "supplier_reference": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 15
+              },
+              "address_line1": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75
+              },
+              "address_line2": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75
+              },
+              "address_line3": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75
+              },
+              "town": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 75
+              },
+              "country_iso": {
+                "type": "string"
+              },
+              "post_code": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 15
+              },
+              "website": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 50
+              },
+              "vat_number": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 20
+              },
+              "default_currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3
+              },
+              "default_term": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "default_vatrate": {
+                "type": "number",
+                "format": "double"
+              },
+              "default_nominalcode": {
+                "type": "integer",
+                "format": "int32",
+                "minimum": 5000,
+                "maximum": 9997
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
