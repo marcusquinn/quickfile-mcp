@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.1] - 2026-09-04
+
+### Added
+
+- Added public npm installation and a least-privilege GitHub Actions trusted
+  publishing job with automatic package provenance.
+
+### Changed
+
+- Limited the npm archive to compiled runtime files, package metadata, the
+  README, and license.
+- Moved local Husky setup to an explicit development command so registry
+  installs do not advertise a package lifecycle script.
+
+### Security
+
+- Updated transitive `fast-uri` and `qs` dependencies to resolve all production
+  `npm audit` findings before the first registry publication.
+
 ## [4.0.0] - 2026-09-03
 
 ### Added
