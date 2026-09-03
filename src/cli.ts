@@ -193,29 +193,61 @@ function showVersion(io: CliIo): number {
   return 0;
 }
 
+type CliCommand =
+  | "help"
+  | "version"
+  | "accounts"
+  | "tools"
+  | "describe"
+  | "call";
+
+function normalizeCommand(command: string): CliCommand | undefined {
+  if (["help", "--help", "-h"].includes(command)) {
+    return "help";
+  }
+  if (["--version", "-v"].includes(command)) {
+    return "version";
+  }
+  if (["accounts", "tools", "describe", "call"].includes(command)) {
+    return command as CliCommand;
+  }
+  return undefined;
+}
+
+async function runCommand(
+  command: CliCommand,
+  argv: string[],
+  io: CliIo,
+  invokeTool: ToolInvoker,
+): Promise<number> {
+  switch (command) {
+    case "help":
+      return showHelp(io);
+    case "version":
+      return showVersion(io);
+    case "accounts":
+      return listAccounts(io);
+    case "tools":
+      return listTools(io);
+    case "describe":
+      return describeTool(argv, io);
+    case "call":
+      return callTool(argv, io, invokeTool);
+  }
+}
+
 export async function runCli(
   argv: string[],
   io: CliIo = defaultIo,
   invokeTool: ToolInvoker = handleToolCall,
 ): Promise<number> {
   try {
-    const [command = "help", ...commandArgs] = argv;
-    const handlers: Record<string, () => number | Promise<number>> = {
-      help: () => showHelp(io),
-      "--help": () => showHelp(io),
-      "-h": () => showHelp(io),
-      "--version": () => showVersion(io),
-      "-v": () => showVersion(io),
-      accounts: () => listAccounts(io),
-      tools: () => listTools(io),
-      describe: () => describeTool(commandArgs, io),
-      call: () => callTool(commandArgs, io, invokeTool),
-    };
-    const handler = handlers[command];
-    if (!handler) {
-      throw new Error(`Unknown command: ${command}`);
+    const [requestedCommand = "help", ...commandArgs] = argv;
+    const command = normalizeCommand(requestedCommand);
+    if (!command) {
+      throw new Error(`Unknown command: ${requestedCommand}`);
     }
-    return await handler();
+    return await runCommand(command, commandArgs, io, invokeTool);
   } catch (error) {
     writeJson(io.stderr, {
       ok: false,

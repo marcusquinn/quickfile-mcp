@@ -15,18 +15,6 @@ export interface JsonInputSchema {
   pattern?: string;
 }
 
-type ValueValidator = (value: unknown) => boolean;
-
-const typeValidators: Record<string, ValueValidator> = {
-  object: (value) =>
-    typeof value === "object" && value !== null && !Array.isArray(value),
-  array: Array.isArray,
-  string: (value) => typeof value === "string",
-  number: (value) => typeof value === "number" && Number.isFinite(value),
-  integer: (value) => typeof value === "number" && Number.isInteger(value),
-  boolean: (value) => typeof value === "boolean",
-};
-
 const accountNumberPattern = "^$|^\\d{3,10}$";
 const sortCodePattern = "^$|^\\d{2}-\\d{2}-\\d{2}$";
 
@@ -42,23 +30,49 @@ function isAsciiDigits(
   );
 }
 
-const patternValidators: Record<string, (value: string) => boolean> = {
-  [accountNumberPattern]: (value) =>
-    value === "" || isAsciiDigits(value, 3, 10),
-  [sortCodePattern]: (value) =>
-    value === "" ||
-    (value.length === 8 &&
-      value[2] === "-" &&
-      value[5] === "-" &&
-      isAsciiDigits(value.replaceAll("-", ""), 6, 6)),
-};
-
 function hasOwn(value: Record<string, unknown>, property: string): boolean {
   return Object.hasOwn(value, property);
 }
 
+function detectedType(value: unknown): string {
+  if (Array.isArray(value)) {
+    return "array";
+  }
+  if (value !== null && typeof value === "object") {
+    return "object";
+  }
+  if (typeof value === "number" && Number.isInteger(value)) {
+    return "integer";
+  }
+  return typeof value;
+}
+
 function validateType(value: unknown, type: string): boolean {
-  return typeValidators[type]?.(value) ?? false;
+  if (type === "number") {
+    return typeof value === "number" && Number.isFinite(value);
+  }
+  return detectedType(value) === type;
+}
+
+function matchesSortCode(value: string): boolean {
+  return (
+    value.length === 8 &&
+    value[2] === "-" &&
+    value[5] === "-" &&
+    isAsciiDigits(value.slice(0, 2), 2, 2) &&
+    isAsciiDigits(value.slice(3, 5), 2, 2) &&
+    isAsciiDigits(value.slice(6), 2, 2)
+  );
+}
+
+function matchesSupportedPattern(value: string, pattern: string): boolean {
+  if (pattern === accountNumberPattern) {
+    return value === "" || isAsciiDigits(value, 3, 10);
+  }
+  if (pattern === sortCodePattern) {
+    return value === "" || matchesSortCode(value);
+  }
+  return false;
 }
 
 function validateStringMinimum(
@@ -88,7 +102,7 @@ function validateStringPattern(
   schema: JsonInputSchema,
   path: string,
 ): string | undefined {
-  if (schema.pattern && !patternValidators[schema.pattern]?.(value)) {
+  if (schema.pattern && !matchesSupportedPattern(value, schema.pattern)) {
     return `${path} does not match the required format`;
   }
   return undefined;
