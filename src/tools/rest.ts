@@ -67,9 +67,11 @@ function renderPath(
   template: string,
   pathParams: Record<string, unknown>,
 ): string {
-  return template.replace(/\{([^}]+)\}/g, (_match, parameter: string) =>
-    encodeURIComponent(String(pathParams[parameter])),
-  );
+  let path = template;
+  for (const [parameter, value] of Object.entries(pathParams)) {
+    path = path.replaceAll(`{${parameter}}`, encodeURIComponent(String(value)));
+  }
+  return path;
 }
 
 function decodeUpload(value: UploadInput): Blob {

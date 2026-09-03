@@ -15,19 +15,54 @@ const OUTPUT_PATH = join(
 const HTTP_METHODS = new Set(["get", "post", "put", "delete"]);
 
 function cleanText(value) {
-  return String(value ?? "")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  let clean = "";
+  let inTag = false;
+  let pendingSpace = false;
+  for (const character of String(value ?? "")) {
+    if (character === "<") {
+      inTag = true;
+      pendingSpace = clean.length > 0;
+    } else if (character === ">" && inTag) {
+      inTag = false;
+    } else if (!inTag && " \t\n\r\f\v".includes(character)) {
+      pendingSpace = clean.length > 0;
+    } else if (!inTag) {
+      if (pendingSpace) {
+        clean += " ";
+        pendingSpace = false;
+      }
+      clean += character;
+    }
+  }
+  return clean;
 }
 
 function toolName(operationId) {
-  return `quickfile_rest_${operationId
-    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
-    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
-    .replace(/[^A-Za-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .toLowerCase()}`;
+  let normalized = "";
+  for (let index = 0; index < operationId.length; index += 1) {
+    const character = operationId[index];
+    const previous = operationId[index - 1] ?? "";
+    const next = operationId[index + 1] ?? "";
+    const alphaNumeric = /[A-Za-z0-9]/.test(character);
+    if (!alphaNumeric) {
+      if (normalized && !normalized.endsWith("_")) {
+        normalized += "_";
+      }
+      continue;
+    }
+    const wordBoundary =
+      /[A-Z]/.test(character) &&
+      (/[a-z0-9]/.test(previous) ||
+        (/[A-Z]/.test(previous) && /[a-z]/.test(next)));
+    if (wordBoundary && !normalized.endsWith("_")) {
+      normalized += "_";
+    }
+    normalized += character.toLowerCase();
+  }
+  while (normalized.endsWith("_")) {
+    normalized = normalized.slice(0, -1);
+  }
+  return `quickfile_rest_${normalized}`;
 }
 
 function convertSchema(schema, definitions, stack = []) {
@@ -230,9 +265,9 @@ async function readSchema(inputPath) {
 }
 
 async function main() {
-  const arguments = process.argv.slice(2);
-  const checkOnly = arguments.includes("--check");
-  const inputPath = arguments.find((argument) => !argument.startsWith("--"));
+  const cliArgs = process.argv.slice(2);
+  const checkOnly = cliArgs.includes("--check");
+  const inputPath = cliArgs.find((argument) => !argument.startsWith("--"));
   const schema = await readSchema(inputPath);
   const manifest = buildManifest(schema);
   const serialized = `${JSON.stringify(manifest, null, 2)}\n`;

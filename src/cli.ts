@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { listConfiguredAccounts } from "./api/auth.js";
-import { SERVER_NAME, SERVER_VERSION } from "./metadata.js";
+import { SERVER_VERSION } from "./metadata.js";
 import {
   allTools,
   handleToolCall,
@@ -125,10 +125,7 @@ async function callTool(
   invokeTool: ToolInvoker,
 ): Promise<number> {
   const options = parseCallOptions(argv);
-  const tool = allTools.find(
-    (candidate) => candidate.name === options.toolName,
-  );
-  if (!tool) {
+  if (!allTools.some((candidate) => candidate.name === options.toolName)) {
     throw new Error(`Unknown tool: ${options.toolName}`);
   }
   if (requiresConfirmation(options.toolName) && !options.confirmed) {
@@ -221,4 +218,4 @@ if (require.main === module) {
   });
 }
 
-export { SERVER_NAME, SERVER_VERSION };
+export { SERVER_NAME, SERVER_VERSION } from "./metadata.js";
