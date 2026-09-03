@@ -92,6 +92,9 @@ function parseCallOptions(argv: string[]): CallOptions {
   for (let index = 1; index < argv.length; index += 1) {
     const option = argv[index];
     if (option === "--account") {
+      if (account !== undefined) {
+        throw new Error("call accepts exactly one --account <alias>");
+      }
       account = readOptionValue(argv, index, option);
       index += 1;
     } else if (option === "--input") {

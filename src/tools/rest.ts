@@ -7,6 +7,9 @@ import { handleToolError, successResult, type ToolResult } from "./utils.js";
 
 type RestMethod = "GET" | "POST" | "PUT" | "DELETE";
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const MAX_UPLOAD_BASE64_LENGTH = Math.ceil((MAX_UPLOAD_BYTES * 4) / 3);
+
 interface RestOperation {
   name: string;
   operationId: string;
@@ -79,11 +82,23 @@ function decodeUpload(value: UploadInput): Blob {
   if (
     normalized.length === 0 ||
     normalized.length % 4 !== 0 ||
+    normalized.length > MAX_UPLOAD_BASE64_LENGTH ||
     !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
       normalized,
     )
   ) {
     throw new Error("Uploaded fileData must be valid base64");
+  }
+  const paddingLength = normalized.endsWith("==")
+    ? 2
+    : normalized.endsWith("=")
+      ? 1
+      : 0;
+  const decodedByteLength = (normalized.length / 4) * 3 - paddingLength;
+  if (decodedByteLength > MAX_UPLOAD_BYTES) {
+    throw new Error(
+      `Uploaded fileData must be no larger than ${MAX_UPLOAD_BYTES} bytes`,
+    );
   }
   return new Blob([Buffer.from(normalized, "base64")], {
     type: value.mimeType ?? "application/octet-stream",
