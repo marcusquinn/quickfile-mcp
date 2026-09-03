@@ -40,9 +40,10 @@ Usage:
   quickfile call <tool-name> --account <alias> [--input '<json>'] [--confirm]
   quickfile --version
 
-All command output is JSON. Mutating calls require --confirm after the user has
-approved the operation. Tokens are loaded only from QUICKFILE_* environment
-variables and must never be passed as command arguments.`;
+Discovery and call output is JSON; help and version output is plain text.
+Mutating calls require --confirm after the user has approved the operation.
+Tokens are loaded only from QUICKFILE_* environment variables and must never be
+passed as command arguments.`;
 
 function writeJson(writer: (text: string) => void, value: unknown): void {
   writer(`${JSON.stringify(value, null, 2)}\n`);
@@ -149,60 +150,72 @@ async function callTool(
   return result.isError ? 1 : 0;
 }
 
+function listAccounts(io: CliIo): number {
+  writeJson(io.stdout, { accounts: listConfiguredAccounts() });
+  return 0;
+}
+
+function listTools(io: CliIo): number {
+  writeJson(
+    io.stdout,
+    allTools.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      confirmationRequired: requiresConfirmation(tool.name),
+    })),
+  );
+  return 0;
+}
+
+function describeTool(argv: string[], io: CliIo): number {
+  const toolName = argv[0];
+  if (!toolName || argv.length !== 1) {
+    throw new Error("describe requires exactly one tool name");
+  }
+  const tool = allTools.find((candidate) => candidate.name === toolName);
+  if (!tool) {
+    throw new Error(`Unknown tool: ${toolName}`);
+  }
+  writeJson(io.stdout, {
+    ...tool,
+    confirmationRequired: requiresConfirmation(toolName),
+  });
+  return 0;
+}
+
+function showHelp(io: CliIo): number {
+  io.stdout(`${usage}\n`);
+  return 0;
+}
+
+function showVersion(io: CliIo): number {
+  io.stdout(`${SERVER_VERSION}\n`);
+  return 0;
+}
+
 export async function runCli(
   argv: string[],
   io: CliIo = defaultIo,
   invokeTool: ToolInvoker = handleToolCall,
 ): Promise<number> {
   try {
-    const [command, ...commandArgs] = argv;
-    if (
-      !command ||
-      command === "help" ||
-      command === "--help" ||
-      command === "-h"
-    ) {
-      io.stdout(`${usage}\n`);
-      return 0;
+    const [command = "help", ...commandArgs] = argv;
+    const handlers: Record<string, () => number | Promise<number>> = {
+      help: () => showHelp(io),
+      "--help": () => showHelp(io),
+      "-h": () => showHelp(io),
+      "--version": () => showVersion(io),
+      "-v": () => showVersion(io),
+      accounts: () => listAccounts(io),
+      tools: () => listTools(io),
+      describe: () => describeTool(commandArgs, io),
+      call: () => callTool(commandArgs, io, invokeTool),
+    };
+    const handler = handlers[command];
+    if (!handler) {
+      throw new Error(`Unknown command: ${command}`);
     }
-    if (command === "--version" || command === "-v") {
-      io.stdout(`${SERVER_VERSION}\n`);
-      return 0;
-    }
-    if (command === "accounts") {
-      writeJson(io.stdout, { accounts: listConfiguredAccounts() });
-      return 0;
-    }
-    if (command === "tools") {
-      writeJson(
-        io.stdout,
-        allTools.map((tool) => ({
-          name: tool.name,
-          description: tool.description,
-          confirmationRequired: requiresConfirmation(tool.name),
-        })),
-      );
-      return 0;
-    }
-    if (command === "describe") {
-      const toolName = commandArgs[0];
-      if (!toolName || commandArgs.length !== 1) {
-        throw new Error("describe requires exactly one tool name");
-      }
-      const tool = allTools.find((candidate) => candidate.name === toolName);
-      if (!tool) {
-        throw new Error(`Unknown tool: ${toolName}`);
-      }
-      writeJson(io.stdout, {
-        ...tool,
-        confirmationRequired: requiresConfirmation(toolName),
-      });
-      return 0;
-    }
-    if (command === "call") {
-      return await callTool(commandArgs, io, invokeTool);
-    }
-    throw new Error(`Unknown command: ${command}`);
+    return await handler();
   } catch (error) {
     writeJson(io.stderr, {
       ok: false,
@@ -213,7 +226,7 @@ export async function runCli(
 }
 
 if (require.main === module) {
-  runCli(process.argv.slice(2)).then((exitCode) => {
+  void runCli(process.argv.slice(2)).then((exitCode) => {
     process.exitCode = exitCode;
   });
 }

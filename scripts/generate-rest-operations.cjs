@@ -13,6 +13,10 @@ const OUTPUT_PATH = join(
   "rest-operations.json",
 );
 const HTTP_METHODS = new Set(["get", "post", "put", "delete"]);
+const SUPPORTED_PATTERNS = new Set([
+  "^$|^\\d{3,10}$",
+  "^$|^\\d{2}-\\d{2}-\\d{2}$",
+]);
 
 function cleanText(value) {
   let clean = "";
@@ -78,6 +82,11 @@ function convertSchema(schema, definitions, stack = []) {
       throw new Error(`Recursive OpenAPI definition is unsupported: ${name}`);
     }
     return convertSchema(definitions[name], definitions, [...stack, name]);
+  }
+  if (schema.pattern && !SUPPORTED_PATTERNS.has(schema.pattern)) {
+    throw new Error(
+      `Unsupported OpenAPI validation pattern: ${schema.pattern}`,
+    );
   }
 
   const converted = {};

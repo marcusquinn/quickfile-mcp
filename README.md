@@ -178,7 +178,7 @@ with personal bearer tokens and grant the required REST endpoint groups.
 ## QuickFile's hosted MCP server
 
 QuickFile also provides an official hosted MCP server documented at
-https://support.quickfile.co.uk/t/public-mcp-server/65504. It is the simplest
+<https://support.quickfile.co.uk/t/public-mcp-server/65504>. It is the simplest
 choice for temporary, read-only access and uses a seven-day key in its connector
 URL.
 
