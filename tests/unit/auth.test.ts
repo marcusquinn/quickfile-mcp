@@ -58,9 +58,20 @@ describe("REST bearer-token authentication", () => {
     expect(loadCredentials("default").bearerToken).toBe("default-token");
   });
 
+  it("rejects an ambiguous named default alias", () => {
+    expect(() =>
+      listConfiguredAccounts({ QUICKFILE_DEFAULT_API_KEY: "token" }),
+    ).toThrow("QUICKFILE_DEFAULT_API_KEY is ambiguous");
+
+    process.env.QUICKFILE_DEFAULT_API_KEY = "token";
+    expect(() => loadCredentials("default")).toThrow(
+      "QUICKFILE_DEFAULT_API_KEY is ambiguous",
+    );
+  });
+
   it("fails clearly when an alias is not configured", () => {
     expect(() => loadCredentials("missing")).toThrow(
-      "QuickFile bearer token not found for account \"missing\"",
+      'QuickFile bearer token not found for account "missing"',
     );
   });
 

@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added a dependency-free `quickfile` CLI that lists accounts and tools,
+  describes schemas, and invokes the same sanitized REST handlers as MCP.
+- Added MCP read-only/destructive annotations and mandatory confirmation gating
+  for MCP and CLI operations that create, update, send, upload, or delete data.
+- Added shared fail-closed tool-input validation before QuickFile requests.
+- Added a prepack build so published packages always include current CLI and MCP
+  binaries.
+- Added generated `quickfile_rest_*` tools for all 75 operations in QuickFile's
+  published REST v2 schema, including journals, ledgers, inventory, payments,
+  projects, purchase orders, contacts, recurring templates, and general uploads.
+- Added a deterministic schema generator and reviewed REST operation snapshot.
+
+### Fixed
+
+- Read MCP and CLI version metadata from `package.json` instead of reporting the
+  stale hard-coded server version.
+- Rejected ambiguous `QUICKFILE_DEFAULT_*` token variables instead of silently
+  routing them through the generic default-account credential path.
+
+### Changed
+
+- **Breaking:** Mutating MCP tool calls now require `confirmed: true`; CLI calls
+  provide the same signal through `--confirm`.
+
+### Documentation
+
+- Documented readiness for the 1 June 2027 legacy API shutdown and clarified
+  when to use QuickFile's official hosted read-only MCP server.
+- Updated personal-token setup guidance to use QuickFile's Developer Dashboard.
+
 ## [3.0.0] - 2026-08-10
 
 ### Added
