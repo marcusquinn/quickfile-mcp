@@ -66,10 +66,15 @@ export QUICKFILE_BUSINESS_API_KEY="<personal-bearer-token>"
 export QUICKFILE_PERSONAL_API_KEY="<personal-bearer-token>"
 ```
 
-The aliases become the values accepted by every tool's required `account`
-parameter (`business` and `personal` in this example). Hyphens normalize to
-underscores. `BEARER_TOKEN` and `API_TOKEN` suffixes are also accepted, but
-`API_KEY` preserves compatibility with common secret-store naming.
+The account segment becomes the lowercase alias accepted by every tool's
+required `account` parameter (`business` and `personal` in this example). Use
+underscores for multi-word aliases: `QUICKFILE_MY_BUSINESS_API_KEY` exposes
+`my_business`. `BEARER_TOKEN` and `API_TOKEN` suffixes are also accepted, with
+precedence in that order before `API_KEY`.
+
+For a single unnamed entity, `QUICKFILE_API_KEY`, `QUICKFILE_API_TOKEN`, or
+`QUICKFILE_BEARER_TOKEN` exposes the alias `default`. Do not use the ambiguous
+`QUICKFILE_DEFAULT_*` form.
 
 ### aidevops secret storage
 
@@ -94,8 +99,16 @@ export QUICKFILE_BUSINESS_VAT_REGISTERED=true
 export QUICKFILE_PERSONAL_VAT_REGISTERED=false
 ```
 
-When no VAT posture is configured, invoice and purchase creation requires an
-explicit `vatPercentage` on every line.
+For the curated `quickfile_invoice_create` and `quickfile_purchase_create`
+tools:
+
+- When VAT posture is unset or `true`, every line requires an explicit
+  `vatPercentage`; rates are never silently defaulted.
+- When VAT posture is `false`, omit `vatPercentage`. The tools use 0% and reject
+  an explicitly supplied rate as contradictory configuration.
+
+Exact `quickfile_rest_*` tools use the published snake_case request schemas
+directly and do not apply this curated-tool VAT helper.
 
 ## MCP client configuration
 
@@ -106,9 +119,10 @@ tokens in JSON. Generic command shape:
 aidevops secret <TOKEN_NAME> [<TOKEN_NAME>...] -- quickfile-mcp
 ```
 
-Source installations can use `npm start` instead. Run `./setup.sh client` from
-a source checkout for runtime-specific guidance. Restart the MCP client after
-changing its process environment or secret injection command.
+Source installations can use `npm start` instead. After running `npm run build`,
+use `./setup.sh client` to print the generic secure launch command for that
+checkout. Restart the MCP client after changing its process environment or
+secret injection command.
 
 ## Account selection
 
@@ -163,6 +177,10 @@ variables; never include them in CLI arguments.
 The same guard applies to MCP: mutating tool schemas require `confirmed: true`.
 Both interfaces validate required fields, primitive types, enumerations, and
 unknown fields before loading credentials or calling QuickFile.
+
+CLI `--input` must contain one JSON object. Supply routing and confirmation only
+through `--account` and `--confirm`; do not put `account` or `confirmed` inside
+the JSON payload.
 
 Source checkouts can replace `quickfile` with `npm run cli --`. The installed
 commands are `quickfile` and `quickfile-mcp`.

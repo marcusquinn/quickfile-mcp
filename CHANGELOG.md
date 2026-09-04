@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Clarified account aliases, VAT posture, CLI payloads, and source-client setup
+  in the README.
+
+### Fixed
+
+- Made the setup helper reject Node.js versions that do not match the pinned
+  `.nvmrc` release.
+
 ## [4.0.1] - 2026-09-04
 
 ### Added
