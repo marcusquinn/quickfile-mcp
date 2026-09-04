@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.2] - 2026-09-04
+
 ### Changed
 
+- Updated pinned GitHub Actions to supported runtimes.
 - Clarified account aliases, VAT posture, CLI payloads, and source-client setup
   in the README.
 
@@ -16,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Made the setup helper reject Node.js versions that do not match the pinned
   `.nvmrc` release.
+- Counted generic default-account bearer-token variables in setup status output.
 
 ## [4.0.1] - 2026-09-04
 
