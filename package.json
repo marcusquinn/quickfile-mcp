@@ -1,6 +1,6 @@
 {
   "name": "quickfile-mcp",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "description": "Multi-account MCP server and CLI for the QuickFile beta REST API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
