@@ -92,7 +92,8 @@ show_status() {
 	fi
 	while IFS='=' read -r name _; do
 		case "$name" in
-		QUICKFILE_*_API_KEY | QUICKFILE_*_API_TOKEN | QUICKFILE_*_BEARER_TOKEN)
+		QUICKFILE_API_KEY | QUICKFILE_API_TOKEN | QUICKFILE_BEARER_TOKEN | \
+			QUICKFILE_*_API_KEY | QUICKFILE_*_API_TOKEN | QUICKFILE_*_BEARER_TOKEN)
 			token_count=$((token_count + 1))
 			;;
 		esac
