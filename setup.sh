@@ -23,10 +23,25 @@ HELP
 }
 
 install_project() {
+	local current_node_version=""
+	local required_node_version=""
 	command -v node >/dev/null 2>&1 || {
-		printf 'Node.js 18+ is required\n' >&2
+		printf 'Node.js is required\n' >&2
 		return 1
 	}
+	if [[ ! -f "$SCRIPT_DIR/.nvmrc" ]]; then
+		printf 'Unable to read the required Node.js version from .nvmrc\n' >&2
+		return 1
+	fi
+	required_node_version=$(tr -d '[:space:]' <"$SCRIPT_DIR/.nvmrc")
+	if ! current_node_version=$(node -p 'process.versions.node'); then
+		printf 'Unable to determine the Node.js version\n' >&2
+		return 1
+	fi
+	if [[ "$current_node_version" != "$required_node_version" ]]; then
+		printf 'Node.js %s is required; found %s\n' "$required_node_version" "$current_node_version" >&2
+		return 1
+	fi
 	command -v npm >/dev/null 2>&1 || {
 		printf 'npm is required\n' >&2
 		return 1
