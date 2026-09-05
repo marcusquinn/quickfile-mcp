@@ -41,7 +41,7 @@ git clone https://github.com/marcusquinn/quickfile-mcp.git
 cd quickfile-mcp
 nvm install
 nvm use
-corepack enable
+corepack enable npm
 npm ci
 npm run hooks:install
 npm run build
