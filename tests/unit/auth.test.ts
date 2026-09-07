@@ -58,6 +58,8 @@ describe("REST bearer-token authentication", () => {
     expect(loadCredentials("default").bearerToken).toBe("default-token");
   });
 
+  /* Legacy test: named default aliases are valid and account-specific. */
+  /*
   it("rejects an ambiguous named default alias", () => {
     expect(() =>
       listConfiguredAccounts({ QUICKFILE_DEFAULT_API_KEY: "token" }),
@@ -68,10 +70,43 @@ describe("REST bearer-token authentication", () => {
       "QUICKFILE_DEFAULT_API_KEY is ambiguous",
     );
   });
+  */
+
+  it("loads a named default alias before a generic default token", () => {
+    process.env.QUICKFILE_DEFAULT_API_KEY = "specific-default-token";
+    process.env.QUICKFILE_API_KEY = "generic-default-token";
+    expect(listConfiguredAccounts()).toEqual(["default"]);
+    expect(loadCredentials("default").bearerToken).toBe(
+      "specific-default-token",
+    );
+  });
+
+  it("prefers a named default VAT profile before the generic profile", () => {
+    process.env.QUICKFILE_DEFAULT_API_KEY = "default-token";
+    process.env.QUICKFILE_DEFAULT_VAT_REGISTERED = "false";
+    process.env.QUICKFILE_VAT_REGISTERED = "true";
+    expect(loadCredentials("default").businessProfile).toEqual({
+      vatRegistered: false,
+    });
+  });
+
+  it("falls back to the generic default VAT profile", () => {
+    process.env.QUICKFILE_API_KEY = "default-token";
+    process.env.QUICKFILE_VAT_REGISTERED = "true";
+    expect(loadCredentials("default").businessProfile).toEqual({
+      vatRegistered: true,
+    });
+  });
 
   it("fails clearly when an alias is not configured", () => {
     expect(() => loadCredentials("missing")).toThrow(
       'QuickFile bearer token not found for account "missing"',
+    );
+  });
+
+  it("lists every default token variable when no default token is configured", () => {
+    expect(() => loadCredentials("default")).toThrow(
+      "Expected one of QUICKFILE_DEFAULT_BEARER_TOKEN, QUICKFILE_DEFAULT_API_TOKEN, QUICKFILE_DEFAULT_API_KEY, QUICKFILE_BEARER_TOKEN, QUICKFILE_API_TOKEN, QUICKFILE_API_KEY",
     );
   });
 
