@@ -14,17 +14,6 @@ const TOKEN_SUFFIXES = ["BEARER_TOKEN", "API_TOKEN", "API_KEY"] as const;
 const GENERIC_ACCOUNT = "default";
 const credentialsCache = new Map<string, QuickFileCredentials>();
 
-function assertNoNamedDefaultToken(environment: NodeJS.ProcessEnv): void {
-  const ambiguousVariable = TOKEN_SUFFIXES.map(
-    (suffix) => `QUICKFILE_DEFAULT_${suffix}`,
-  ).find((variable) => environment[variable]);
-  if (ambiguousVariable) {
-    throw new Error(
-      `${ambiguousVariable} is ambiguous; use QUICKFILE_API_KEY for the default account or choose a different alias`,
-    );
-  }
-}
-
 function normalizeAccount(account: string): string {
   const normalized = account.trim().toUpperCase().replace(/-/g, "_");
   if (!normalized || !/^[A-Z0-9_]+$/.test(normalized)) {
@@ -37,10 +26,16 @@ function normalizeAccount(account: string): string {
 
 function tokenVariableCandidates(account: string): string[] {
   const normalized = normalizeAccount(account);
+  const accountSpecific = TOKEN_SUFFIXES.map(
+    (suffix) => `QUICKFILE_${normalized}_${suffix}`,
+  );
   if (normalized === GENERIC_ACCOUNT.toUpperCase()) {
-    return TOKEN_SUFFIXES.map((suffix) => `QUICKFILE_${suffix}`);
+    return [
+      ...accountSpecific,
+      ...TOKEN_SUFFIXES.map((suffix) => `QUICKFILE_${suffix}`),
+    ];
   }
-  return TOKEN_SUFFIXES.map((suffix) => `QUICKFILE_${normalized}_${suffix}`);
+  return accountSpecific;
 }
 
 function readBusinessProfile(
@@ -48,7 +43,10 @@ function readBusinessProfile(
 ): QuickFileCredentials["businessProfile"] {
   const variable =
     normalizedAccount === GENERIC_ACCOUNT.toUpperCase()
-      ? "QUICKFILE_VAT_REGISTERED"
+      ? process.env[`QUICKFILE_${normalizedAccount}_VAT_REGISTERED`] !==
+          undefined
+        ? `QUICKFILE_${normalizedAccount}_VAT_REGISTERED`
+        : "QUICKFILE_VAT_REGISTERED"
       : `QUICKFILE_${normalizedAccount}_VAT_REGISTERED`;
   const raw = process.env[variable];
   if (raw === undefined) {
@@ -64,7 +62,6 @@ function readBusinessProfile(
 export function listConfiguredAccounts(
   environment: NodeJS.ProcessEnv = process.env,
 ): string[] {
-  assertNoNamedDefaultToken(environment);
   const accounts = new Set<string>();
 
   for (const variable of Object.keys(environment)) {
@@ -93,9 +90,6 @@ export function loadCredentials(
   forceReload = false,
 ): QuickFileCredentials {
   const normalized = normalizeAccount(account);
-  if (normalized === GENERIC_ACCOUNT.toUpperCase()) {
-    assertNoNamedDefaultToken(process.env);
-  }
   const cacheKey = normalized.toLowerCase();
   const cached = credentialsCache.get(cacheKey);
   if (cached && !forceReload) {
