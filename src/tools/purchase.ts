@@ -165,14 +165,34 @@ export async function handlePurchaseTool(
       }
       case "quickfile_purchase_delete": {
         const purchaseIds = args.purchaseIds as number[];
-        for (const purchaseId of purchaseIds) {
-          await client.request(`/purchases/${purchaseId}`, {
-            method: "DELETE",
-            body: {
-              delete_associated_payments:
-                args.deleteAssociatedPayments ?? true,
-            },
-          });
+        const deletedPurchaseIds: number[] = [];
+
+        for (const [index, purchaseId] of purchaseIds.entries()) {
+          try {
+            await client.request(`/purchases/${purchaseId}`, {
+              method: "DELETE",
+              body: {
+                delete_associated_payments:
+                  args.deleteAssociatedPayments ?? true,
+              },
+            });
+            deletedPurchaseIds.push(purchaseId);
+          } catch {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({
+                    error: "Purchase deletion stopped before the batch completed",
+                    deletedPurchaseIds,
+                    failedPurchaseId: purchaseId,
+                    unattemptedPurchaseIds: purchaseIds.slice(index + 1),
+                  }),
+                },
+              ],
+              isError: true,
+            };
+          }
         }
         return successResult({
           success: true,

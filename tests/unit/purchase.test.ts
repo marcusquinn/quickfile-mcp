@@ -53,6 +53,26 @@ describe("REST purchase tools", () => {
     });
   });
 
+  it("reports confirmed and unattempted purchases when a deletion fails", async () => {
+    request
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error("Request failed"));
+
+    const result = await handlePurchaseTool("quickfile_purchase_delete", {
+      account: "brandlight",
+      purchaseIds: [123, 456, 789],
+    });
+
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(result.isError).toBe(true);
+    expect(JSON.parse(result.content[0].text)).toEqual({
+      error: "Purchase deletion stopped before the batch completed",
+      deletedPurchaseIds: [123],
+      failedPurchaseId: 456,
+      unattemptedPurchaseIds: [789],
+    });
+  });
+
   it("uses the published REST purchase mutation schema", async () => {
     request.mockResolvedValue({ id: 321, gross_total: 24 });
     await handlePurchaseTool("quickfile_purchase_create", {
