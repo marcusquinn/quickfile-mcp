@@ -71,6 +71,19 @@ describe("QuickFileApiClient", () => {
     expect(url.searchParams.getAll("types")).toEqual(["current", "reserve"]);
   });
 
+  it("rejects unsupported query values before making a request", async () => {
+    const client = new QuickFileApiClient({ account: "planning" });
+
+    await expect(
+      client.request("/clients", { query: { filter: { value: "active" } } }),
+    ).rejects.toMatchObject({ code: "INVALID_QUERY" });
+    await expect(
+      client.request("/clients", { query: { types: ["current", { value: "reserve" }] } }),
+    ).rejects.toMatchObject({ code: "INVALID_QUERY" });
+
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it("sends JSON bodies with the correct content type", async () => {
     mockFetch.mockResolvedValue(response(200, { id: 42 }));
     const client = new QuickFileApiClient({ account: "planning" });

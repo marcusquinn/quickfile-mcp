@@ -20,6 +20,21 @@ export interface RestRequestOptions {
   form?: FormData;
 }
 
+function isQueryScalar(value: unknown): value is string | number | boolean {
+  return (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  );
+}
+
+function queryValueError(key: string): QuickFileApiError {
+  return new QuickFileApiError(
+    `Query parameter "${key}" must be a string, number, boolean, or array of those values`,
+    "INVALID_QUERY",
+  );
+}
+
 function appendQuery(url: URL, query: Record<string, unknown>): void {
   for (const [key, value] of Object.entries(query)) {
     if (value === undefined || value === null || value === "") {
@@ -27,9 +42,15 @@ function appendQuery(url: URL, query: Record<string, unknown>): void {
     }
     if (Array.isArray(value)) {
       for (const item of value) {
+        if (!isQueryScalar(item)) {
+          throw queryValueError(key);
+        }
         url.searchParams.append(key, String(item));
       }
       continue;
+    }
+    if (!isQueryScalar(value)) {
+      throw queryValueError(key);
     }
     url.searchParams.set(key, String(value));
   }
