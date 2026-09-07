@@ -104,6 +104,12 @@ describe("REST bearer-token authentication", () => {
     );
   });
 
+  it("lists every default token variable when no default token is configured", () => {
+    expect(() => loadCredentials("default")).toThrow(
+      "Expected one of QUICKFILE_DEFAULT_BEARER_TOKEN, QUICKFILE_DEFAULT_API_TOKEN, QUICKFILE_DEFAULT_API_KEY, QUICKFILE_BEARER_TOKEN, QUICKFILE_API_TOKEN, QUICKFILE_API_KEY",
+    );
+  });
+
   it("rejects unsafe account aliases", () => {
     expect(() => loadCredentials("../../unsafe")).toThrow(
       "QuickFile account must contain only",

@@ -96,12 +96,13 @@ export function loadCredentials(
     return cached;
   }
 
-  const variable = tokenVariableCandidates(account).find(
+  const candidates = tokenVariableCandidates(account);
+  const variable = candidates.find(
     (candidate) => process.env[candidate],
   );
   if (!variable) {
     throw new Error(
-      `QuickFile bearer token not found for account "${account}". Expected QUICKFILE_${normalized}_API_KEY`,
+      `QuickFile bearer token not found for account "${account}". Expected one of ${candidates.join(", ")}`,
     );
   }
 
