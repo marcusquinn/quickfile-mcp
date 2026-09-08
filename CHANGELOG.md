@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.3] - 2026-09-08
+
+### Fixed
+
+- Resolved default account aliases consistently and aligned missing-token diagnostics.
+- Rejected unsupported query values before sending REST requests.
+- Reported partial purchase deletion progress when a later deletion fails.
+
+### Changed
+
+- Corrected VAT guidance for agents and documented enabling the npm Corepack shim.
+
 ## [4.0.2] - 2026-09-04
 
 ### Changed
