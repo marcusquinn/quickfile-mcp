@@ -66,6 +66,8 @@ check, so hand edits fail the release. If the published schema is wrong, record
 the OpenAPI and live-API evidence in an issue and handle it in
 `scripts/generate-rest-operations.cjs`, so regeneration keeps the correction.
 
+The weekly `REST Spec Drift` workflow runs the same check and opens a `REST v2 spec drift` issue when the published schema changes.
+
 ## VAT behavior
 
 `QUICKFILE_<ACCOUNT>_VAT_REGISTERED=true|false` optionally defines each entity's

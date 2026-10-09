@@ -1,0 +1,71 @@
+name: REST Spec Drift
+
+on:
+  pull_request:
+    paths:
+      - "scripts/generate-rest-operations.cjs"
+      - "src/generated/rest-operations.json"
+  schedule:
+    - cron: "41 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-rest-spec:
+    name: Check REST v2 snapshot against published spec
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: ".nvmrc"
+
+      # The generator uses only Node built-ins and fetch, so no npm ci is needed.
+      - name: Compare snapshot with published spec
+        id: check
+        run: |
+          set -o pipefail
+          node scripts/generate-rest-operations.cjs --check 2>&1 | tee check.log
+
+      - name: Open drift issue
+        if: failure() && steps.check.outcome == 'failure' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # Only a stale snapshot is drift; fetch/HTTP failures just fail the run.
+          if ! grep -q "snapshot is stale" check.log; then
+            echo "Check failed for a reason other than drift; not opening an issue."
+            exit 0
+          fi
+          TITLE="REST v2 spec drift: regenerate src/generated/rest-operations.json"
+          EXISTING=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --search "\"$TITLE\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            echo "Drift issue #$EXISTING already open."
+            exit 0
+          fi
+          {
+            echo "The published QuickFile REST v2 spec no longer matches \`src/generated/rest-operations.json\`."
+            echo
+            echo "Detected by: $RUN_URL"
+            echo
+            echo "Releases are blocked until this is fixed: the npm publish job runs \`npm run check:rest\`."
+            echo
+            echo "## Fix"
+            echo
+            echo "1. \`npm run generate:rest\`, then review the diff (new operations, changed fields, renamed fields)."
+            echo "2. Update the operation and tool counts in \`tests/unit/rest-operations.test.ts\`, \`README.md\` and \`CHANGELOG.md\`."
+            echo "3. Check that new non-GET operations require confirmation (\`src/tools/index.ts\` \`requiresConfirmation\`), and that hand-written tools in \`src/tools/*.ts\` still send published field names."
+            echo "4. \`npm run check:rest && npm run typecheck && npm run lint -- --max-warnings=0 && npm test -- --runInBand && npm run build\`"
+          } > drift-issue.md
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --body-file drift-issue.md
