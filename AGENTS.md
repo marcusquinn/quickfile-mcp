@@ -53,9 +53,15 @@ Read-only operations can proceed when the entity is explicit. Creating,
 updating, sending, uploading, or deleting data requires confirmation and should
 return the selected account alias or resource ID in the result where useful.
 
-The REST beta specification does not advertise the legacy create-note,
-estimate-accept/decline, or estimate-conversion endpoints. Do not reintroduce
-them without current OpenAPI evidence and runtime verification.
+The REST v2 specification now publishes estimate change-status,
+estimate-to-invoice conversion, and invoice send operations. They are exposed
+only as generated `quickfile_rest_*` tools, which require confirmation. Do not
+add curated wrappers for them, or reintroduce the unpublished legacy
+create-note endpoint, without current OpenAPI evidence and runtime verification.
+
+The generated snapshot must match the published specification exactly
+(`npm run check:rest`, also enforced before npm publication). Regenerate it with
+`npm run generate:rest`; never hand-edit `src/generated/rest-operations.json`.
 
 ## VAT behavior
 

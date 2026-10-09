@@ -6,7 +6,7 @@ multi-account selection.
 
 ## Features
 
-- 112 tools: 37 curated operations plus exact coverage of all 75 operations in
+- 116 tools: 37 curated operations plus exact coverage of all 79 operations in
   QuickFile's published REST v2 schema
 - QuickFile beta REST API bearer-token authentication
 - Multiple QuickFile entities in one MCP process
@@ -197,12 +197,14 @@ commands are `quickfile` and `quickfile-mcp`.
 | Banking       | Accounts, balances, transactions, account creation                                                                                                                    |
 | Reports       | P&L, balance sheet, VAT, ageing, chart, subscriptions                                                                                                                 |
 | Documents     | Receipt and sales-attachment uploads                                                                                                                                  |
-| Exact REST v2 | All 75 published operations, including payments, inventory, journals, ledgers, projects, purchase orders, contacts, recurring templates, and general document uploads |
+| Exact REST v2 | All 79 published operations, including payments, inventory, journals, ledgers, projects, purchase orders, contacts, recurring templates, and general document uploads |
 
 Invoice creation supports invoice, estimate, and credit document types. The
-REST beta API does not currently advertise the legacy create-note,
-estimate-accept/decline, or estimate-conversion endpoints, so those legacy-only
-tools are not exposed.
+REST v2 schema now publishes estimate status changes (accept, decline, draft),
+estimate-to-invoice conversion, and single or batch invoice sending. These are
+available as generated `quickfile_rest_*` tools and, like every other write,
+require confirmation. The legacy create-note endpoint is not published, so no
+tool exposes it.
 
 ## Legacy API deprecation
 

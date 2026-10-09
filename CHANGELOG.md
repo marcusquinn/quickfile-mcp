@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Exposed the newly published REST v2 operations for estimate status changes,
+  estimate-to-invoice conversion, and single or batch invoice sending as
+  confirmation-gated generated tools (79 REST operations, 116 tools in total).
+- Added the published optional `exchange_rate` and `credit_note` fields to the
+  generated invoice and purchase write schemas.
+
+### Fixed
+
+- Purchase and purchase-order create/update now send `supplier_reference`. The
+  previous misspelled `suppplier_reference` field was silently ignored by the
+  API, so supplier references were never saved. Reported in #154.
+- Refreshed the generated REST snapshot to match the published v2 schema, so the
+  release-time `check:rest` gate passes again.
+
 ## [4.0.3] - 2026-09-08
 
 ### Fixed

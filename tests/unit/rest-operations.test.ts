@@ -23,11 +23,11 @@ describe("generated REST v2 operations", () => {
 
   it("covers every published operation with unique tool names", () => {
     expect(restSchemaVersion).toBe("v2");
-    expect(restOperationCount).toBe(75);
-    expect(restTools).toHaveLength(75);
-    expect(new Set(restTools.map((tool) => tool.name)).size).toBe(75);
-    expect(allTools).toHaveLength(112);
-    expect(new Set(allTools.map((tool) => tool.name)).size).toBe(112);
+    expect(restOperationCount).toBe(79);
+    expect(restTools).toHaveLength(79);
+    expect(new Set(restTools.map((tool) => tool.name)).size).toBe(79);
+    expect(allTools).toHaveLength(116);
+    expect(new Set(allTools.map((tool) => tool.name)).size).toBe(116);
   });
 
   it("includes schema areas that were absent from curated tools", () => {
@@ -55,6 +55,19 @@ describe("generated REST v2 operations", () => {
     expect(readTool?.inputSchema.required).not.toContain("confirmed");
     expect(writeTool?.annotations?.readOnlyHint).toBe(false);
     expect(writeTool?.inputSchema.required).toContain("confirmed");
+  });
+
+  it("requires confirmation for published send and estimate actions", () => {
+    for (const name of [
+      "quickfile_rest_estimate_change_status",
+      "quickfile_rest_estimate_convert_to_invoice",
+      "quickfile_rest_invoice_batch_send",
+      "quickfile_rest_invoice_send_single",
+    ]) {
+      expect(requiresConfirmation(name)).toBe(true);
+      const tool = allTools.find((candidate) => candidate.name === name);
+      expect(tool?.inputSchema.required).toContain("confirmed");
+    }
   });
 
   it("maps exact query fields to a GET request", async () => {

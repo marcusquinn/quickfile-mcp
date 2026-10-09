@@ -1,8 +1,8 @@
 {
   "source": "https://api-beta.quickfile.co.uk/api-docs/v2",
   "schemaVersion": "v2",
-  "operationCount": 75,
-  "operationsSha256": "967207b0eabce945d2b73926fd2fe173245f52b74e34c641ee26578111fe1cf1",
+  "operationCount": 79,
+  "operationsSha256": "29547cd93689d71544964ee2a862d9c37c57cdc91af212adb78f3563758abc18",
   "operations": [
     {
       "name": "quickfile_rest_account_me",
@@ -1551,6 +1551,98 @@
       }
     },
     {
+      "name": "quickfile_rest_estimate_change_status",
+      "operationId": "Estimate_ChangeStatus",
+      "group": "Estimate",
+      "summary": "Change estimate status",
+      "method": "POST",
+      "path": "/estimates/{id}/change-status",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Estimate id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "required": [
+              "action"
+            ],
+            "properties": {
+              "action": {
+                "type": "string",
+                "description": "Action to perform on the estimate: accept, decline or draft"
+              },
+              "purchase_order_ref": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 25,
+                "description": "Optional purchase order reference (accept only, max 25 characters)"
+              },
+              "comments": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 500,
+                "description": "Optional comments (accept/decline, max 500 characters)"
+              },
+              "notify_client": {
+                "type": "boolean",
+                "description": "If true, an email and internal message will be sent. Defaults to false when omitted."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_estimate_convert_to_invoice",
+      "operationId": "Estimate_ConvertToInvoice",
+      "group": "Estimate",
+      "summary": "Convert an estimate into an invoice",
+      "method": "POST",
+      "path": "/estimates/{id}/convert-to-invoice",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Estimate id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
       "name": "quickfile_rest_inventory_delete",
       "operationId": "Inventory_Delete",
       "group": "Inventory",
@@ -1681,22 +1773,28 @@
             "type": "object",
             "properties": {
               "order_column": {
-                "type": "string"
+                "type": "string",
+                "description": "Which columns should be used for ordering the record set. E.g. created_date, item_name, item_description, unit_cost."
               },
               "order_direction": {
-                "type": "string"
+                "type": "string",
+                "description": "Order direction. Ascending (asc) or Descending (desc)."
               },
               "include_deleted": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Show previously deleted inventory items. Default is false."
               },
               "item_name": {
-                "type": "string"
+                "type": "string",
+                "description": "Search by item name"
               },
               "item_description": {
-                "type": "string"
+                "type": "string",
+                "description": "Search by item description"
               },
               "item_type": {
-                "type": "string"
+                "type": "string",
+                "description": "Type of inventory to return. E.g. item, task, po."
               },
               "offset": {
                 "type": "integer",
@@ -1717,6 +1815,50 @@
           }
         },
         "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_invoice_batch_send",
+      "operationId": "Invoice_BatchSend",
+      "group": "Invoice",
+      "summary": "Send multiple invoices, estimates or recurring invoice templates",
+      "method": "POST",
+      "path": "/invoices-batch-send",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "invoice_id"
+              ],
+              "properties": {
+                "invoice_id": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 1
+                },
+                "by_email": {
+                  "type": "boolean"
+                },
+                "by_snail_mail": {
+                  "type": "boolean"
+                },
+                "client_contact_id": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "body"
+        ],
         "additionalProperties": false
       }
     },
@@ -1872,6 +2014,11 @@
                 "maxLength": 3,
                 "description": "Currency ISO code must be 3 characters long."
               },
+              "exchange_rate": {
+                "type": "number",
+                "format": "double",
+                "description": "Optional exchange rate (GBP to invoice currency), to a maximum of 4 decimal places. Only applied when currency is not GBP. If omitted for a non-GBP currency, the system XE rate is used. Ignored when currency is GBP."
+              },
               "discount_percentage": {
                 "type": "number",
                 "format": "double",
@@ -1937,15 +2084,11 @@
                 "description": "Use for products and services priced using the quantity and unit cost model.",
                 "items": {
                   "type": "object",
-                  "required": [
-                    "description",
-                    "unit_cost",
-                    "qty"
-                  ],
                   "properties": {
                     "item_id": {
                       "type": "integer",
-                      "format": "int32"
+                      "format": "int32",
+                      "description": "Optional. If supplied, must match an existing inventory item ID to pre-populate details. Explicitly provided fields will override the inventory defaults."
                     },
                     "item_name": {
                       "type": "string",
@@ -1957,7 +2100,7 @@
                       "type": "string",
                       "minLength": 0,
                       "maxLength": 5000,
-                      "description": "Item Description (Long). Max 5000 characters"
+                      "description": "Item Description (Long). Max 5000 characters. Required when item_id is not supplied."
                     },
                     "nominal_code": {
                       "type": "integer",
@@ -1991,16 +2134,11 @@
                 "description": "Use for itemising elements charged on an hourly rate at a fixed amount per hour.",
                 "items": {
                   "type": "object",
-                  "required": [
-                    "item_name",
-                    "description",
-                    "hourly_rate",
-                    "hours"
-                  ],
                   "properties": {
                     "id": {
                       "type": "integer",
-                      "format": "int32"
+                      "format": "int32",
+                      "description": "Optional. If supplied, must match an existing inventory task ID to pre-populate details. Explicitly provided fields will override the inventory defaults."
                     },
                     "item_name": {
                       "type": "string",
@@ -2084,6 +2222,29 @@
                   }
                 },
                 "additionalProperties": false
+              },
+              "credit_note": {
+                "type": "object",
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "description": "Type of credit note: void (write off unpaid balance), refund (return money to client), or hold (credit on account)."
+                  },
+                  "invoice_id": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "The invoice ID to set the credit note against. Required for void and hold types."
+                  },
+                  "nominal_code": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "Bank nominal (1200-1299) that the refund should be paid from. Required for refund type."
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "additionalProperties": false
@@ -2158,6 +2319,11 @@
                 "maxLength": 3,
                 "description": "Currency ISO code must be 3 characters long."
               },
+              "exchange_rate": {
+                "type": "number",
+                "format": "double",
+                "description": "Optional exchange rate (GBP to invoice currency), to a maximum of 4 decimal places. Only applied when currency is not GBP. If omitted for a non-GBP currency, the system XE rate is used. Ignored when currency is GBP."
+              },
               "discount_percentage": {
                 "type": "number",
                 "format": "double",
@@ -2223,15 +2389,11 @@
                 "description": "Use for products and services priced using the quantity and unit cost model.",
                 "items": {
                   "type": "object",
-                  "required": [
-                    "description",
-                    "unit_cost",
-                    "qty"
-                  ],
                   "properties": {
                     "item_id": {
                       "type": "integer",
-                      "format": "int32"
+                      "format": "int32",
+                      "description": "Optional. If supplied, must match an existing inventory item ID to pre-populate details. Explicitly provided fields will override the inventory defaults."
                     },
                     "item_name": {
                       "type": "string",
@@ -2243,7 +2405,7 @@
                       "type": "string",
                       "minLength": 0,
                       "maxLength": 5000,
-                      "description": "Item Description (Long). Max 5000 characters"
+                      "description": "Item Description (Long). Max 5000 characters. Required when item_id is not supplied."
                     },
                     "nominal_code": {
                       "type": "integer",
@@ -2277,16 +2439,11 @@
                 "description": "Use for itemising elements charged on an hourly rate at a fixed amount per hour.",
                 "items": {
                   "type": "object",
-                  "required": [
-                    "item_name",
-                    "description",
-                    "hourly_rate",
-                    "hours"
-                  ],
                   "properties": {
                     "id": {
                       "type": "integer",
-                      "format": "int32"
+                      "format": "int32",
+                      "description": "Optional. If supplied, must match an existing inventory task ID to pre-populate details. Explicitly provided fields will override the inventory defaults."
                     },
                     "item_name": {
                       "type": "string",
@@ -2367,6 +2524,29 @@
                   },
                   "auto_activate": {
                     "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "credit_note": {
+                "type": "object",
+                "required": [
+                  "type"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "description": "Type of credit note: void (write off unpaid balance), refund (return money to client), or hold (credit on account)."
+                  },
+                  "invoice_id": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "The invoice ID to set the credit note against. Required for void and hold types."
+                  },
+                  "nominal_code": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "Bank nominal (1200-1299) that the refund should be paid from. Required for refund type."
                   }
                 },
                 "additionalProperties": false
@@ -2538,6 +2718,54 @@
           }
         },
         "required": [
+          "body"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "quickfile_rest_invoice_send_single",
+      "operationId": "Invoice_SendSingle",
+      "group": "Invoice",
+      "summary": "Send a single invoice, estimate or recurring invoice template",
+      "method": "POST",
+      "path": "/invoices/{id}/send",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pathParams": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "description": "Invoice id"
+              }
+            },
+            "required": [
+              "id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": "object",
+            "properties": {
+              "by_email": {
+                "type": "boolean"
+              },
+              "by_snail_mail": {
+                "type": "boolean"
+              },
+              "client_contact_id": {
+                "type": "integer",
+                "format": "int64"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "pathParams",
           "body"
         ],
         "additionalProperties": false
@@ -3135,7 +3363,7 @@
                   "type": "string"
                 }
               },
-              "suppplier_reference": {
+              "supplier_reference": {
                 "type": "string",
                 "minLength": 0,
                 "maxLength": 30,
@@ -3299,7 +3527,7 @@
                   "type": "string"
                 }
               },
-              "suppplier_reference": {
+              "supplier_reference": {
                 "type": "string",
                 "minLength": 0,
                 "maxLength": 30,
@@ -3443,6 +3671,11 @@
                 "maxLength": 3,
                 "description": "Currency ISO code. Maximum 3 characters long."
               },
+              "exchange_rate": {
+                "type": "number",
+                "format": "double",
+                "description": "Optional exchange rate (GBP to purchase currency), to a maximum of 4 decimal places. Only applied when currency is not GBP. If omitted for a non-GBP currency, the system XE rate is used. Ignored when currency is GBP."
+              },
               "description": {
                 "type": "string",
                 "minLength": 0,
@@ -3456,7 +3689,7 @@
                   "type": "string"
                 }
               },
-              "suppplier_reference": {
+              "supplier_reference": {
                 "type": "string",
                 "minLength": 0,
                 "maxLength": 30,
@@ -3599,6 +3832,11 @@
                 "maxLength": 3,
                 "description": "Currency ISO code. Maximum 3 characters long."
               },
+              "exchange_rate": {
+                "type": "number",
+                "format": "double",
+                "description": "Optional exchange rate (GBP to purchase currency), to a maximum of 4 decimal places. Only applied when currency is not GBP. If omitted for a non-GBP currency, the system XE rate is used. Ignored when currency is GBP."
+              },
               "description": {
                 "type": "string",
                 "minLength": 0,
@@ -3612,7 +3850,7 @@
                   "type": "string"
                 }
               },
-              "suppplier_reference": {
+              "supplier_reference": {
                 "type": "string",
                 "minLength": 0,
                 "maxLength": 30,
