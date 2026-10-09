@@ -152,7 +152,7 @@ export async function handlePurchaseTool(
             supplier_id: args.supplierId,
             receipt_date: args.issueDate,
             currency: args.currency ?? "GBP",
-            suppplier_reference: args.supplierRef,
+            supplier_reference: args.supplierRef,
             term_days: args.termDays ?? 30,
             item_lines: itemLines,
           }),
