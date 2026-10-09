@@ -343,7 +343,9 @@ export interface BankAccount {
   AccountNumber?: string;
 }
 
-export type BankAccountType = 'CURRENT' | 'SAVINGS' | 'CREDIT_CARD' | 'LOAN' | 'CASH' | 'PAYPAL' | 'MERCHANT' | 'OTHER';
+// Values accepted by Bank_CreateAccount / returned by Bank_GetAccounts (API v1.2)
+export const BANK_ACCOUNT_TYPES = ['CURRENT', 'RESERVE', 'BUILDINGSOC', 'PETTY', 'CREDITCARD', 'LOAN', 'MERCHANT'] as const;
+export type BankAccountType = (typeof BANK_ACCOUNT_TYPES)[number];
 
 export interface BankTransaction {
   TransactionID: number;

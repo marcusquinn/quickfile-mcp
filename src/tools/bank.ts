@@ -11,6 +11,7 @@ import type {
   BankTransactionWireItem,
   BankAccountType,
 } from "../types/quickfile.js";
+import { BANK_ACCOUNT_TYPES } from "../types/quickfile.js";
 import {
   handleToolError,
   successResult,
@@ -120,16 +121,7 @@ export const bankTools: Tool[] = [
         },
         accountType: {
           type: "string",
-          enum: [
-            "CURRENT",
-            "SAVINGS",
-            "CREDIT_CARD",
-            "LOAN",
-            "CASH",
-            "PAYPAL",
-            "MERCHANT",
-            "OTHER",
-          ],
+          enum: [...BANK_ACCOUNT_TYPES],
           description: "Type of bank account",
         },
         currency: {
@@ -137,9 +129,11 @@ export const bankTools: Tool[] = [
           description: "Currency (default: GBP)",
           default: "GBP",
         },
-        bankName: {
-          type: "string",
-          description: "Bank name",
+        bankNameId: {
+          type: "number",
+          description:
+            "QuickFile bank provider ID (1 = Barclays, 24 = Other; list: community.quickfile.co.uk/t/18738). Default 24.",
+          default: 24,
         },
         sortCode: {
           type: "string",
@@ -148,11 +142,6 @@ export const bankTools: Tool[] = [
         accountNumber: {
           type: "string",
           description: "Account number",
-        },
-        openingBalance: {
-          type: "number",
-          description: "Opening balance",
-          default: 0,
         },
       },
       required: ["accountName", "accountType"],
@@ -263,23 +252,19 @@ function buildBankSearchParams(
 function buildBankAccountData(
   args: Record<string, unknown>,
 ): Record<string, unknown> {
+  // ponytail: no opening balance (API wants {Date, Amount}); set it in the UI if ever needed
   const accountData: Record<string, unknown> = {
-    AccountName: args.accountName as string,
+    BankNameId: (args.bankNameId as number) ?? 24,
     AccountType: args.accountType as BankAccountType,
-    Currency: (args.currency as string) ?? "GBP",
+    AccountName: args.accountName as string,
+    CurrencyCode: (args.currency as string) ?? "GBP",
   };
 
-  if (args.bankName) {
-    accountData.BankName = args.bankName;
-  }
-  if (args.sortCode) {
-    accountData.SortCode = args.sortCode;
-  }
   if (args.accountNumber) {
     accountData.AccountNumber = args.accountNumber;
   }
-  if (args.openingBalance !== undefined) {
-    accountData.OpeningBalance = args.openingBalance;
+  if (args.sortCode) {
+    accountData.SortCode = args.sortCode;
   }
 
   return accountData;
@@ -355,9 +340,9 @@ export async function handleBankTool(
       case "quickfile_bank_create_account": {
         const accountData = buildBankAccountData(args);
         const response = await apiClient.request<
-          { BankAccountData: typeof accountData },
+          typeof accountData,
           BankAccountCreateResponse
-        >("Bank_CreateAccount", { BankAccountData: accountData });
+        >("Bank_CreateAccount", accountData);
         return successResult({
           success: true,
           nominalCode: response.NominalCode,
