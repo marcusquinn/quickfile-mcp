@@ -59,9 +59,12 @@ only as generated `quickfile_rest_*` tools, which require confirmation. Do not
 add curated wrappers for them, or reintroduce the unpublished legacy
 create-note endpoint, without current OpenAPI evidence and runtime verification.
 
-The generated snapshot must match the published specification exactly
-(`npm run check:rest`, also enforced before npm publication). Regenerate it with
-`npm run generate:rest`; never hand-edit `src/generated/rest-operations.json`.
+Keep `src/generated/rest-operations.json` in sync with the published
+specification by regenerating it with `npm run generate:rest`. `npm run
+check:rest` compares it with the live schema, and the npm publish job runs that
+check, so hand edits fail the release. If the published schema is wrong, record
+the OpenAPI and live-API evidence in an issue and handle it in
+`scripts/generate-rest-operations.cjs`, so regeneration keeps the correction.
 
 ## VAT behavior
 
