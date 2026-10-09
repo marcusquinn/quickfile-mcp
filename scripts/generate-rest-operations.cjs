@@ -17,6 +17,9 @@ const SUPPORTED_PATTERNS = new Set([
   "^$|^\\d{3,10}$",
   "^$|^\\d{2}-\\d{2}-\\d{2}$",
 ]);
+// The published spec misspells some fields; the live API ignores the
+// misspelling and only accepts the correct name.
+const FIELD_RENAMES = { suppplier_reference: "supplier_reference" };
 
 function cleanText(value) {
   let clean = "";
@@ -115,13 +118,15 @@ function convertSchema(schema, definitions, stack = []) {
     converted.enum = schema.enum;
   }
   if (Array.isArray(schema.required)) {
-    converted.required = schema.required;
+    converted.required = schema.required.map(
+      (name) => FIELD_RENAMES[name] ?? name,
+    );
   }
   if (schema.properties) {
     converted.type = converted.type ?? "object";
     converted.properties = Object.fromEntries(
       Object.entries(schema.properties).map(([name, property]) => [
-        name,
+        FIELD_RENAMES[name] ?? name,
         convertSchema(property, definitions, stack),
       ]),
     );

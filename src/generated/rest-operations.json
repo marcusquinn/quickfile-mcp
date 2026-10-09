@@ -2,7 +2,7 @@
   "source": "https://api-beta.quickfile.co.uk/api-docs/v2",
   "schemaVersion": "v2",
   "operationCount": 75,
-  "operationsSha256": "967207b0eabce945d2b73926fd2fe173245f52b74e34c641ee26578111fe1cf1",
+  "operationsSha256": "cfb6790a24e85c13a9e9e440a478bba9d6ebd5f91d9ad413dbaad0a0395ef931",
   "operations": [
     {
       "name": "quickfile_rest_account_me",
@@ -3135,7 +3135,7 @@
                   "type": "string"
                 }
               },
-              "suppplier_reference": {
+              "supplier_reference": {
                 "type": "string",
                 "minLength": 0,
                 "maxLength": 30,
@@ -3299,7 +3299,7 @@
                   "type": "string"
                 }
               },
-              "suppplier_reference": {
+              "supplier_reference": {
                 "type": "string",
                 "minLength": 0,
                 "maxLength": 30,
@@ -3456,7 +3456,7 @@
                   "type": "string"
                 }
               },
-              "suppplier_reference": {
+              "supplier_reference": {
                 "type": "string",
                 "minLength": 0,
                 "maxLength": 30,
@@ -3612,7 +3612,7 @@
                   "type": "string"
                 }
               },
-              "suppplier_reference": {
+              "supplier_reference": {
                 "type": "string",
                 "minLength": 0,
                 "maxLength": 30,
