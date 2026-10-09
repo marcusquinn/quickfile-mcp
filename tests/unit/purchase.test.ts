@@ -96,7 +96,7 @@ describe("REST purchase tools", () => {
         supplier_id: 42,
         receipt_date: "2026-08-10",
         currency: "GBP",
-        suppplier_reference: "SUP-10",
+        supplier_reference: "SUP-10",
         term_days: 30,
         item_lines: [
           {
