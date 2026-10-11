@@ -1,0 +1,8 @@
+# aidevops privacy guard: blocks pushes that add private repository names,
+# client identifiers or local paths to this public repository. It runs only
+# on machines with aidevops installed; other contributors skip it.
+# Bypass for one push: PRIVACY_GUARD_DISABLE=1 git push
+guard="$HOME/.aidevops/agents/hooks/privacy-guard-pre-push.sh"
+if [ -x "$guard" ]; then
+	"$guard" "$@"
+fi
