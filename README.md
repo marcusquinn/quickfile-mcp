@@ -1,5 +1,20 @@
 # QuickFile MCP Server and CLI
 
+<!-- aidevops:badges:start -->
+<!-- managed by aidevops badges; edit the template, not this block -->
+[![GitHub Actions](https://github.com/marcusquinn/quickfile-mcp/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/marcusquinn/quickfile-mcp/actions/workflows/ci.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=marcusquinn_quickfile-mcp&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=marcusquinn_quickfile-mcp)
+[![Codacy grade](https://app.codacy.com/project/badge/Grade/a2777b7658f140e894037816a0ca3a9c)](https://app.codacy.com/gh/marcusquinn/quickfile-mcp/dashboard)
+[![CodeFactor](https://www.codefactor.io/repository/github/marcusquinn/quickfile-mcp/badge)](https://www.codefactor.io/repository/github/marcusquinn/quickfile-mcp)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/marcusquinn/quickfile-mcp/blob/main/LICENSE)
+[![Latest release](https://img.shields.io/badge/release-latest-blue.svg)](https://github.com/marcusquinn/quickfile-mcp/releases/latest)
+
+[![Lines of code](docs/metrics/badges/loc.svg)](docs/metrics/repo-metrics.md)
+[![Dependencies](docs/metrics/badges/dependencies.svg)](docs/metrics/repo-metrics.md)
+
+[![Languages by lines of code](docs/metrics/badges/languages.svg)](docs/metrics/repo-metrics.md)
+<!-- aidevops:badges:end -->
+
 Model Context Protocol server and command-line client for QuickFile UK
 accounting, using the beta REST API with personal bearer tokens and explicit
 multi-account selection.
