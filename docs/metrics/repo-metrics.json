@@ -1,0 +1,136 @@
+{
+  "schema": "aidevops.repo-metrics.v1",
+  "schema_version": 1,
+  "generated_at": "2026-10-18T16:01:55Z",
+  "tool": {
+    "name": "aidevops repo-metrics",
+    "version": "1.0.0"
+  },
+  "repo": {
+    "name": "quickfile-mcp",
+    "slug": "marcusquinn/quickfile-mcp"
+  },
+  "summary": {
+    "source_files": 62,
+    "code": 20364,
+    "comments": 468,
+    "blanks": 1077,
+    "languages": 6,
+    "dependencies": 555
+  },
+  "languages": [
+    {
+      "name": "JSON",
+      "files": 7,
+      "code": 12928,
+      "comments": 0,
+      "blanks": 0,
+      "percentage": 63.48,
+      "color": "#292929"
+    },
+    {
+      "name": "TypeScript",
+      "files": 33,
+      "code": 5906,
+      "comments": 445,
+      "blanks": 680,
+      "percentage": 29.0,
+      "color": "#3178c6"
+    },
+    {
+      "name": "Markdown",
+      "files": 12,
+      "code": 763,
+      "comments": 0,
+      "blanks": 297,
+      "percentage": 3.75,
+      "color": "#083fa1"
+    },
+    {
+      "name": "JavaScript",
+      "files": 3,
+      "code": 352,
+      "comments": 4,
+      "blanks": 29,
+      "percentage": 1.73,
+      "color": "#f1e05a"
+    },
+    {
+      "name": "YAML",
+      "files": 6,
+      "code": 306,
+      "comments": 17,
+      "blanks": 59,
+      "percentage": 1.5,
+      "color": "#cb171e"
+    },
+    {
+      "name": "Shell",
+      "files": 1,
+      "code": 109,
+      "comments": 2,
+      "blanks": 12,
+      "percentage": 0.54,
+      "color": "#89e051"
+    }
+  ],
+  "dependencies": {
+    "direct": 16,
+    "runtime": 2,
+    "dev": 14,
+    "locked": 555,
+    "total": 555,
+    "ecosystems": [
+      "npm"
+    ],
+    "manifests": [
+      {
+        "path": "package.json",
+        "ecosystem": "npm",
+        "direct": 16,
+        "runtime": 2,
+        "dev": 14,
+        "locked": 555,
+        "dependencies": [
+          "@modelcontextprotocol/sdk",
+          "@secretlint/secretlint-rule-preset-recommend",
+          "@types/jest",
+          "@types/node",
+          "@typescript-eslint/eslint-plugin",
+          "@typescript-eslint/parser",
+          "eslint",
+          "eslint-config-prettier",
+          "husky",
+          "jest",
+          "prettier",
+          "secretlint",
+          "ts-jest",
+          "tsx",
+          "typescript",
+          "zod"
+        ],
+        "dev_dependencies": [
+          "@secretlint/secretlint-rule-preset-recommend",
+          "@types/jest",
+          "@types/node",
+          "@typescript-eslint/eslint-plugin",
+          "@typescript-eslint/parser",
+          "eslint",
+          "eslint-config-prettier",
+          "husky",
+          "jest",
+          "prettier",
+          "secretlint",
+          "ts-jest",
+          "tsx",
+          "typescript"
+        ]
+      }
+    ]
+  },
+  "refresh": {
+    "default_policy": "weekly scheduled refresh plus manual runs; skip generated outputs younger than 24h in managed workflows",
+    "cost_profile": "fast local git/unignored-file scan; no network by default",
+    "top_languages": 6
+  }
+}
