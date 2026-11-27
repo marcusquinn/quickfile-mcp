@@ -53,7 +53,7 @@ const PAYMENT_TOOLS = new Set([
 ]);
 const GUARD_WINDOW_DAYS = 7;
 const GUARD_PAGE_SIZE = 100;
-const GUARD_MAX_PAGES = 5;
+const GUARD_MAX_PAGES = 50;
 
 const GUARD_NOTE =
   " With a bank nominal_code this always creates a NEW bank transaction: " +
@@ -105,6 +105,7 @@ function dayShift(date: string, days: number): string | undefined {
 export async function findMatchingUntaggedLines(
   client: ReturnType<typeof getApiClient>,
   body: Record<string, unknown>,
+  direction: "in" | "out" = "in",
 ): Promise<unknown[]> {
   const nominal = body.nominal_code;
   const amount = Number(body.amount);
@@ -113,10 +114,16 @@ export async function findMatchingUntaggedLines(
   if (nominal === undefined || !Number.isFinite(amount) || !from || !to) {
     return [];
   }
+  const accounts = await client.request<{ data?: Array<Record<string, unknown>> }>(
+    "/bank_accounts",
+    { query: { nominal_code: nominal } },
+  );
+  const accountId = accounts.data?.[0]?.id ?? nominal;
+  const expected = direction === "in" ? Math.abs(amount) : -Math.abs(amount);
   const matches: unknown[] = [];
   for (let page = 0; page < GUARD_MAX_PAGES; page++) {
     const response = await client.request<{ data?: Array<Record<string, unknown>> }>(
-      `/bank_accounts/${encodeURIComponent(String(nominal))}/transactions`,
+      `/bank_accounts/${encodeURIComponent(String(accountId))}/transactions`,
       {
         query: {
           tag_status: "untagged",
@@ -129,15 +136,17 @@ export async function findMatchingUntaggedLines(
     );
     const rows = response.data ?? [];
     for (const row of rows) {
-      if (Math.abs(Math.abs(Number(row.amount)) - Math.abs(amount)) < 0.005) {
+      if (Math.abs(Number(row.amount) - expected) < 0.005) {
         matches.push(row);
       }
     }
     if (rows.length < GUARD_PAGE_SIZE) {
-      break;
+      return matches;
     }
   }
-  return matches;
+  throw new Error(
+    `Duplicate bank line guard could not exhaust untagged transactions within ${GUARD_MAX_PAGES * GUARD_PAGE_SIZE} results; refusing to post. Narrow the date or retry with allow_new_bank_line: true.`,
+  );
 }
 
 export function isRestReadOnlyTool(toolName: string): boolean {
@@ -229,13 +238,20 @@ export async function handleRestTool(
         const matches = await findMatchingUntaggedLines(
           getApiClient(args.account as string),
           body,
+          toolName === "quickfile_rest_supplier_payment_post" ? "out" : "in",
         );
         if (matches.length > 0) {
           return errorResult(
             `Refused: ${matches.length} untagged bank line(s) with the same amount exist within ${GUARD_WINDOW_DAYS} days of ${String(body.date)} on nominal ${String(body.nominal_code)}. ` +
               "Posting this payment would create a duplicate bank line. Tag the existing line in the QuickFile web app (Bank > untagged > tag), " +
               "or retry with allow_new_bank_line: true to create a new line. Matching lines: " +
-              JSON.stringify(matches),
+              JSON.stringify(
+                (matches as Array<Record<string, unknown>>).map((row) => ({
+                  id: row.id,
+                  date: row.date,
+                  amount: row.amount,
+                })),
+              ),
           );
         }
       }

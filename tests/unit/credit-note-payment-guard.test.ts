@@ -65,16 +65,27 @@ describe("credit notes and payment guard", () => {
   };
 
   it("refuses a payment when a matching untagged bank line exists", async () => {
-    request.mockResolvedValueOnce({ data: [{ id: 1, amount: 100, date: "2026-11-21" }] });
+    request
+      .mockResolvedValueOnce({ data: [{ id: 42 }] })
+      .mockResolvedValueOnce({
+        data: [
+          { id: 1, amount: -100, date: "2026-11-21" },
+          { id: 2, amount: 100, date: "2026-11-21", notes: "secret" },
+        ],
+      });
     const result = await handleRestTool("quickfile_rest_client_payment_post", {
       account: "evergreen",
       body: payment,
     });
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain("Refused");
-    expect(request).toHaveBeenCalledTimes(1);
+    expect(result.content[0].text).toContain("Refused: 1 untagged");
+    expect(result.content[0].text).not.toContain("secret");
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(request).toHaveBeenNthCalledWith(1, "/bank_accounts", {
+      query: { nominal_code: 1200 },
+    });
     expect(request).toHaveBeenCalledWith(
-      "/bank_accounts/1200/transactions",
+      "/bank_accounts/42/transactions",
       expect.objectContaining({
         query: expect.objectContaining({
           tag_status: "untagged",
@@ -87,6 +98,7 @@ describe("credit notes and payment guard", () => {
 
   it("posts when there is no match or the override is set", async () => {
     request
+      .mockResolvedValueOnce({ data: [{ id: 42 }] })
       .mockResolvedValueOnce({ data: [{ id: 1, amount: 55 }] })
       .mockResolvedValueOnce({ id: 77 });
     const ok = await handleRestTool("quickfile_rest_client_payment_post", {

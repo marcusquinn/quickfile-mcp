@@ -282,13 +282,22 @@ export async function handleInvoiceTool(
           method: "POST",
           body: createCreditNoteBody(args, client),
         });
-        const creditNote = await client.request(`/invoices/${response.id}`);
-        return successResult({
-          success: true,
-          account: args.account,
-          creditNoteId: response.id,
-          creditNote,
-        });
+        try {
+          const creditNote = await client.request(`/invoices/${response.id}`);
+          return successResult({
+            success: true,
+            account: args.account,
+            creditNoteId: response.id,
+            creditNote,
+          });
+        } catch (readBackError) {
+          return successResult({
+            success: true,
+            account: args.account,
+            creditNoteId: response.id,
+            warning: `Credit note created but read-back failed (${readBackError instanceof Error ? readBackError.message : "unknown error"}). Do not retry creation; fetch /invoices/${response.id} instead.`,
+          });
+        }
       }
       case "quickfile_invoice_delete":
         await client.request(`/invoices/${args.invoiceId}`, {
