@@ -118,12 +118,16 @@ export async function findMatchingUntaggedLines(
     "/bank_accounts",
     { query: { nominal_code: nominal } },
   );
-  const accountId = accounts.data?.[0]?.id ?? nominal;
+  const resolvedId = accounts.data?.[0]?.id;
+  if (typeof resolvedId !== "number" && typeof resolvedId !== "string") {
+    return [];
+  }
+  const accountId = String(resolvedId);
   const expected = direction === "in" ? Math.abs(amount) : -Math.abs(amount);
   const matches: unknown[] = [];
   for (let page = 0; page < GUARD_MAX_PAGES; page++) {
     const response = await client.request<{ data?: Array<Record<string, unknown>> }>(
-      `/bank_accounts/${encodeURIComponent(String(accountId))}/transactions`,
+      `/bank_accounts/${encodeURIComponent(accountId)}/transactions`,
       {
         query: {
           tag_status: "untagged",
