@@ -45,7 +45,8 @@ Call `quickfile_system_capabilities` for this list at runtime.
 | Delete bank transaction | Web app only |
 
 Bank-tagging and transaction-delete endpoints have been requested from
-QuickFile: https://support.quickfile.co.uk/t/public-mcp-server/65504
+QuickFile in the
+[public MCP server thread](https://support.quickfile.co.uk/t/public-mcp-server/65504).
 
 ## REST notes
 
