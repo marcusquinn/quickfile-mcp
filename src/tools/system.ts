@@ -10,7 +10,33 @@ import {
   type ToolResult,
 } from "./utils.js";
 
+export const capabilityMatrix = {
+  supported: [
+    "Invoices/estimates: create, get, search, send, PDF, delete",
+    "Credit notes: quickfile_credit_note_create (void, refund, hold)",
+    "Payments: quickfile_rest_client_payment_post / quickfile_rest_supplier_payment_post (guarded against duplicate bank lines)",
+    "Bank: list accounts, balances, search transactions (tagged/untagged), create transaction",
+    "Everything else published in REST v2: quickfile_rest_* tools",
+  ],
+  notSupported: [
+    "Edit a payment: delete and re-create it instead",
+    "Tag an existing untagged bank line to a payment: web app only (Bank > untagged > tag)",
+    "Delete a bank transaction: web app only",
+    "Search credit notes via invoice search: CREDIT type returns HTTP 400",
+  ],
+  notes: [
+    "quickfile_rest_invoice_put replaces every line, so all line IDs change after any edit; re-send unchanged lines alongside the edited one.",
+    "Payments with a bank nominal_code always create a new bank transaction.",
+  ],
+};
+
 export const systemTools: Tool[] = [
+  {
+    name: "quickfile_system_capabilities",
+    description:
+      "List what this MCP server can and cannot do against QuickFile REST v2 (capability matrix and known limits)",
+    inputSchema: { type: "object", properties: {}, required: [] },
+  },
   {
     name: "quickfile_system_get_account",
     description:
@@ -40,6 +66,9 @@ export async function handleSystemTool(
   toolName: string,
   args: Record<string, unknown>,
 ): Promise<ToolResult> {
+  if (toolName === "quickfile_system_capabilities") {
+    return successResult(capabilityMatrix);
+  }
   const client = getApiClient(args.account as string);
   try {
     switch (toolName) {

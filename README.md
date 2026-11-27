@@ -214,7 +214,14 @@ commands are `quickfile` and `quickfile-mcp`.
 | Documents     | Receipt and sales-attachment uploads                                                                                                                                  |
 | Exact REST v2 | All 79 published operations, including payments, inventory, journals, ledgers, projects, purchase orders, contacts, recurring templates, and general document uploads |
 
-Invoice creation supports invoice, estimate, and credit document types. The
+Invoice creation supports invoice and estimate types; credit notes use
+`quickfile_credit_note_create` (REST v2 `credit_note`: void, refund, hold).
+`quickfile_system_capabilities` lists what REST v2 can and cannot do: payment
+edit is delete and re-create, and tagging an existing bank line or deleting a
+bank transaction is web app only. Payments with a bank nominal are refused when
+an untagged bank line of the same amount exists within 7 days, unless
+`allow_new_bank_line: true`. `quickfile_rest_invoice_put` replaces every line,
+so line IDs change after any edit. The
 REST v2 schema now publishes estimate status changes (accept, decline, draft),
 estimate-to-invoice conversion, and single or batch invoice sending. These are
 available as generated `quickfile_rest_*` tools and, like every other write,
