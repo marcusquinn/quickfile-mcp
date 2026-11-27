@@ -26,8 +26,8 @@ describe("generated REST v2 operations", () => {
     expect(restOperationCount).toBe(79);
     expect(restTools).toHaveLength(79);
     expect(new Set(restTools.map((tool) => tool.name)).size).toBe(79);
-    expect(allTools).toHaveLength(116);
-    expect(new Set(allTools.map((tool) => tool.name)).size).toBe(116);
+    expect(allTools).toHaveLength(118);
+    expect(new Set(allTools.map((tool) => tool.name)).size).toBe(118);
   });
 
   it("includes schema areas that were absent from curated tools", () => {

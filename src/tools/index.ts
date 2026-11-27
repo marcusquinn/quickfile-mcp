@@ -52,6 +52,7 @@ const baseTools: Tool[] = [
 const readOnlyTools = new Set([
   "quickfile_system_get_account",
   "quickfile_system_search_events",
+  "quickfile_system_capabilities",
   "quickfile_client_search",
   "quickfile_client_get",
   "quickfile_invoice_search",
@@ -183,7 +184,10 @@ export async function handleToolCall(
   }
 
   // Invoice tools (invoice creation also supports estimate and credit types)
-  if (toolName.startsWith("quickfile_invoice_")) {
+  if (
+    toolName.startsWith("quickfile_invoice_") ||
+    toolName.startsWith("quickfile_credit_note_")
+  ) {
     return handleInvoiceTool(toolName, handlerArgs);
   }
 

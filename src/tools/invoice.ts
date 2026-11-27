@@ -19,13 +19,14 @@ const invoiceIdProperty = { invoiceId: { type: "number" as const } };
 export const invoiceTools: Tool[] = [
   {
     name: "quickfile_invoice_search",
-    description: "Search invoices, estimates, recurring invoices, or credits",
+    description:
+      "Search invoices, estimates, or recurring invoices. Credit notes are not a searchable type (the legacy CREDIT filter returns HTTP 400).",
     inputSchema: {
       type: "object",
       properties: {
         invoiceType: {
           type: "string",
-          enum: ["INVOICE", "ESTIMATE", "RECURRING", "CREDIT"],
+          enum: ["INVOICE", "ESTIMATE", "RECURRING"],
         },
         clientId: { type: "number" },
         ...dateRangeSearchProperties,
@@ -47,13 +48,14 @@ export const invoiceTools: Tool[] = [
   },
   {
     name: "quickfile_invoice_create",
-    description: "Create an invoice, estimate, or credit note",
+    description:
+      "Create an invoice or estimate. For credit notes use quickfile_credit_note_create.",
     inputSchema: {
       type: "object",
       properties: {
         invoiceType: {
           type: "string",
-          enum: ["INVOICE", "ESTIMATE", "CREDIT"],
+          enum: ["INVOICE", "ESTIMATE"],
         },
         clientId: { type: "number" },
         currency: { type: "string", default: "GBP" },
@@ -74,6 +76,38 @@ export const invoiceTools: Tool[] = [
         },
       },
       required: ["invoiceType", "clientId", "lines"],
+    },
+  },
+  {
+    name: "quickfile_credit_note_create",
+    description:
+      "Create a credit note via REST v2 POST /invoices with credit_note, then read it back. 'void' writes off an unpaid balance and 'hold' leaves credit on account (both need invoiceId); 'refund' returns money from a bank nominal (needs nominalCode).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        creditType: { type: "string", enum: ["void", "refund", "hold"] },
+        invoiceId: { type: "number" },
+        nominalCode: {
+          type: "number",
+          description: "Bank nominal (1200-1299) to refund from; refund only",
+        },
+        clientId: { type: "number" },
+        currency: { type: "string", default: "GBP" },
+        issueDate: { type: "string" },
+        notes: { type: "string" },
+        lines: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              ...lineItemSchemaProperties,
+              nominalCode: { type: "string" },
+            },
+            required: ["description", "unitCost", "quantity"],
+          },
+        },
+      },
+      required: ["creditType", "clientId", "lines"],
     },
   },
   {
@@ -139,11 +173,11 @@ function mapStatus(status: unknown): string | undefined {
   return statuses[String(status)] ?? String(status).toLowerCase();
 }
 
-function createInvoiceBody(
+function buildItemLines(
   args: Record<string, unknown>,
   client: ReturnType<typeof getApiClient>,
-): Record<string, unknown> {
-  const lines = (args.lines as LineItemInput[]).map((line) => ({
+): Array<Record<string, unknown>> {
+  return (args.lines as LineItemInput[]).map((line) => ({
     description: line.description,
     nominal_code: line.nominalCode
       ? Number.parseInt(line.nominalCode, 10)
@@ -155,6 +189,39 @@ function createInvoiceBody(
     unit_cost: line.unitCost,
     qty: line.quantity,
   }));
+}
+
+export function createCreditNoteBody(
+  args: Record<string, unknown>,
+  client: ReturnType<typeof getApiClient>,
+): Record<string, unknown> {
+  const creditType = String(args.creditType);
+  if (creditType === "refund" && !args.nominalCode) {
+    throw new Error("nominalCode (bank nominal) is required for a refund credit note");
+  }
+  if (creditType !== "refund" && !args.invoiceId) {
+    throw new Error(`invoiceId is required for a ${creditType} credit note`);
+  }
+  return cleanParams({
+    type: "invoice",
+    client_id: args.clientId,
+    currency: args.currency ?? "GBP",
+    issue_date: args.issueDate,
+    notes: args.notes,
+    item_lines: buildItemLines(args, client),
+    credit_note: cleanParams({
+      type: creditType,
+      invoice_id: args.invoiceId,
+      nominal_code: args.nominalCode,
+    }),
+  });
+}
+
+function createInvoiceBody(
+  args: Record<string, unknown>,
+  client: ReturnType<typeof getApiClient>,
+): Record<string, unknown> {
+  const lines = buildItemLines(args, client);
   return cleanParams({
     type: String(args.invoiceType).toLowerCase(),
     client_id: args.clientId,
@@ -208,6 +275,19 @@ export async function handleInvoiceTool(
           success: true,
           invoiceId: response.id,
           invoiceNumber: response.invoice_number,
+        });
+      }
+      case "quickfile_credit_note_create": {
+        const response = await client.request<InvoiceResponse>("/invoices", {
+          method: "POST",
+          body: createCreditNoteBody(args, client),
+        });
+        const creditNote = await client.request(`/invoices/${response.id}`);
+        return successResult({
+          success: true,
+          account: args.account,
+          creditNoteId: response.id,
+          creditNote,
         });
       }
       case "quickfile_invoice_delete":

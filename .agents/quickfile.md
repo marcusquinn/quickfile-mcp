@@ -31,6 +31,22 @@ Start consequential workflows with `quickfile_system_get_account` to verify the
 alias points to the intended entity. Confirm create, update, send, upload, and
 delete operations before calling them.
 
+## Capability matrix
+
+Call `quickfile_system_capabilities` for this list at runtime.
+
+| Need | Supported path |
+|---|---|
+| Credit note | `quickfile_credit_note_create` (`void`, `refund`, `hold`); legacy `CREDIT` invoice type returns HTTP 400 and is removed |
+| Edit invoice line | `quickfile_rest_invoice_put` replaces every line, so all line IDs change; re-send unchanged lines |
+| Record payment | `quickfile_rest_client_payment_post`; with a bank nominal it always creates a new bank line. Guard refuses if an untagged line of the same amount is within 7 days; override with `allow_new_bank_line: true` |
+| Edit payment | Not available: delete and re-create |
+| Tag existing bank line | Web app only (Bank > untagged > tag) |
+| Delete bank transaction | Web app only |
+
+Bank-tagging and transaction-delete endpoints have been requested from
+QuickFile: https://support.quickfile.co.uk/t/public-mcp-server/65504
+
 ## REST notes
 
 - API docs: https://api-beta.quickfile.co.uk/api-docs/
