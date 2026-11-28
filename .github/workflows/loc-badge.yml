@@ -49,7 +49,10 @@ jobs:
       # legacy_badge_dir: .github/badges   # only for READMEs using legacy badge paths
       # top_n: 8
       # skip_if_fresh_hours: 24
-      # fail_on_push_error: false          # default true: failed direct/PR publication fails the job
+      # GH#175: the repo disallows Actions-created PRs and no SYNC_PAT is set, so protected-branch
+      # publication cannot succeed. Warn instead of failing; remove once SYNC_PAT or the
+      # "Allow GitHub Actions to create and approve pull requests" setting is configured.
+      fail_on_push_error: false
       # extra_excludes: |
       #   fixtures/
       #   test-data/
